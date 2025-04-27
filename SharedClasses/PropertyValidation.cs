@@ -9,6 +9,7 @@ namespace SharedClasses
     public class PropertyValidation
     {
         public bool Required { get; set; } = false;
+        public bool Unique { get; set; } = false;
         public int? MinLength { get; set; }
         public int? MaxLength { get; set; }
         public int? MinRange { get; set; }

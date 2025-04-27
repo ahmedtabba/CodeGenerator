@@ -1,47 +1,281 @@
-﻿using SharedClasses;
+﻿using Microsoft.Win32;
+using SharedClasses;
 
 namespace ApiGenerator
 {
     public static class Api
     {
-        public static void GenerateNeededDtos(string entityName, string entityPlural, List<(string Type, string Name, PropertyValidation Validation)> properties, string solutionDir)
+        public static void GenerateNeededDtos(string entityName, string entityPlural, List<(string Type, string Name, PropertyValidation Validation)> properties, string solutionDir,bool hasLocalization,List<Relation> relations)
         {
             var dtoPath = Path.Combine(solutionDir, "Api", "NeededDto", entityName);
             Directory.CreateDirectory(dtoPath);
-
-            GenerateUpdateCommandDto(entityName, dtoPath, properties);
+            var hasImages = properties.Any(p => p.Type == "GPG" || p.Type == "PNGs");
+            if (hasLocalization)
+                GenerateLocalizationDto(entityName, dtoPath);
+            if (hasLocalization || hasImages)
+                GenerateCreateCommandDto(entityName, dtoPath,properties,entityPlural,relations,hasLocalization,hasImages);
+            GenerateUpdateCommandDto(entityName, dtoPath, properties,hasLocalization,hasImages,entityPlural,relations);
             GenerateGetWithPaginationQueryDto(entityName, entityPlural, dtoPath);
         }
-        public static void GenerateUpdateCommandDto(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties)
+
+        public static void GenerateCreateCommandDto(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties,string entityPlural,List<Relation> relations,bool hasLocalization,bool hasImages)
+        {
+            string fileName = $"Create{entityName}CommandDto.cs";
+            string filePath = Path.Combine(path, fileName);
+            string? localizationProp = hasLocalization ? $"\t\tpublic {entityName}LocalizationDto[] {entityName}LocalizationDtos {{ get; set; }} = [];" : null;
+            string? localizationMapp = hasLocalization ? $".ForMember(dest => dest.{entityName}LocalizationApps, opt => opt.MapFrom(src => src.{entityName}LocalizationDtos.To{entityName}LocalizationAppList()))" : null;
+            string? ImageProp = properties.Any(p => p.Type == "GPG") ? 
+                properties.First(t => t.Type == "GPG").Validation !=null ? $"\t\tpublic IFormFile {properties.First(t => t.Type == "GPG").Name}FormFile {{ get; set;}}" : $"\t\tpublic IFormFile? {properties.First(t => t.Type == "GPG").Name}FormFile {{ get; set;}}"
+                :null;
+
+            string? ImageMapp = properties.Any(p => p.Type == "GPG") ?
+                properties.First(t => t.Type == "GPG").Validation != null ? $".ForMember(dest => dest.{properties.First(t => t.Type == "GPG").Name}File, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "GPG").Name}FormFile.ToFileDto()))" : $".ForMember(dest => dest.{properties.First(t => t.Type == "GPG").Name}File, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "GPG").Name}FormFile != null ? src.{properties.First(t => t.Type == "GPG").Name}FormFile.ToFileDto(): null))"
+                : null;
+
+            string? ListImageProp = properties.Any(p => p.Type == "PNGs") ?
+                $"\t\tpublic List<IFormFile> {properties.First(t => t.Type == "PNGs").Name}FormFiles {{ get; set;}} = new List<IFormFile>();"
+                : null;
+
+            string? ListImageMapp = properties.Any(p => p.Type == "PNGs") ?
+                $".ForMember(dest => dest.{properties.First(t => t.Type == "PNGs").Name}Files, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "PNGs").Name}FormFiles.ToFileDtoList()))"
+                : null;
+
+            List<string> filtersProps = new List<string>();
+            foreach (var relation in relations)
+            {
+                switch (relation.Type)
+                {
+                    case RelationType.OneToOneSelfJoin:
+                        filtersProps.Add($"\t\tpublic Guid? {relation.RelatedEntity}Id {{  get; set; }}\n");
+                        break;
+                    case RelationType.OneToOne:
+                        filtersProps.Add($"\t\tpublic Guid {relation.RelatedEntity}Id {{  get; set; }}\n");
+                        break;
+                    case RelationType.OneToOneNullable:
+                        filtersProps.Add($"\t\tpublic Guid? {relation.RelatedEntity}Id {{  get; set; }}\n");
+                        break;
+                    case RelationType.ManyToOne:
+                        filtersProps.Add($"\t\tpublic Guid {relation.RelatedEntity}Id {{  get; set; }}\n");
+                        break;
+                    case RelationType.ManyToOneNullable:
+                        filtersProps.Add($"\t\tpublic Guid? {relation.RelatedEntity}Id {{  get; set; }}\n");
+                        break;
+                    default:
+                        break;
+                }
+            }
+            var filtersPropsList = string.Join(Environment.NewLine, filtersProps);
+            string mapper = $@"
+        public class Mapping : Profile
+        {{
+            public Mapping()
+            {{
+                CreateMap<Create{entityName}CommandDto, Create{entityName}Command>()
+                    {localizationMapp}
+                    {ImageMapp}
+                    {ListImageMapp}
+                    ;
+            }}
+        }}
+";
+            var props = string.Join(Environment.NewLine, properties
+                .Where(p=>p.Type!="GPG" && p.Type != "PNGs")
+                .Select(p => $"        public {p.Type} {p.Name} {{ get; set; }}"));
+
+            string content = $@"using AutoMapper;
+using Application.{entityPlural}.Commands.Create{entityName};
+using Api.Utilities;
+
+namespace Api.NeededDto.{entityName}
+{{
+    public class Create{entityName}CommandDto
+    {{
+{props}
+{ImageProp}
+{ListImageProp}
+{localizationProp}
+{filtersPropsList}
+{mapper}
+    }}
+
+}}";
+            File.WriteAllText(filePath, content);
+        }
+
+        public static void GenerateUpdateCommandDto(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties,bool hasLocalization,bool hasImages,string entityPlural,List<Relation> relations)
         {
             string fileName = $"Update{entityName}CommandDto.cs";
             string filePath = Path.Combine(path, fileName);
+            string? localizationProp = hasLocalization ? $"\t\tpublic {entityName}LocalizationDto[] {entityName}LocalizationDtos {{ get; set; }} = [];" : null;
+            string? localizationMapp = hasLocalization ? $".ForMember(dest => dest.{entityName}LocalizationApps, opt => opt.MapFrom(src => src.{entityName}LocalizationDtos.To{entityName}LocalizationAppList()))" : null;
+            string? ImageProp = properties.Any(p => p.Type == "GPG") ?
+                 $"\t\tpublic IFormFile? {properties.First(t => t.Type == "GPG").Name}FormFile {{ get; set;}}"
+                : null;
+            string? DeleteImageOrOldUrlProp = properties.Any(p => p.Type == "GPG") ?
+                properties.First(t => t.Type == "GPG").Validation == null ? $"\t\tpublic bool? DeleteOld{properties.First(t => t.Type == "GPG").Name} {{ get; set; }}"
+                : $"\t\tpublic string? Old{properties.First(t => t.Type == "GPG").Name}Url {{ get; set; }}"
+                : null;
+            string? ImageMapp = properties.Any(p => p.Type == "GPG") ?
+                $".ForMember(dest => dest.{properties.First(t => t.Type == "GPG").Name}File, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "GPG").Name}FormFile != null ? src.{properties.First(t => t.Type == "GPG").Name}FormFile.ToFileDto(): null))"
+                : null;
 
-            var props = string.Join(Environment.NewLine, properties.Select(p => $"        public {p.Type} {p.Name} {{ get; set; }}"));
+            string? ListImageProp = properties.Any(p => p.Type == "PNGs") ?
+                $"\t\tpublic List<IFormFile> {properties.First(t => t.Type == "PNGs").Name}FormFiles {{ get; set;}} = new List<IFormFile>();"
+                : null;
 
-            string content = $@"namespace Api.NeededDto.{entityName}
+            string? ListImageMapp = properties.Any(p => p.Type == "PNGs") ?
+                $".ForMember(dest => dest.{properties.First(t => t.Type == "PNGs").Name}Files, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "PNGs").Name}FormFiles.ToFileDtoList()))"
+                : null;
+
+            string? DeletedOldImagesListProp = properties.Any(p => p.Type == "PNGs") ?
+                $"\t\tpublic List<string>? Deleted{properties.First(t => t.Type == "PNGs").Name}URLs {{ get; set; }}"
+                : null;
+
+            List<string> filtersProps = new List<string>();
+            foreach (var relation in relations)
+            {
+                switch (relation.Type)
+                {
+                    case RelationType.OneToOneSelfJoin:
+                        filtersProps.Add($"\t\tpublic Guid? {relation.RelatedEntity}Id {{  get; set; }}\n");
+                        break;
+                    case RelationType.OneToOne:
+                        filtersProps.Add($"\t\tpublic Guid {relation.RelatedEntity}Id {{  get; set; }}\n");
+                        break;
+                    case RelationType.OneToOneNullable:
+                        filtersProps.Add($"\t\tpublic Guid? {relation.RelatedEntity}Id {{  get; set; }}\n");
+                        break;
+                    case RelationType.ManyToOne:
+                        filtersProps.Add($"\t\tpublic Guid {relation.RelatedEntity}Id {{  get; set; }}\n");
+                        break;
+                    case RelationType.ManyToOneNullable:
+                        filtersProps.Add($"\t\tpublic Guid? {relation.RelatedEntity}Id {{  get; set; }}\n");
+                        break;
+                    default:
+                        break;
+                }
+            }
+            var filtersPropsList = string.Join(Environment.NewLine, filtersProps);
+
+            string? mapper =  $@"
+        public class Mapping : Profile
+        {{
+            public Mapping()
+            {{
+                CreateMap<Update{entityName}CommandDto, Update{entityName}Command>()
+                    {localizationMapp}
+                    {ImageMapp}
+                    {ListImageMapp}
+                    ;
+            }}
+        }}
+";
+            var props = string.Join(Environment.NewLine, properties
+                .Where(p => p.Type != "GPG" && p.Type != "PNGs")
+                .Select(p => $"        public {p.Type} {p.Name} {{ get; set; }}"));
+
+            string content = $@"using AutoMapper;
+using Application.{entityPlural}.Commands.Update{entityName};
+using Api.Utilities;
+
+namespace Api.NeededDto.{entityName}
 {{
     public class Update{entityName}CommandDto
     {{
 {props}
+{localizationProp}
+{ImageProp}
+{DeleteImageOrOldUrlProp}
+{ListImageProp}
+{DeletedOldImagesListProp}
+{filtersPropsList}
+{mapper}
     }}
 }}";
             File.WriteAllText(filePath, content);
+        }
+
+        public static void GenerateLocalizationDto(string entityName, string path)
+        {
+            string fileName = $"{entityName}LocalizationDto.cs";
+            string filePath = Path.Combine(path, fileName);
+
+            string content = $@"namespace Api.NeededDto.{entityName}
+{{
+    public class {entityName}LocalizationDto
+    {{
+        public Guid LanguageId {{ get; set; }}
+        public int FieldType {{ get; set; }}
+        public string Value {{ get; set; }} = null!;
+    }}
+}}";
+            File.WriteAllText(filePath, content);
+
+            string extensionsPath = Path.Combine(path, "..", "..", "Utilities", "Extensions.cs");
+            if (!File.Exists(extensionsPath))
+            {
+                Console.WriteLine("⚠️ Api Extensions.cs not found.");
+                return;
+            }
+
+            string extension = $@"
+        public static List<{entityName}LocalizationApp> To{entityName}LocalizationAppList(this {entityName}LocalizationDto[] dtoArray)
+        {{
+            var res = new List<{entityName}LocalizationApp>();
+            foreach (var item in dtoArray)
+            {{
+                var temp = new {entityName}LocalizationApp
+                {{
+                    LanguageId = item.LanguageId,
+                    FieldType = ({entityName}LocalizationFieldType)item.FieldType,
+                    Value = item.Value,
+                }};
+                res.Add(temp);
+            }}
+    
+            return res;
+        }}" 
+        +$"\n\t\t//Add Extension Here";
+
+            var lines = File.ReadAllLines(extensionsPath).ToList();
+            var index = lines.FindIndex(line => line.Contains("//Add Extension Here"));
+
+            if (index >= 0)
+            {
+                lines[index] = extension;
+                File.WriteAllLines(extensionsPath, lines);
+                Console.WriteLine("✅ Api Extensions updated.");
+            }
         }
         public static void GenerateGetWithPaginationQueryDto(string entityName, string entityPlural, string path)
         {
             string fileName = $"Get{entityPlural}WithPaginationQueryDto.cs";
             string filePath = Path.Combine(path, fileName);
 
-            string content = $@"namespace Api.NeededDto.{entityName}
+            string content = $@"
+using Api.Utilities;
+using Application.{entityPlural}.Queries.Get{entityPlural}WithPagination;
+using AutoMapper;
+
+namespace Api.NeededDto.{entityName}
 {{
     public class Get{entityPlural}WithPaginationQueryDto : FilterableRequestDto
     {{
         public int PageNumber {{ get; init; }} = 1;
         public int PageSize {{ get; init; }} = 10;
-        public string? SearchText {{ get; set; }}
+        public string? SearchText {{ get; set; }}  
+        public string? Sort {{ get; set; }}
 
         // Add your Filters Here
+
+        public class Mapping : Profile
+        {{
+            public Mapping()
+            {{
+                CreateMap<Get{entityPlural}WithPaginationQueryDto, Get{entityPlural}WithPaginationQuery>()
+                    .ForMember(dest => dest.Filters, opt => opt.MapFrom(src => src.Filters.ToFilterRequest()));
+            }}
+        }}
     }}
 }}";
             File.WriteAllText(filePath, content);
@@ -85,23 +319,35 @@ namespace ApiGenerator
                 return;
             }
 
-            content = content.Insert(insertIndex, "\n\n" + routeClass + "\n");
+            content = content.Insert(insertIndex, "\n" + routeClass + "\n\t");
             File.WriteAllText(filePath, content);
 
             Console.WriteLine($"✅ ApiRoutes updated with {entityName} routes.");
         }
 
 
-        public static void GenerateController(string entityName, string entityPlural, List<(string Type, string Name, PropertyValidation Validation)> properties, string solutionDir)
+        public static void GenerateController(string entityName, string entityPlural, List<(string Type, string Name, PropertyValidation Validation)> properties, string solutionDir,bool hazLocalization)
         {
             var controllerName = $"{entityPlural}Controller.cs";
             var filePath = Path.Combine(solutionDir, "Api", "Controllers", controllerName);
 
             var lowerEntity = entityName.ToLower();
             var pluralLower = entityPlural.ToLower();
+            string createParam = $"Create{entityName}Command command";
+            string createCode = $@"
+                var result = await _sender.Send(command);
+                return Ok(result);";
+            if (hazLocalization)
+            {
+                createParam = $"Create{entityName}CommandDto dto";
+                createCode = $@"
+                var command = _mapper.Map<Create{entityName}Command>(dto);
+                var result = await _sender.Send(command);
+                return Ok(result);";
+            }
 
-            string filledProperties = string.Join(Environment.NewLine, properties.Select(p =>
-                $"                    {p.Name} = dto.{p.Name},"));
+            //string filledProperties = string.Join(Environment.NewLine, properties.Select(p =>
+            //    $"                    {p.Name} = dto.{p.Name},"));
 
             string content = $@"using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -116,6 +362,7 @@ using Application.{entityPlural}.Commands.Update{entityName};
 using Application.{entityPlural}.Queries.Get{entityName}Query;
 using Application.{entityPlural}.Queries.Get{entityPlural}WithPagination;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using AutoMapper;
 
 namespace Api.Controllers
 {{
@@ -124,22 +371,23 @@ namespace Api.Controllers
     {{
         private readonly ILogger<{entityPlural}Controller> _logger;
         private readonly ISender _sender;
+        private readonly IMapper _mapper;
 
-        public {entityPlural}Controller(ILogger<{entityPlural}Controller> logger, ISender sender)
+        public {entityPlural}Controller(ILogger<{entityPlural}Controller> logger, ISender sender,IMapper mapper)
         {{
             _logger = logger;
             _sender = sender;
+            _mapper = mapper;
         }}
 
         [Route(ApiRoutes.{entityName}.Create)]
         [HttpPost]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<IActionResult> Create([FromBody] Create{entityName}Command command)
+        public async Task<IActionResult> Create([FromBody] {createParam})
         {{
             try
             {{
-                var result = await _sender.Send(command);
-                return Ok(result);
+{createCode}
             }}
             catch (Exception ex)
             {{
@@ -155,13 +403,7 @@ namespace Api.Controllers
         {{
             try
             {{
-                var query = new Get{entityPlural}WithPaginationQuery
-                {{
-                    PageNumber = dto.PageNumber,
-                    PageSize = dto.PageSize,
-                    SearchText = dto.SearchText,
-                    Filters = dto.Filters.ToFilterRequest()
-                }};
+                Get{entityPlural}WithPaginationQuery query = _mapper.Map<Get{entityPlural}WithPaginationQuery>(dto);
                 return Ok(await _sender.Send(query));
             }}
             catch (ValidationException ex)
@@ -226,11 +468,8 @@ namespace Api.Controllers
         {{
             try
             {{
-                var command = new Update{entityName}Command
-                {{
-                    Id = {lowerEntity}Id,
-{filledProperties}
-                }};
+                var command = _mapper.Map<Update{entityName}Command>(dto);
+                command.{entityName}Id = {lowerEntity}Id;
                 await _sender.Send(command);
                 return NoContent();
             }}

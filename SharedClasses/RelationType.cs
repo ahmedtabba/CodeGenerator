@@ -8,6 +8,7 @@ namespace SharedClasses
 {
     public enum RelationType
     {
+        OneToOneSelfJoin,
         OneToOne,
         OneToOneNullable,
         OneToMany,

@@ -16,6 +16,11 @@ class Program
         Console.Write("Enter Entity Name (e.g., City): ");
         var entityName = Console.ReadLine()?.Trim();
 
+        bool hasLocalization = false;
+        Console.WriteLine("Is entity has Localization? (y/n): ");
+        var answer = Console.ReadLine();
+        if (answer?.ToLower() == "y")
+            hasLocalization = true;
         if (string.IsNullOrWhiteSpace(entityName))
         {
             Console.WriteLine("❌ Entity name is required.");
@@ -44,12 +49,8 @@ class Program
         Directory.CreateDirectory(deleteCommandPath);
 
         // Get properties
-        var properties = GetPropertiesFromUser(entityName);
-        bool hasLocalization = false;
-        Console.WriteLine("Is entity has Localization? (y/n): ");
-        var answer = Console.ReadLine();
-        if (answer?.ToLower() == "y")
-            hasLocalization = true;
+        var properties = GetPropertiesFromUser(entityName,hasLocalization);
+       
         var relations = GetRelationsFromUser();
         Domain.GenerateEntityClass(entityName, domainPath, properties, hasLocalization, relations);
         
@@ -68,7 +69,7 @@ class Program
                     ("Guid",$"{entityName}Id",new PropertyValidation()),
                     ("Guid",$"{relation.RelatedEntity}Id",new PropertyValidation())
                 };
-                Domain.GenerateEntityClass($"{entityName}{relation.RelatedEntity}", domainPath, props, false, new List<Relation>());
+                Domain.GenerateEntityClass($"{entityName}{relation.RelatedEntity}", domainPath, (props,new List<string>()), false, new List<Relation>());
                 Infrastructure.UpdateAppDbContext($"{entityName}{relation.RelatedEntity}", domainPath);
                 Application.GenerateIRepositoryInterface($"{entityName}{relation.RelatedEntity}", repoInterfacePath);
                 Infrastructure.GenerateRepository($"{entityName}{relation.RelatedEntity}", repoPath);
@@ -86,27 +87,27 @@ class Program
         if (hasLocalization)
             Infrastructure.UpdateDependencyInjection($@"{entityName}Localization", domainPath);
 
-        Application.GenerateCreateCommand(entityName, entityPlural, createCommandPath, properties);
-        Application.GenerateCreateCommandValidator(entityName, entityPlural, createCommandPath, properties);
+        Application.GenerateCreateCommand(entityName, entityPlural, createCommandPath, properties.Item1,hasLocalization,relations);
+        Application.GenerateCreateCommandValidator(entityName, entityPlural, createCommandPath, properties.Item1, relations);
 
-        Application.GenerateUpdateCommand(entityName, entityPlural, updateCommandPath, properties);
-        Application.GenerateUpdateCommandValidator(entityName, entityPlural, updateCommandPath, properties);
-
-
-        Application.GenerateDeleteCommand(entityName, entityPlural, deleteCommandPath, properties);
-        Application.GenerateDeleteCommandValidator(entityName, entityPlural, deleteCommandPath, properties);
+        Application.GenerateUpdateCommand(entityName, entityPlural, updateCommandPath, properties.Item1,hasLocalization, relations);
+        Application.GenerateUpdateCommandValidator(entityName, entityPlural, updateCommandPath, properties.Item1, relations);
 
 
-        Application.GenerateGetByIdQuery(entityName, entityPlural, queryPath);
+        Application.GenerateDeleteCommand(entityName, entityPlural, deleteCommandPath, properties.Item1);
+        Application.GenerateDeleteCommandValidator(entityName, entityPlural, deleteCommandPath, properties.Item1);
 
-        Application.GenerateGetWithPaginationQuery(entityName, entityPlural, queryPath);
-        Application.GenerateBaseDto(entityName, entityPlural, properties, solutionDir);
+         
+        Application.GenerateGetByIdQuery(entityName, entityPlural, queryPath, hasLocalization, relations);
 
-        Api.GenerateNeededDtos(entityName, entityPlural, properties, solutionDir);
+        Application.GenerateGetWithPaginationQuery(entityName, entityPlural, queryPath,hasLocalization,relations);
+        Application.GenerateBaseDto(entityName, entityPlural, properties.Item1, solutionDir,relations);
+
+        Api.GenerateNeededDtos(entityName, entityPlural, properties.Item1, solutionDir,hasLocalization,relations);
 
         Api.AddRoutesToApiRoutes(entityName, entityPlural, solutionDir);
 
-        Api.GenerateController(entityName, entityPlural, properties, solutionDir);
+        Api.GenerateController(entityName, entityPlural, properties.Item1, solutionDir,hasLocalization);
 
 
 
@@ -115,10 +116,10 @@ class Program
 
 
 
-    static List<(string Type, string Name, PropertyValidation Validation)> GetPropertiesFromUser(string entityName)
+    static (List<(string Type, string Name, PropertyValidation Validation)>,List<string> localizedProp) GetPropertiesFromUser(string entityName,bool hasLocalization)
     {
         var properties = new List<(string Type, string Name, PropertyValidation Validation)>();
-
+        var localizedProp = new List<string>();
         while (true)
         {
             Console.Write("Add new property? (y/n): ");
@@ -127,54 +128,90 @@ class Program
 
             Console.Write(" - Property Name: ");
             var name = Console.ReadLine()?.Trim();
-
-            Console.Write(" - Property Type: ");
-            var type = Console.ReadLine()?.Trim();
+            string type = null!;
 
             PropertyValidation propValidation = new PropertyValidation();
-            Console.Write(" - Is Property Required? (y/n): ");
-            answer = Console.ReadLine();
-            if (answer?.ToLower() == "y")
-                propValidation.Required = true;
+            int numOfValidation = 0;
 
-            Console.Write(" - Is Property has MinLength? (y/n): ");
-            answer = Console.ReadLine();
-            if (answer?.ToLower() == "y")
+            Console.Write(" - Is Property Image or List of images? enter 1 for Image, 2 for List of images, n if not : ");
+            var isImage = Console.ReadLine()?.Trim();
+            if (isImage?.ToLower() == "1" || isImage?.ToLower() == "2")
             {
-                Console.Write(" - enter MinLength: ");
+                type = isImage?.ToLower() == "1" ? "GPG" : "PNGs";
+                Console.Write(" - Is Image/Images Property Required? (y/n): ");
                 answer = Console.ReadLine();
-                propValidation.MinLength = int.Parse(answer);
+                if (answer?.ToLower() == "y")
+                { propValidation.Required = true; numOfValidation++; }
             }
-            Console.Write(" - Is Property has MaxLength? (y/n): ");
-            answer = Console.ReadLine();
-            if (answer?.ToLower() == "y")
+            else
             {
-                Console.Write(" - enter MaxLength: ");
+                if (hasLocalization)
+                {
+                    Console.Write(" - Is Property Localized? (y/n): ");
+                    answer = Console.ReadLine();
+                    if (answer?.ToLower() == "y")
+                        localizedProp.Add(name);
+                }
+                Console.Write(" - Property Type: ");
+                type = Console.ReadLine()?.Trim();
+                Console.Write(" - Is Property Required? (y/n): ");
+
                 answer = Console.ReadLine();
-                propValidation.MaxLength = int.Parse(answer);
-            }
-            Console.Write(" - Is Property has MinRange? (y/n): ");
-            answer = Console.ReadLine();
-            if (answer?.ToLower() == "y")
-            {
-                Console.Write(" - enter MinRange: ");
+                if (answer?.ToLower() == "y")
+                { propValidation.Required = true; numOfValidation++; }
+
+                Console.Write(" - Is Property Unique? (y/n): ");
                 answer = Console.ReadLine();
-                propValidation.MinRange = int.Parse(answer);
-            }
-            Console.Write(" - Is Property has MaxRange? (y/n): ");
-            answer = Console.ReadLine();
-            if (answer?.ToLower() == "y")
-            {
-                Console.Write(" - enter MaxRange: ");
+                if (answer?.ToLower() == "y")
+                { propValidation.Unique = true; numOfValidation++; }
+
+                Console.Write(" - Is Property has MinLength? (y/n): ");
                 answer = Console.ReadLine();
-                propValidation.MaxRange = int.Parse(answer);
+                if (answer?.ToLower() == "y")
+                {
+                    Console.Write(" - enter MinLength: ");
+                    answer = Console.ReadLine();
+                    propValidation.MinLength = int.Parse(answer);
+                    numOfValidation++;
+                }
+                Console.Write(" - Is Property has MaxLength? (y/n): ");
+                answer = Console.ReadLine();
+                if (answer?.ToLower() == "y")
+                {
+                    Console.Write(" - enter MaxLength: ");
+                    answer = Console.ReadLine();
+                    propValidation.MaxLength = int.Parse(answer);
+                    numOfValidation++;
+                }
+                Console.Write(" - Is Property has MinRange? (y/n): ");
+                answer = Console.ReadLine();
+                if (answer?.ToLower() == "y")
+                {
+                    Console.Write(" - enter MinRange: ");
+                    answer = Console.ReadLine();
+                    propValidation.MinRange = int.Parse(answer);
+                    numOfValidation++;
+                }
+                Console.Write(" - Is Property has MaxRange? (y/n): ");
+                answer = Console.ReadLine();
+                if (answer?.ToLower() == "y")
+                {
+                    Console.Write(" - enter MaxRange: ");
+                    answer = Console.ReadLine();
+                    propValidation.MaxRange = int.Parse(answer);
+                    numOfValidation++;
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(type))
-                properties.Add((type, name, propValidation));
+                if(numOfValidation > 0)
+                    properties.Add((type, name, propValidation));
+                else
+                    properties.Add((type, name, null));
+
         }
 
-        return properties;
+        return (properties,localizedProp);
     }
     static List<Relation> GetRelationsFromUser()
     {

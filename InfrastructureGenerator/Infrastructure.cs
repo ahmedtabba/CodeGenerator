@@ -116,8 +116,8 @@ namespace Infrastructure.Repositories
 
             foreach (var item in breakEntitiesNames)
             {
-                string itemPlural = entityName.EndsWith("y") ? item[..^1] + "ies" : item + "s";
-                string entityPlural = entityName.EndsWith("y") ? item[..^1] + "ies" : item + "s";
+                string itemPlural = item.EndsWith("y") ? item[..^1] + "ies" : item + "s";
+                string entityPlural = entityName.EndsWith("y") ? entityName[..^1] + "ies" : entityName + "s";
                 contentBreakEntitiesNames
                     .Append($"\t\t\tbuilder.HasMany(l => l.{itemPlural})\n")
                     .Append($"\t\t\t\t.WithMany(r => r.{entityPlural})\n")

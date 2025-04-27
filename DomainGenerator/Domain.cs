@@ -1,18 +1,24 @@
 ﻿
 using SharedClasses;
+using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace DomainGenerator
 {
     public static class Domain
     {
-        public static void GenerateEntityClass(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, bool hasLocalization, List<Relation> relations)
+        public static void GenerateEntityClass(string entityName, string path, (List<(string Type, string Name, PropertyValidation Validation)>,List<string>) properties, bool hasLocalization, List<Relation> relations)
         {
             string fileName = $"{entityName}.cs";
             string filePath = Path.Combine(path, fileName);
 
-            var props = string.Join(Environment.NewLine, properties.Select(p => $"        public {p.Type} {p.Name} {{ get; set; }}"));
-
+            var tempProps = string.Join(Environment.NewLine, properties.Item1.Select(p =>
+        (p.Type == "GPG" && p.Validation == null)
+            ? $"        public {p.Type}? {p.Name} {{ get; set; }}"
+            : $"        public {p.Type} {p.Name} {{ get; set; }}"
+    ));
+            var props = tempProps.Replace("GPG", "string").Replace("PNGs", "List<string>");
             string content = null!;
             if (!hasLocalization) 
             {
@@ -55,7 +61,7 @@ namespace Domain.Entities
 }}";
 
                 File.WriteAllText(filePath, content);
-                GenerateEntityLocalizationClass(entityName, path);
+                GenerateEntityLocalizationClass(entityName, path,properties.Item2);
                 UpdateLanguageClass($"{entityName}Localization", path);
             }
             if (relations.Count > 0)
@@ -64,7 +70,7 @@ namespace Domain.Entities
 
         }
 
-        static void GenerateEntityLocalizationClass(string entityName, string path)
+        static void GenerateEntityLocalizationClass(string entityName, string path, List<string> localizedProp)
         {
             string fileName = $"{entityName}Localization.cs";
             string filePath = Path.Combine(path, fileName);
@@ -83,9 +89,47 @@ namespace Domain.Entities
         public Guid {entityName}Id {{ get; set; }}
         public Guid LanguageId {{ get; set; }}
         public string Value {{ get; set; }} = null!;
+        public int FieldType {{ get; set; }}
     }}
 }}";
             File.WriteAllText(filePath, content);
+
+            string fileLocalizationAppName = $"{entityName}LocalizationApp.cs";
+            string localizationAppPath = Path.Combine(path, "..", "..", "Application", "Common", "Models", "Localization");
+            string fileLocalizationAppPath = Path.Combine(localizationAppPath, fileLocalizationAppName);
+            string localizationAppContent = $@"using System;
+using Domain.Enums;
+
+namespace Application.Common.Models.Localization
+{{
+    public class {entityName}LocalizationApp
+    {{
+        public Guid LanguageId {{ get; set; }}
+        public string Value {{ get; set; }} = null!;
+        public {entityName}LocalizationFieldType FieldType {{ get; set; }}
+    }}
+}}
+";
+            File.WriteAllText(fileLocalizationAppPath, localizationAppContent);
+            string fileLocalizationEnumName = $"{entityName}LocalizationFieldType.cs";
+            string localizationEnumPath = Path.Combine(path, "..", "Enums");
+            string fileLocalizationEnumPath = Path.Combine(localizationEnumPath, fileLocalizationEnumName);
+            StringBuilder enumContent = new StringBuilder();
+            foreach (var prop in localizedProp)
+            {
+                enumContent.Append(prop);
+                enumContent.Append(", ");
+            }
+            string localizationEnumContent = $@"using System;
+namespace Domain.Enums
+{{
+    public enum {entityName}LocalizationFieldType
+    {{
+        {enumContent}
+    }}
+}}
+";
+            File.WriteAllText(fileLocalizationEnumPath, localizationEnumContent);
         }
 
         static void UpdateLanguageClass(string entityName,string domainPath)
@@ -130,13 +174,21 @@ namespace Domain.Entities
                 string entityRelatedPlural = relation.RelatedEntity.EndsWith("y") ? relation.RelatedEntity[..^1] + "ies" : relation.RelatedEntity + "s";
                 switch (relation.Type)
                 {
+                    case RelationType.OneToOneSelfJoin:
+                        contentEntity = contentEntity.Insert(insertEntityIndex, "\n" + "\t\t" + $"public virtual {entityName}? {entityName}Parent {{ get; set; }}" + "\n" + "\t\t" + $"public Guid? {entityName}ParentId {{ get; set; }}" + "\n\t");
+                        File.WriteAllText(fileEntityPath, contentEntity);
+                        break;
                     case RelationType.OneToOne:
-                        contentRelatedEntity = contentRelatedEntity.Insert(insertRelatedEntityIndex, "\n" + "\t\t" + $"public virtual {entityName} {entityName} {{ get; set; }}" + "\n" + "\t\t" + $"public Guid {entityName}Id {{ get; set; }}" + "\n\t");
+                        contentRelatedEntity = contentRelatedEntity.Insert(insertRelatedEntityIndex, "\n" + "\t\t" + $"public virtual {entityName}? {entityName} {{ get; set; }}" + "\n\t");
+                        contentEntity = contentEntity.Insert(insertEntityIndex, "\n" + "\t\t" + $"public virtual {relation.RelatedEntity} {relation.RelatedEntity} {{ get; set; }}" + "\n" + "\t\t" + $"public Guid {relation.RelatedEntity}Id {{ get; set; }}" + "\n\t");
                         File.WriteAllText(fileRelatedEntityPath, contentRelatedEntity);
+                        File.WriteAllText(fileEntityPath, contentEntity);
                         break;
                     case RelationType.OneToOneNullable:
-                        contentRelatedEntity = contentRelatedEntity.Insert(insertRelatedEntityIndex, "\n" + "\t\t" + $"public virtual {entityName}? {entityName} {{ get; set; }}" + "\n" + "\t\t" + $"public Guid? {entityName}Id {{ get; set; }}" + "\n\t");
+                        contentRelatedEntity = contentRelatedEntity.Insert(insertRelatedEntityIndex, "\n" + "\t\t" + $"public virtual {entityName}? {entityName} {{ get; set; }}" + "\n\t");
+                        contentEntity = contentEntity.Insert(insertEntityIndex, "\n" + "\t\t" + $"public virtual {relation.RelatedEntity}? {relation.RelatedEntity} {{ get; set; }}" + "\n" + "\t\t" + $"public Guid? {relation.RelatedEntity}Id {{ get; set; }}" + "\n\t");
                         File.WriteAllText(fileRelatedEntityPath, contentRelatedEntity);
+                        File.WriteAllText(fileEntityPath, contentEntity);
                         break;
                     case RelationType.OneToMany:
                         contentRelatedEntity = contentRelatedEntity.Insert(insertRelatedEntityIndex, "\n" + "\t\t" + $"public virtual {entityName} {entityName} {{ get; set; }}" + "\n" + "\t\t" + $"public Guid {entityName}Id {{ get; set; }}" + "\n\t");
