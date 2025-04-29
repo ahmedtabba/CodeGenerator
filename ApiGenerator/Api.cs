@@ -40,6 +40,8 @@ namespace ApiGenerator
                 $".ForMember(dest => dest.{properties.First(t => t.Type == "PNGs").Name}Files, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "PNGs").Name}FormFiles.ToFileDtoList()))"
                 : null;
 
+            string? VideoProp = properties.Any(p => p.Type == "VD") ? $"\t\tpublic string? {properties.First(t => t.Type == "VD").Name} {{ get; set;}}" : null;
+
             List<string> filtersProps = new List<string>();
             foreach (var relation in relations)
             {
@@ -79,7 +81,7 @@ namespace ApiGenerator
         }}
 ";
             var props = string.Join(Environment.NewLine, properties
-                .Where(p=>p.Type!="GPG" && p.Type != "PNGs")
+                .Where(p=>p.Type!="GPG" && p.Type != "PNGs" && p.Type != "VD")
                 .Select(p => $"        public {p.Type} {p.Name} {{ get; set; }}"));
 
             string content = $@"using AutoMapper;
@@ -93,6 +95,7 @@ namespace Api.NeededDto.{entityName}
 {props}
 {ImageProp}
 {ListImageProp}
+{VideoProp}
 {localizationProp}
 {filtersPropsList}
 {mapper}
@@ -130,6 +133,8 @@ namespace Api.NeededDto.{entityName}
             string? DeletedOldImagesListProp = properties.Any(p => p.Type == "PNGs") ?
                 $"\t\tpublic List<string>? Deleted{properties.First(t => t.Type == "PNGs").Name}URLs {{ get; set; }}"
                 : null;
+
+            string? VideoProp = properties.Any(p => p.Type == "VD") ? $"\t\tpublic string? {properties.First(t => t.Type == "VD").Name} {{ get; set;}}" : null;
 
             List<string> filtersProps = new List<string>();
             foreach (var relation in relations)
@@ -171,7 +176,7 @@ namespace Api.NeededDto.{entityName}
         }}
 ";
             var props = string.Join(Environment.NewLine, properties
-                .Where(p => p.Type != "GPG" && p.Type != "PNGs")
+                .Where(p => p.Type != "GPG" && p.Type != "PNGs" && p.Type != "VD")
                 .Select(p => $"        public {p.Type} {p.Name} {{ get; set; }}"));
 
             string content = $@"using AutoMapper;
@@ -188,6 +193,7 @@ namespace Api.NeededDto.{entityName}
 {DeleteImageOrOldUrlProp}
 {ListImageProp}
 {DeletedOldImagesListProp}
+{VideoProp}
 {filtersPropsList}
 {mapper}
     }}

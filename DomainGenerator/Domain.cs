@@ -18,7 +18,7 @@ namespace DomainGenerator
             ? $"        public {p.Type}? {p.Name} {{ get; set; }}"
             : $"        public {p.Type} {p.Name} {{ get; set; }}"
     ));
-            var props = tempProps.Replace("GPG", "string").Replace("PNGs", "List<string>");
+            var props = tempProps.Replace("GPG", "string").Replace("PNGs", "List<string>").Replace("VD", "string?");
             string content = null!;
             if (!hasLocalization) 
             {

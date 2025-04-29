@@ -22,13 +22,23 @@ namespace Application.Common.Interfaces.IRepositories
 }}";
             File.WriteAllText(filePath, content);
         }
-        public static void GenerateCreateCommand(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties,bool hasLocalization,List<Relation> relations)
+        public static void GenerateCreateCommand(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties,bool hasLocalization,List<Relation> relations, bool hasVersioning,bool hasNotification, bool hasUserAction)
         {
             string className = $"Create{entityName}Command";
             string filePath = Path.Combine(path, $"{className}.cs");
             string x = entityName;
             string lowerEntityName = char.ToLower(x[0]) + x.Substring(1);
             string entityRepoName = $"_{lowerEntityName}";
+            var inheritVersion = (hasVersioning || hasNotification || hasUserAction) ? "VersionRequestOfTBase," : null;
+            var neededUsing = (hasVersioning || hasNotification || hasUserAction) ? $"using Domain.Events.{entityName}Events;using Application.Common.Models.Versioning;" : null;
+            var eventCode = !(hasVersioning || hasNotification || hasUserAction) ? null :
+                $@"
+                var {lowerEntityName}Event = new {entityName}CreatedEvent({entityName.ToLower()});
+                {lowerEntityName}Event.RollbackedToVersionId = request.RollbackedToVersionId;
+                {lowerEntityName}Event.IsVersionedCommand = request.IsVersionedCommand;
+                {entityName.ToLower()}.AddDomainEvent({lowerEntityName}Event);
+";
+
             var propList = new List<string>();
             StringBuilder imageCode = new StringBuilder();
             foreach (var prop in properties)
@@ -63,6 +73,10 @@ namespace Application.Common.Interfaces.IRepositories
                     }}
 
 ");
+                }
+                else if (prop.Type == "VD")
+                {
+                    propList.Add($"\t\tpublic string? {prop.Name} {{ get; set; }}");
                 }
                 else
                 {
@@ -147,10 +161,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+{neededUsing}
                             
 namespace Application.{entityPlural}.Commands.Create{entityName}
 {{
-    public class {className} : IRequest<string>
+    public class {className} : {inheritVersion} IRequest<string> 
     {{
         {props}
         {localizationList}
@@ -194,6 +209,7 @@ namespace Application.{entityPlural}.Commands.Create{entityName}
                 await _unitOfWork.BeginTransactionAsync();
                 var {entityName.ToLower()} = _mapper.Map<{entityName}>(request);
                 await {entityRepoName}Repository.AddAsync({entityName.ToLower()});
+                {eventCode}
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
                 {localizationCode}
                 {imageCode}
@@ -305,13 +321,24 @@ namespace Application.{entityPlural}.Commands.Create{entityName}
 
             File.WriteAllText(filePath, content);
         }
-        public static void GenerateUpdateCommand(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, bool hasLocalization ,List<Relation> relations)
+        public static void GenerateUpdateCommand(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, bool hasLocalization ,List<Relation> relations, bool hasVersioning, bool hasNotification, bool hasUserAction)
         {
             string className = $"Update{entityName}Command";
             string filePath = Path.Combine(path, $"{className}.cs");
             string x = entityName;
             string lowerEntityName = char.ToLower(x[0]) + x.Substring(1);
             string entityRepoName = $"_{lowerEntityName}";
+
+            var inheritVersion = (hasVersioning || hasUserAction || hasNotification) ? "VersionRequestBase," : null;
+            var neededUsing = (hasVersioning || hasUserAction || hasNotification) ? $"using Domain.Events.{entityName}Events;using Application.Common.Models.Versioning;" : null;
+            var deepCopyCode = (hasVersioning || hasUserAction || hasNotification) ? $"var old{entityName} = existingObj.DeepCopyJsonDotNet();" : null;
+            var eventCode = !(hasVersioning || hasNotification || hasUserAction) ? null :
+                $@"
+                var {lowerEntityName}Event = new {entityName}EditedEvent(old{entityName},existingObj);
+                {lowerEntityName}Event.RollbackedToVersionId = request.RollbackedToVersionId;
+                {lowerEntityName}Event.IsVersionedCommand = request.IsVersionedCommand;
+                existingObj.AddDomainEvent({lowerEntityName}Event);
+";
 
             var propList = new List<string>();
             StringBuilder imageCode = new StringBuilder();
@@ -422,6 +449,10 @@ namespace Application.{entityPlural}.Commands.Create{entityName}
 
 ");
                 }
+                else if (prop.Type == "VD")
+                {
+                    propList.Add($"\t\tpublic string? {prop.Name} {{ get; set; }}");
+                }
                 else
                 {
                     propList.Add($"\t\tpublic {prop.Type} {prop.Name} {{ get; set; }}");
@@ -516,10 +547,11 @@ using Application.Common.Interfaces.Db;
 using Application.Common.Interfaces.IRepositories;
 using Domain.Entities;
 using Application.Common.Models.Localization;
+{neededUsing}
 
 namespace Application.{entityPlural}.Commands.Update{entityName}
 {{
-    public class {className} : IRequest
+    public class {className} : {inheritVersion} IRequest 
     {{
         public Guid {entityName}Id {{ get; set; }}
         {props}
@@ -563,14 +595,17 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
             {{
                 await _unitOfWork.BeginTransactionAsync();
                 var existingObj = await {entityRepoName}Repository.GetByIdAsync(request.{entityName}Id);
+                {deepCopyCode}
                 {oldImageUrl}
                 _mapper.Map(request, existingObj);
+                {localizationCode}
+
+                {imageCode}
+
+                {eventCode}
 
                 await {entityRepoName}Repository.UpdateAsync(existingObj);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-                {localizationCode}
-                {imageCode}
 
                 await _unitOfWork.CommitAsync();
 
@@ -686,13 +721,27 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
 
             File.WriteAllText(filePath, content);
         }
-        public static void GenerateDeleteCommand(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties)
+        public static void GenerateDeleteCommand(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties,bool hasVersioning, bool hasNotification, bool hasUserAction)
         {
             string className = $"Delete{entityName}Command";
             string filePath = Path.Combine(path, $"{className}.cs");
             string x = entityName;
             string lowerEntityName = char.ToLower(x[0]) + x.Substring(1);
             string entityRepoName = $"_{lowerEntityName}";
+
+            var inheritVersion = (hasVersioning || hasUserAction || hasNotification) ? "VersionRequestBase," : null;
+            var neededUsing = (hasVersioning || hasUserAction || hasNotification) ? $"using Domain.Events.{entityName}Events;using Application.Common.Models.Versioning;" : null;
+            var eventCode1 = !(hasVersioning || hasUserAction || hasNotification) ? null :
+                $@"
+                var {lowerEntityName}Event = new {entityName}DeletedEvent({entityName.ToLower()});
+                {lowerEntityName}Event.RollbackedToVersionId = request.RollbackedToVersionId;
+                {lowerEntityName}Event.IsVersionedCommand = request.IsVersionedCommand;
+";
+            var eventCode2 = !(hasVersioning || hasUserAction || hasNotification) ? null :
+                $@"
+                {entityName.ToLower()}.AddDomainEvent({lowerEntityName}Event);
+";
+
             string? deletedImagesVar = properties.Any(p=>(p.Type == "GPG" || p.Type =="PNGs")) ?  $"var deletedImagesPaths = new List<string>();" : null;
             StringBuilder ImageSaveCode = new StringBuilder();
             string? DeleteImagesCode = properties.Any(p => (p.Type == "GPG" || p.Type == "PNGs")) ? $@"
@@ -726,10 +775,11 @@ using System.Text;
 using System.Threading.Tasks;
 using Application.Common.Interfaces.Db;
 using Application.Common.Interfaces.IRepositories;
+{neededUsing}
 
 namespace Application.{entityPlural}.Commands.Delete{entityName}
 {{
-    public class {className} : IRequest
+    public class {className} : {inheritVersion} IRequest
     {{
         public Guid {entityName}Id {{ get; set; }}
     }}
@@ -760,7 +810,11 @@ namespace Application.{entityPlural}.Commands.Delete{entityName}
                 var {entityName.ToLower()} = await {entityRepoName}Repository.GetByIdAsync(request.{entityName}Id);
                 {deletedImagesVar}
                 {ImageSaveCode}
+                {eventCode1}
+
                 await {entityRepoName}Repository.DeleteAsync({entityName.ToLower()});
+                {eventCode2}
+
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
                 await _unitOfWork.CommitAsync();
                 {DeleteImagesCode}
@@ -884,7 +938,7 @@ namespace Application.Common.Models.AssistantModels
                         case RelationType.OneToOneSelfJoin:
                             if (!File.Exists(navigationDtoPath))
                                 File.WriteAllText(navigationDtoPath, navigationDtoContent);
-                            dtoNavProp = $"\t\tpublic {relation.RelatedEntity}NavigationDto {entityName}Parent? {{  get; set; }}";
+                            dtoNavProp = $"\t\tpublic {relation.RelatedEntity}NavigationDto? {entityName}Parent {{  get; set; }}";
                             break;
                         case RelationType.OneToOne:
                             if (!File.Exists(navigationDtoPath))
@@ -894,7 +948,7 @@ namespace Application.Common.Models.AssistantModels
                         case RelationType.OneToOneNullable:
                             if (!File.Exists(navigationDtoPath))
                                 File.WriteAllText(navigationDtoPath, navigationDtoContent);
-                            dtoNavProp = $"\t\tpublic {relation.RelatedEntity}NavigationDto {relation.RelatedEntity}? {{  get; set; }}";
+                            dtoNavProp = $"\t\tpublic {relation.RelatedEntity}NavigationDto? {relation.RelatedEntity} {{  get; set; }}";
                             break;
                         case RelationType.ManyToOne:
                             if (!File.Exists(navigationDtoPath))
@@ -904,7 +958,7 @@ namespace Application.Common.Models.AssistantModels
                         case RelationType.ManyToOneNullable:
                             if (!File.Exists(navigationDtoPath))
                                 File.WriteAllText(navigationDtoPath, navigationDtoContent);
-                            dtoNavProp = $"\t\tpublic {relation.RelatedEntity}NavigationDto {relation.RelatedEntity}? {{  get; set; }}";
+                            dtoNavProp = $"\t\tpublic {relation.RelatedEntity}NavigationDto? {relation.RelatedEntity} {{  get; set; }}";
                             break;
                         default:
                             break;
@@ -1233,6 +1287,10 @@ namespace Application.{entityPlural}.Queries.Get{entityPlural}WithPagination
                 else if (prop.Type == "PNGs")
                 {
                     propList.Add($"\t\tpublic List<string> {prop.Name} {{ get; set; }} = new List<string>();");
+                }
+                else if (prop.Type == "VD")
+                {
+                    propList.Add($"\t\tpublic string? {prop.Name} {{ get; set; }}");
                 }
                 else
                 {

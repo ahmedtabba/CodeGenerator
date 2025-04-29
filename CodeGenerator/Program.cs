@@ -15,17 +15,32 @@ class Program
     {
         Console.Write("Enter Entity Name (e.g., City): ");
         var entityName = Console.ReadLine()?.Trim();
-
-        bool hasLocalization = false;
-        Console.WriteLine("Is entity has Localization? (y/n): ");
-        var answer = Console.ReadLine();
-        if (answer?.ToLower() == "y")
-            hasLocalization = true;
         if (string.IsNullOrWhiteSpace(entityName))
         {
             Console.WriteLine("❌ Entity name is required.");
             return;
         }
+        bool hasLocalization = false;
+        Console.WriteLine("Is entity has Localization? (y/n): ");
+        var answer = Console.ReadLine();
+        if (answer?.ToLower() == "y")
+            hasLocalization = true;
+        bool hasVersioning = false;
+        Console.WriteLine("Is entity has Versioning? (y/n): ");
+        answer = Console.ReadLine();
+        if (answer?.ToLower() == "y")
+            hasVersioning = true;
+        bool hasNotification = false;
+        Console.WriteLine("Is entity has Notification? (y/n): ");
+        answer = Console.ReadLine();
+        if (answer?.ToLower() == "y")
+            hasNotification = true;
+        bool hasUserAction = false;
+        Console.WriteLine("Is entity has UserAction? (y/n): ");
+        answer = Console.ReadLine();
+        if (answer?.ToLower() == "y")
+            hasUserAction = true;
+
 
         string solutionDir = "F:\\Boulevard\\TestGenerator\\TestGenerator";
         //Directory.GetParent(Directory.GetCurrentDirectory()).Parent.Parent.Parent.FullName;
@@ -53,7 +68,9 @@ class Program
        
         var relations = GetRelationsFromUser();
         Domain.GenerateEntityClass(entityName, domainPath, properties, hasLocalization, relations);
+
         
+
         //GenerateEntityLocalizationClass(entityName, domainPath);
         Infrastructure.UpdateAppDbContext(entityName, domainPath);
         if (hasLocalization)
@@ -86,15 +103,27 @@ class Program
         Infrastructure.UpdateDependencyInjection(entityName, domainPath);
         if (hasLocalization)
             Infrastructure.UpdateDependencyInjection($@"{entityName}Localization", domainPath);
+        if (hasVersioning)
+            ApplicationAssistant.GenerateVersionNeeds(entityName, domainPath, properties.Item1, relations);
+        if (hasNotification)
+            ApplicationAssistant.GenerateNotificationNeeds(entityName, domainPath);
+        if (hasUserAction)
+            ApplicationAssistant.GenerateUserActionNeeds(entityName, domainPath);
 
-        Application.GenerateCreateCommand(entityName, entityPlural, createCommandPath, properties.Item1,hasLocalization,relations);
+        if (hasNotification || hasVersioning || hasUserAction)
+        {
+            ApplicationAssistant.GenerateEvents(entityName, domainPath);
+            ApplicationAssistant.GenerateHandlers(entityName, domainPath,properties.Item1,relations,hasVersioning,hasUserAction,hasNotification);
+        }
+
+        Application.GenerateCreateCommand(entityName, entityPlural, createCommandPath, properties.Item1,hasLocalization,relations,hasVersioning,hasNotification,hasUserAction);
         Application.GenerateCreateCommandValidator(entityName, entityPlural, createCommandPath, properties.Item1, relations);
 
-        Application.GenerateUpdateCommand(entityName, entityPlural, updateCommandPath, properties.Item1,hasLocalization, relations);
+        Application.GenerateUpdateCommand(entityName, entityPlural, updateCommandPath, properties.Item1, hasLocalization, relations, hasVersioning, hasNotification, hasUserAction);
         Application.GenerateUpdateCommandValidator(entityName, entityPlural, updateCommandPath, properties.Item1, relations);
 
 
-        Application.GenerateDeleteCommand(entityName, entityPlural, deleteCommandPath, properties.Item1);
+        Application.GenerateDeleteCommand(entityName, entityPlural, deleteCommandPath, properties.Item1, hasVersioning,hasNotification, hasUserAction);
         Application.GenerateDeleteCommandValidator(entityName, entityPlural, deleteCommandPath, properties.Item1);
 
          
@@ -133,15 +162,19 @@ class Program
             PropertyValidation propValidation = new PropertyValidation();
             int numOfValidation = 0;
 
-            Console.Write(" - Is Property Image or List of images? enter 1 for Image, 2 for List of images, n if not : ");
+            Console.Write(" - Is Property Image or List of images or video ? enter 1 for Image, 2 for List of images, 3 for video, n if not : ");
             var isImage = Console.ReadLine()?.Trim();
-            if (isImage?.ToLower() == "1" || isImage?.ToLower() == "2")
+            if (isImage?.ToLower() == "1" || isImage?.ToLower() == "2" || isImage?.ToLower() == "3")
             {
-                type = isImage?.ToLower() == "1" ? "GPG" : "PNGs";
-                Console.Write(" - Is Image/Images Property Required? (y/n): ");
-                answer = Console.ReadLine();
-                if (answer?.ToLower() == "y")
-                { propValidation.Required = true; numOfValidation++; }
+                type = isImage?.ToLower() == "1" ? "GPG" : isImage?.ToLower() == "2" ? "PNGs" : "VD";
+                if (type != "VD")
+                {
+                    Console.Write(" - Is Image/Images Property Required? (y/n): ");
+                    answer = Console.ReadLine();
+                    if (answer?.ToLower() == "y")
+                    { propValidation.Required = true; numOfValidation++; }
+                }
+                
             }
             else
             {
