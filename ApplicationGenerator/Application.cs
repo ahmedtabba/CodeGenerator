@@ -29,13 +29,16 @@ namespace Application.Common.Interfaces.IRepositories
             string x = entityName;
             string lowerEntityName = char.ToLower(x[0]) + x.Substring(1);
             string entityRepoName = $"_{lowerEntityName}";
-            var inheritVersion = (hasVersioning || hasNotification || hasUserAction) ? "VersionRequestOfTBase," : null;
+            var inheritVersion = hasVersioning ? "VersionRequestOfTBase," : null;
+            var eventVersionCode = !hasVersioning ? null :$@"
+                {lowerEntityName}Event.RollbackedToVersionId = request.RollbackedToVersionId;
+                {lowerEntityName}Event.IsVersionedCommand = request.IsVersionedCommand;
+";
             var neededUsing = (hasVersioning || hasNotification || hasUserAction) ? $"using Domain.Events.{entityName}Events;using Application.Common.Models.Versioning;" : null;
             var eventCode = !(hasVersioning || hasNotification || hasUserAction) ? null :
                 $@"
                 var {lowerEntityName}Event = new {entityName}CreatedEvent({entityName.ToLower()});
-                {lowerEntityName}Event.RollbackedToVersionId = request.RollbackedToVersionId;
-                {lowerEntityName}Event.IsVersionedCommand = request.IsVersionedCommand;
+                {eventVersionCode}
                 {entityName.ToLower()}.AddDomainEvent({lowerEntityName}Event);
 ";
 
@@ -208,11 +211,11 @@ namespace Application.{entityPlural}.Commands.Create{entityName}
             {{
                 await _unitOfWork.BeginTransactionAsync();
                 var {entityName.ToLower()} = _mapper.Map<{entityName}>(request);
+                {imageCode}
                 await {entityRepoName}Repository.AddAsync({entityName.ToLower()});
                 {eventCode}
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
                 {localizationCode}
-                {imageCode}
                 //TODO : logic for events here
     
                 await _unitOfWork.CommitAsync();
@@ -329,14 +332,17 @@ namespace Application.{entityPlural}.Commands.Create{entityName}
             string lowerEntityName = char.ToLower(x[0]) + x.Substring(1);
             string entityRepoName = $"_{lowerEntityName}";
 
-            var inheritVersion = (hasVersioning || hasUserAction || hasNotification) ? "VersionRequestBase," : null;
+            var inheritVersion = hasVersioning ? "VersionRequestOfTBase," : null;
+            var eventVersionCode = !hasVersioning ? null : $@"
+                {lowerEntityName}Event.RollbackedToVersionId = request.RollbackedToVersionId;
+                {lowerEntityName}Event.IsVersionedCommand = request.IsVersionedCommand;
+";
             var neededUsing = (hasVersioning || hasUserAction || hasNotification) ? $"using Domain.Events.{entityName}Events;using Application.Common.Models.Versioning;" : null;
             var deepCopyCode = (hasVersioning || hasUserAction || hasNotification) ? $"var old{entityName} = existingObj.DeepCopyJsonDotNet();" : null;
             var eventCode = !(hasVersioning || hasNotification || hasUserAction) ? null :
                 $@"
                 var {lowerEntityName}Event = new {entityName}EditedEvent(old{entityName},existingObj);
-                {lowerEntityName}Event.RollbackedToVersionId = request.RollbackedToVersionId;
-                {lowerEntityName}Event.IsVersionedCommand = request.IsVersionedCommand;
+                {eventVersionCode}
                 existingObj.AddDomainEvent({lowerEntityName}Event);
 ";
 
@@ -547,6 +553,7 @@ using Application.Common.Interfaces.Db;
 using Application.Common.Interfaces.IRepositories;
 using Domain.Entities;
 using Application.Common.Models.Localization;
+using Application.Common.Extensions;
 {neededUsing}
 
 namespace Application.{entityPlural}.Commands.Update{entityName}
@@ -729,13 +736,16 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
             string lowerEntityName = char.ToLower(x[0]) + x.Substring(1);
             string entityRepoName = $"_{lowerEntityName}";
 
-            var inheritVersion = (hasVersioning || hasUserAction || hasNotification) ? "VersionRequestBase," : null;
+            var inheritVersion = hasVersioning ? "VersionRequestOfTBase," : null;
+            var eventVersionCode = !hasVersioning ? null : $@"
+                {lowerEntityName}Event.RollbackedToVersionId = request.RollbackedToVersionId;
+                {lowerEntityName}Event.IsVersionedCommand = request.IsVersionedCommand;
+";
             var neededUsing = (hasVersioning || hasUserAction || hasNotification) ? $"using Domain.Events.{entityName}Events;using Application.Common.Models.Versioning;" : null;
             var eventCode1 = !(hasVersioning || hasUserAction || hasNotification) ? null :
                 $@"
                 var {lowerEntityName}Event = new {entityName}DeletedEvent({entityName.ToLower()});
-                {lowerEntityName}Event.RollbackedToVersionId = request.RollbackedToVersionId;
-                {lowerEntityName}Event.IsVersionedCommand = request.IsVersionedCommand;
+                {eventVersionCode}
 ";
             var eventCode2 = !(hasVersioning || hasUserAction || hasNotification) ? null :
                 $@"
@@ -775,6 +785,8 @@ using System.Text;
 using System.Threading.Tasks;
 using Application.Common.Interfaces.Db;
 using Application.Common.Interfaces.IRepositories;
+using Application.Common.Interfaces.Assets;
+using Application.Common.Extensions;
 {neededUsing}
 
 namespace Application.{entityPlural}.Commands.Delete{entityName}

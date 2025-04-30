@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
+using System.Xml.Linq;
 
 namespace InfrastructureGenerator
 {
@@ -150,6 +153,132 @@ namespace Infrastructure.Data.Configurations
 
 ";
             File.WriteAllText(filePath, content);
+        }
+
+        public static void GeneratePermission(string entityName, string domainPath)
+        {
+            string entityPlural = entityName.EndsWith("y") ? entityName[..^1] + "ies" : entityName + "s";
+            string roleConsistentPath = Path.Combine(domainPath, "..", "..", "Infrastructure", "Utilities", "RoleConsistent.cs");
+            if (!File.Exists(roleConsistentPath))
+            {
+                Console.WriteLine("⚠️ RoleConsistent.cs not found.");
+                return;
+            }
+
+            string content = File.ReadAllText(roleConsistentPath);
+            string className = $"public class {entityName}";
+            string consistentClass = $@"
+        public class {entityName}
+        {{
+            public const string Browse = @""{entityName}\Browse {entityName}"";
+            public const string Delete = @""{entityName}\Delete {entityName}"";
+            public const string Add = @""{entityName}\Add {entityName}"";
+            public const string Edit = @""{entityName}\Edit {entityName}"";
+            public List<string> Roles = [Delete, Add, Edit, Browse];
+        }}
+";
+
+            if (content.Contains(className))
+            {
+                Console.WriteLine($"⚠️ RoleConsistent already contains Roles for {entityName}.");
+                return;
+            }
+
+            // Add before Dictionary
+            int insertIndex = content.LastIndexOf("public static Dictionary") - 1;
+
+            if (insertIndex < 0)
+            {
+                Console.WriteLine("❌ Failed to find insertion point in Roles");
+                return;
+            }
+            content = content.Insert(insertIndex, "\n" + consistentClass + "\n\t");
+            File.WriteAllText(roleConsistentPath, content);
+
+            string roleGroup = $"\t\t\tGroups.Add(\"{entityPlural}\", new List<string>() {{ \"{entityName}\" }});"
+                + $"\n\t\t\t//Add To Group Here";
+            var lines = File.ReadAllLines(roleConsistentPath).ToList();
+            var index = lines.FindIndex(line => line.Contains("//Add To Group Here"));
+            if (index >= 0)
+            {
+                lines[index] = roleGroup;
+                File.WriteAllLines(roleConsistentPath, lines);
+            }
+
+            var initialiserPath = Path.Combine(domainPath, "..", "..", "Infrastructure", "Data", "ApplicationDbContextInitialiser.cs");
+            if (!File.Exists(initialiserPath))
+            {
+                Console.WriteLine("⚠️ ApplicationDbContextInitialiser.cs not found.");
+                return;
+            }
+            
+            string roleAdd = $@"
+            #region {entityName}
+
+            if (!roles.Exists(r => r.Name == RoleConsistent.{entityName}.Add))
+                _identityContext.Roles.Add(new ApplicationRole {{Name = RoleConsistent.{entityName}.Add,NormalizedName = RoleConsistent.{entityName}.Add.ToUpper()}});
+
+            if (!roles.Exists(r => r.Name == RoleConsistent.{entityName}.Edit))
+                _identityContext.Roles.Add(new ApplicationRole {{Name = RoleConsistent.{entityName}.Edit,NormalizedName = RoleConsistent.{entityName}.Edit.ToUpper()}});
+
+            if (!roles.Exists(r => r.Name == RoleConsistent.{entityName}.Browse))
+                _identityContext.Roles.Add(new ApplicationRole {{Name = RoleConsistent.{entityName}.Browse,NormalizedName = RoleConsistent.{entityName}.Browse.ToUpper()}});
+
+            if (!roles.Exists(r => r.Name == RoleConsistent.{entityName}.Delete))
+                _identityContext.Roles.Add(new ApplicationRole {{Name = RoleConsistent.{entityName}.Delete,NormalizedName = RoleConsistent.{entityName}.Delete.ToUpper()}});
+
+            #endregion
+" + $"\n\t\t\t//Add Permission Here";
+            lines.Clear();
+            lines = File.ReadAllLines(initialiserPath).ToList();
+            index = lines.FindIndex(line => line.Contains("//Add Permission Here"));
+
+            if (index >= 0)
+            {
+                lines[index] = roleAdd;
+                File.WriteAllLines(initialiserPath, lines);
+            }
+            string x = entityName;
+            string lowerEntityName = char.ToLower(x[0]) + x.Substring(1);
+            lines.Clear();
+            lines = File.ReadAllLines(initialiserPath).ToList();
+            index = lines.FindIndex(line => line.Contains("//Add To rolesAfterInitialize Here"));
+            string rolesAfterInitialize = $"\t\t\tvar {lowerEntityName}Roles = rolesAfterInitialize.Where(r => r.Name.StartsWith(@\"{entityName}\\\"));"
+                + $"\n\t\t\t//Add To rolesAfterInitialize Here";
+            if (index >= 0)
+            {
+                lines[index] = rolesAfterInitialize;
+                File.WriteAllLines(initialiserPath, lines);
+            }
+
+            lines.Clear();
+            lines = File.ReadAllLines(initialiserPath).ToList();
+            index = lines.FindIndex(line => line.Contains("//Except rolesAfterInitialize Here"));
+            string exceptRolesAfterInitialize = $"\t\t\trolesAfterInitialize = rolesAfterInitialize.Except<IdentityRole>({lowerEntityName}Roles).ToList();"
+                + $"\n\t\t\t//Except rolesAfterInitialize Here";
+            if (index >= 0)
+            {
+                lines[index] = exceptRolesAfterInitialize;
+                File.WriteAllLines(initialiserPath, lines);
+            }
+
+            lines.Clear();
+            lines = File.ReadAllLines(initialiserPath).ToList();
+            index = lines.FindIndex(line => line.Contains("//Add RoleConsistent Loop"));
+            string roleConsistentLoop = $@"
+            foreach (var role in {lowerEntityName}Roles)
+            {{
+                if (!new RoleConsistent.{entityName}().Roles.Contains(role.Name))
+                {{
+                    _identityContext.Roles.Remove(role);
+                }}
+            }}
+" +  $"\n\t\t\t//Add RoleConsistent Loop";
+            if (index >= 0)
+            {
+                lines[index] = roleConsistentLoop;
+                File.WriteAllLines(initialiserPath, lines);
+            }
         }
     }
 }

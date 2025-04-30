@@ -224,6 +224,7 @@ namespace Api.NeededDto.{entityName}
                 return;
             }
 
+            string usingExtension = $"using Api.NeededDto.{entityName};" + "\n//Add Using Here";
             string extension = $@"
         public static List<{entityName}LocalizationApp> To{entityName}LocalizationAppList(this {entityName}LocalizationDto[] dtoArray)
         {{
@@ -244,11 +245,15 @@ namespace Api.NeededDto.{entityName}
         +$"\n\t\t//Add Extension Here";
 
             var lines = File.ReadAllLines(extensionsPath).ToList();
-            var index = lines.FindIndex(line => line.Contains("//Add Extension Here"));
+            var index1 = lines.FindIndex(line => line.Contains("//Add Extension Here"));
+            var index2 = lines.FindIndex(line => line.Contains("//Add Using Here"));
 
-            if (index >= 0)
+            if (index1 >= 0 || index2 >=0)
             {
-                lines[index] = extension;
+                if(index1 >= 0)
+                    lines[index1] = extension;
+                if(index2 >= 0)
+                    lines[index2] = usingExtension;
                 File.WriteAllLines(extensionsPath, lines);
                 Console.WriteLine("✅ Api Extensions updated.");
             }
@@ -332,11 +337,21 @@ namespace Api.NeededDto.{entityName}
         }
 
 
-        public static void GenerateController(string entityName, string entityPlural, List<(string Type, string Name, PropertyValidation Validation)> properties, string solutionDir,bool hazLocalization)
+        public static void GenerateController(string entityName, string entityPlural, List<(string Type, string Name, PropertyValidation Validation)> properties, string solutionDir,bool hazLocalization,bool hasPermissions)
         {
             var controllerName = $"{entityPlural}Controller.cs";
             var filePath = Path.Combine(solutionDir, "Api", "Controllers", controllerName);
-
+            string? createPermission = null!;
+            string? UpdatePermission = null!;
+            string? GetPermission = null!;
+            string? DeletePermission = null!;
+            if (hasPermissions)
+            {
+                createPermission = $"[Permission(RoleConsistent.{entityName}.Add)]";
+                UpdatePermission = $"[Permission(RoleConsistent.{entityName}.Edit)]";
+                GetPermission = $"[Permission(RoleConsistent.{entityName}.Browse)]";
+                DeletePermission = $"[Permission(RoleConsistent.{entityName}.Delete)]";
+            }
             var lowerEntity = entityName.ToLower();
             var pluralLower = entityPlural.ToLower();
             string createParam = $"Create{entityName}Command command";
@@ -367,7 +382,7 @@ using Application.{entityPlural}.Commands.Delete{entityName};
 using Application.{entityPlural}.Commands.Update{entityName};
 using Application.{entityPlural}.Queries.Get{entityName}Query;
 using Application.{entityPlural}.Queries.Get{entityPlural}WithPagination;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Infrastructure.Utilities;
 using AutoMapper;
 
 namespace Api.Controllers
@@ -388,7 +403,7 @@ namespace Api.Controllers
 
         [Route(ApiRoutes.{entityName}.Create)]
         [HttpPost]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        {createPermission}
         public async Task<IActionResult> Create([FromBody] {createParam})
         {{
             try
@@ -404,7 +419,7 @@ namespace Api.Controllers
 
         [Route(ApiRoutes.{entityName}.GetAll)]
         [HttpGet]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        {GetPermission}
         public async Task<IActionResult> GetAll([FromQuery] Get{entityPlural}WithPaginationQueryDto dto)
         {{
             try
@@ -426,7 +441,7 @@ namespace Api.Controllers
 
         [Route(ApiRoutes.{entityName}.Get)]
         [HttpGet]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        {GetPermission}
         public async Task<IActionResult> Get([FromRoute] Get{entityName}Query query)
         {{
             try
@@ -447,7 +462,7 @@ namespace Api.Controllers
 
         [Route(ApiRoutes.{entityName}.Delete)]
         [HttpDelete]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        {DeletePermission}
         public async Task<IActionResult> Delete([FromRoute] Delete{entityName}Command command)
         {{
             try
@@ -469,7 +484,7 @@ namespace Api.Controllers
 
         [Route(ApiRoutes.{entityName}.Update)]
         [HttpPut]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        {UpdatePermission}
         public async Task<IActionResult> Update([FromBody] Update{entityName}CommandDto dto, Guid {lowerEntity}Id)
         {{
             try

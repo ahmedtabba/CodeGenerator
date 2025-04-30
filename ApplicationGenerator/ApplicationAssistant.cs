@@ -94,11 +94,23 @@ namespace Application.Common.Models.Versioning
             #endregion
         }
 
-        public static void GenerateEvents(string entityName, string path)
+        public static void GenerateEvents(string entityName, string path,bool hasVersioning)
         {
             string x = entityName;
             string lowerEntityName = char.ToLower(x[0]) + x.Substring(1);
-
+            string inheritEvent = hasVersioning ? "BaseEvent, IBaseVersionInfo" : "BaseEvent";
+            string? baseVersionInfoProp = !hasVersioning ? null : $@"
+        public Type EntityType {{ get; set; }} = null!;
+        public string? RollbackedToVersionId {{ get; set; }}
+        public dynamic OldEntity {{ get; set; }} = null!;
+        public dynamic NewEntity {{ get; set; }} = null!;
+        public int ChangeType {{ get; set; }}// Added ,Modified ,Deleted
+        public string? ExternalVersioningReasonId {{ get; set; }}
+        public int? ExternalVersioningReasonType {{ get; set; }}
+        public int? VersionOperation {{ get; set; }}
+        public bool ToBePublished {{ get; set; }} = true;
+        public bool IsVersionedCommand {{ get; set; }} = false;
+";
             string eventCreateClassName = $"{entityName}CreatedEvent";
             string eventEditClassName = $"{entityName}EditedEvent";
             string eventDeletedClassName = $"{entityName}DeletedEvent";
@@ -113,23 +125,14 @@ namespace Application.Common.Models.Versioning
 
 namespace Domain.Events.{entityName}Events
 {{
-    public class {entityName}CreatedEvent : BaseEvent, IBaseVersionInfo
+    public class {entityName}CreatedEvent : {inheritEvent}
     {{
         public {entityName}CreatedEvent({entityName} {lowerEntityName})
         {{
             {entityName} = {lowerEntityName};
         }}
         public {entityName} {entityName} {{ get; }}
-        public Type EntityType {{ get; set; }} = null!;
-        public string? RollbackedToVersionId {{ get; set; }}
-        public dynamic OldEntity {{ get; set; }} = null!;
-        public dynamic NewEntity {{ get; set; }} = null!;
-        public int ChangeType {{ get; set; }}// Added ,Modified ,Deleted
-        public string? ExternalVersioningReasonId {{ get; set; }}
-        public int? ExternalVersioningReasonType {{ get; set; }}
-        public int? VersionOperation {{ get; set; }}
-        public bool ToBePublished {{ get; set; }} = true;
-        public bool IsVersionedCommand {{ get; set; }} = false;
+{baseVersionInfoProp}
     }}              
 }}
 ";
@@ -138,7 +141,7 @@ namespace Domain.Events.{entityName}Events
 
 namespace Domain.Events.{entityName}Events
 {{
-    public class {entityName}EditedEvent : BaseEvent, IBaseVersionInfo
+    public class {entityName}EditedEvent : {inheritEvent}
     {{
         public {entityName}EditedEvent({entityName} old{entityName}, {entityName} new{entityName})
         {{
@@ -147,16 +150,7 @@ namespace Domain.Events.{entityName}Events
         }}
         public {entityName} Old{entityName} {{ get; }}
         public {entityName} New{entityName} {{ get; }}
-        public Type EntityType {{ get; set; }} = null!;
-        public string? RollbackedToVersionId {{ get; set; }}
-        public dynamic OldEntity {{ get; set; }} = null!;
-        public dynamic NewEntity {{ get; set; }} = null!;
-        public int ChangeType {{ get; set; }}// Added ,Modified ,Deleted
-        public string? ExternalVersioningReasonId {{ get; set; }}
-        public int? ExternalVersioningReasonType {{ get; set; }}
-        public int? VersionOperation {{ get; set; }}
-        public bool ToBePublished {{ get; set; }} = true;
-        public bool IsVersionedCommand {{ get; set; }} = false;
+{baseVersionInfoProp}
     }}              
 }}
 ";
@@ -165,23 +159,14 @@ namespace Domain.Events.{entityName}Events
 
 namespace Domain.Events.{entityName}Events
 {{
-    public class {entityName}DeletedEvent : BaseEvent, IBaseVersionInfo
+    public class {entityName}DeletedEvent :{inheritEvent}
     {{
         public {entityName}DeletedEvent({entityName} {lowerEntityName})
         {{
             {entityName} = {lowerEntityName};
         }}
         public {entityName} {entityName} {{ get; }}
-        public Type EntityType {{ get; set; }} = null!;
-        public string? RollbackedToVersionId {{ get; set; }}
-        public dynamic OldEntity {{ get; set; }} = null!;
-        public dynamic NewEntity {{ get; set; }} = null!;
-        public int ChangeType {{ get; set; }}// Added ,Modified ,Deleted
-        public string? ExternalVersioningReasonId {{ get; set; }}
-        public int? ExternalVersioningReasonType {{ get; set; }}
-        public int? VersionOperation {{ get; set; }}
-        public bool ToBePublished {{ get; set; }} = true;
-        public bool IsVersionedCommand {{ get; set; }} = false;
+{baseVersionInfoProp}
     }}              
 }}
 ";
@@ -303,9 +288,11 @@ namespace Domain.Events.{entityName}Events
             string handlerCreateClassName = $"Created{entityName}EventHandler";
             string handlerCreatePath = Path.Combine(path, "..", "..", "Application", $"{entityPlural}", "EventHandlers", $"{handlerCreateClassName}.cs");
             string? HandleVersioning = !versioning ? null : $"var versionId = await HandleVersioning(notification);";
-            string? HandleUserActon = !userActon ? null : $@"
-                if (!notification.IsVersionedCommand)
-                    await HandleUserAction(notification, versionId);";
+            string? HandleUserActon = !userActon ? null 
+                : !versioning ? "await HandleUserAction(notification);"
+                : $@"
+            if (!notification.IsVersionedCommand)
+                await HandleUserAction(notification, versionId);";
             string? HandleNotification = !notification ? null : $"await HandleNotification(notification, cancellationToken);";
 
             var propList = GetVersionDTOProp(properties, relations);
@@ -337,16 +324,7 @@ namespace Domain.Events.{entityName}Events
                                                                        ({entityName}VersioningDTO)notification.NewEntity, notification.RollbackedToVersionId);
         }}
 ";
-
-            string? HandleNotificationMethod = !notification ? null : $@"
-        private async Task HandleNotification({entityName}CreatedEvent notification, CancellationToken cancellationToken, List<string> specificNotifiedUsers = null)
-        {{
-            // check notification.IsVersionedCommand to determine if notification is from end user or restore prosses, and push it
-            (string NotificationMessage, List<string> UsersIsd) signalRMessage;
-            string notificationConsistent;
-
-            StringBuilder messageBuilder = new StringBuilder(""{entityName} : "");
-            messageBuilder.Append(notification.{entityName}.Id); //Replace Id with the proper property
+            string HandleNotificationMethodVersionCase = versioning ? $@"
             if (!notification.IsVersionedCommand)// case of normal create
             {{
                 notificationConsistent = NotificationConsistent.{entityPlural}.Add;
@@ -357,6 +335,22 @@ namespace Domain.Events.{entityName}Events
                 notificationConsistent = NotificationConsistent.{entityPlural}.Restore;
                 messageBuilder.Append("" has been restored"");
             }}
+"
+:
+$@"
+            notificationConsistent = NotificationConsistent.{entityPlural}.Add;
+            messageBuilder.Append("" has been added 🎉🎉"");
+";
+            string? HandleNotificationMethod = !notification ? null : $@"
+        private async Task HandleNotification({entityName}CreatedEvent notification, CancellationToken cancellationToken, List<string> specificNotifiedUsers = null)
+        {{
+            // check notification.IsVersionedCommand to determine if notification is from end user or restore prosses, and push it
+            (string NotificationMessage, List<string> UsersIsd) signalRMessage;
+            string notificationConsistent;
+
+            StringBuilder messageBuilder = new StringBuilder(""{entityName} : "");
+            messageBuilder.Append(notification.{entityName}.Id); //Replace Id with the proper property
+            {HandleNotificationMethodVersionCase}
 
             signalRMessage = await _userNotificationService.Push(NotificationObjectTypes.{entityName}, notification.{entityName}.Id,
                                                                  notificationConsistent, notificationMessage: messageBuilder.ToString(),
@@ -368,9 +362,11 @@ namespace Domain.Events.{entityName}Events
         }}
 ";
             string? HandleUserActonMethod = !userActon ? null : $@"
-        private async Task HandleUserAction({entityName}CreatedEvent notification, string versionId)
+        private async Task HandleUserAction({entityName}CreatedEvent notification, string? versionId = null)
         {{
-           await _userActionService.AddUserAction(UserActionType.Create, UserActionEntityType.{entityName}, notification.{entityName}.Id.ToString(), versionId);
+           if (versionId != null)
+                await _userActionService.AddUserAction(UserActionType.Create, UserActionEntityType.{entityName}, notification.{entityName}.Id.ToString(), versionId);
+            await _userActionService.AddUserAction(UserActionType.Create, UserActionEntityType.{entityName}, notification.{entityName}.Id.ToString());
         }}
 ";
 
@@ -432,9 +428,11 @@ namespace Application.{entityPlural}.EventHandlers
             string handlerUpdateClassName = $"Updated{entityName}EventHandler";
             string handlerUpdatePath = Path.Combine(path, "..", "..", "Application", $"{entityPlural}", "EventHandlers", $"{handlerUpdateClassName}.cs");
             string? HandleVersioning = !versioning ? null : $"var versionId = await HandleVersioning(notification);";
-            string? HandleUserActon = !userActon ? null : $@"
-                if (!notification.IsVersionedCommand)
-                    await HandleUserAction(notification, versionId);";
+            string? HandleUserActon = !userActon ? null
+                : !versioning ? "await HandleUserAction(notification);"
+                : $@"
+            if (!notification.IsVersionedCommand)
+                await HandleUserAction(notification, versionId);";
             string? HandleNotification = !notification ? null : $"await HandleNotification(notification, cancellationToken);";
 
             var propList = GetVersionDTOProp(properties, relations);
@@ -480,16 +478,7 @@ namespace Application.{entityPlural}.EventHandlers
                                                                        ({entityName}VersioningDTO)notification.NewEntity, notification.RollbackedToVersionId);
         }}
 ";
-
-            string? HandleNotificationMethod = !notification ? null : $@"
-        private async Task HandleNotification({entityName}EditedEvent notification, CancellationToken cancellationToken, List<string> specificNotifiedUsers = null)
-        {{
-            // check notification.IsVersionedCommand to determine if notification is from end user or restore prosses, and push it
-            (string NotificationMessage, List<string> UsersIsd) signalRMessage;
-            string notificationConsistent;
-
-            StringBuilder messageBuilder = new StringBuilder(""{entityName} : "");
-            messageBuilder.Append(notification.Old{entityName}.Id); //Replace Id with the proper property
+            string HandleNotificationMethodVersionCase = versioning ? $@"
             if (!notification.IsVersionedCommand)// case of normal update
             {{
                 notificationConsistent = NotificationConsistent.{entityPlural}.Edit;
@@ -500,6 +489,23 @@ namespace Application.{entityPlural}.EventHandlers
                 notificationConsistent = NotificationConsistent.{entityPlural}.Restore;
                 messageBuilder.Append("" has been restored"");
             }}
+"
+:
+$@"
+            notificationConsistent = NotificationConsistent.{entityPlural}.Edit;
+            messageBuilder.Append("" has been modified"");
+";
+
+            string? HandleNotificationMethod = !notification ? null : $@"
+        private async Task HandleNotification({entityName}EditedEvent notification, CancellationToken cancellationToken, List<string> specificNotifiedUsers = null)
+        {{
+            // check notification.IsVersionedCommand to determine if notification is from end user or restore prosses, and push it
+            (string NotificationMessage, List<string> UsersIsd) signalRMessage;
+            string notificationConsistent;
+
+            StringBuilder messageBuilder = new StringBuilder(""{entityName} : "");
+            messageBuilder.Append(notification.Old{entityName}.Id); //Replace Id with the proper property
+            {HandleNotificationMethodVersionCase}
 
             signalRMessage = await _userNotificationService.Push(NotificationObjectTypes.{entityName}, notification.Old{entityName}.Id,
                                                                  notificationConsistent, notificationMessage: messageBuilder.ToString(),
@@ -511,9 +517,11 @@ namespace Application.{entityPlural}.EventHandlers
         }}
 ";
             string? HandleUserActonMethod = !userActon ? null : $@"
-        private async Task HandleUserAction({entityName}EditedEvent notification, string versionId)
+        private async Task HandleUserAction({entityName}EditedEvent notification, string? versionId = null)
         {{
-           await _userActionService.AddUserAction(UserActionType.Update, UserActionEntityType.{entityName}, notification.Old{entityName}.Id.ToString(), versionId);
+           if (versionId != null)
+                await _userActionService.AddUserAction(UserActionType.Update, UserActionEntityType.{entityName}, notification.Old{entityName}.Id.ToString(), versionId);
+            await _userActionService.AddUserAction(UserActionType.Update, UserActionEntityType.{entityName}, notification.Old{entityName}.Id.ToString());
         }}
 ";
 
@@ -576,9 +584,11 @@ namespace Application.{entityPlural}.EventHandlers
             string handlerDeleteClassName = $"Deleted{entityName}EventHandler";
             string handlerDeletePath = Path.Combine(path, "..", "..", "Application", $"{entityPlural}", "EventHandlers", $"{handlerDeleteClassName}.cs");
             string? HandleVersioning = !versioning ? null : $"var versionId = await HandleVersioning(notification);";
-            string? HandleUserActon = !userActon ? null : $@"
-                if (!notification.IsVersionedCommand)
-                    await HandleUserAction(notification, versionId);";
+            string? HandleUserActon = !userActon ? null
+                : !versioning ? "await HandleUserAction(notification);"
+                : $@"
+            if (!notification.IsVersionedCommand)
+                await HandleUserAction(notification, versionId);";
             string? HandleNotification = !notification ? null : $"await HandleNotification(notification, cancellationToken);";
 
             var propList = GetVersionDTOProp(properties, relations);
@@ -611,6 +621,23 @@ namespace Application.{entityPlural}.EventHandlers
         }}
 ";
 
+            string HandleNotificationMethodVersionCase = versioning ? $@"
+            if (!notification.IsVersionedCommand)// case of normal delete
+            {{
+                notificationConsistent = NotificationConsistent.{entityPlural}.Delete;
+                messageBuilder.Append("" has been deleted "");
+            }}
+            else// case of restore delete
+            {{
+                notificationConsistent = NotificationConsistent.{entityPlural}.Restore;
+                messageBuilder.Append("" has been restored"");
+            }}
+"
+:
+$@"
+            notificationConsistent = NotificationConsistent.{entityPlural}.Delete;
+            messageBuilder.Append("" has been deleted"");
+";
             string? HandleNotificationMethod = !notification ? null : $@"
         private async Task HandleNotification({entityName}DeletedEvent notification, CancellationToken cancellationToken, List<string> specificNotifiedUsers = null)
         {{
@@ -620,16 +647,7 @@ namespace Application.{entityPlural}.EventHandlers
 
             StringBuilder messageBuilder = new StringBuilder(""{entityName} : "");
             messageBuilder.Append(notification.{entityName}.Id); //Replace Id with the proper property
-            if (!notification.IsVersionedCommand)// case of normal delete
-            {{
-                notificationConsistent = NotificationConsistent.{entityPlural}.Add;
-                messageBuilder.Append("" has been deleted "");
-            }}
-            else// case of restore delete
-            {{
-                notificationConsistent = NotificationConsistent.{entityPlural}.Restore;
-                messageBuilder.Append("" has been restored"");
-            }}
+            {HandleNotificationMethodVersionCase}
 
             signalRMessage = await _userNotificationService.Push(NotificationObjectTypes.{entityName}, notification.{entityName}.Id,
                                                                  notificationConsistent, notificationMessage: messageBuilder.ToString(),
@@ -641,9 +659,11 @@ namespace Application.{entityPlural}.EventHandlers
         }}
 ";
             string? HandleUserActonMethod = !userActon ? null : $@"
-        private async Task HandleUserAction({entityName}DeletedEvent notification, string versionId)
+        private async Task HandleUserAction({entityName}DeletedEvent notification, string? versionId = null)
         {{
-           await _userActionService.AddUserAction(UserActionType.Delete, UserActionEntityType.{entityName}, notification.{entityName}.Id.ToString(), versionId);
+            if (versionId != null)
+                await _userActionService.AddUserAction(UserActionType.Delete, UserActionEntityType.{entityName}, notification.{entityName}.Id.ToString(), versionId);
+            await _userActionService.AddUserAction(UserActionType.Delete, UserActionEntityType.{entityName}, notification.{entityName}.Id.ToString());
         }}
 ";
 

@@ -21,10 +21,15 @@ class Program
             return;
         }
         bool hasLocalization = false;
+        bool hasPermissions = false;
         Console.WriteLine("Is entity has Localization? (y/n): ");
         var answer = Console.ReadLine();
         if (answer?.ToLower() == "y")
             hasLocalization = true;
+        Console.WriteLine("Is entity has Permissions? (y/n): ");
+        answer = Console.ReadLine();
+        if (answer?.ToLower() == "y")
+            hasPermissions = true;
         bool hasVersioning = false;
         Console.WriteLine("Is entity has Versioning? (y/n): ");
         answer = Console.ReadLine();
@@ -112,10 +117,13 @@ class Program
 
         if (hasNotification || hasVersioning || hasUserAction)
         {
-            ApplicationAssistant.GenerateEvents(entityName, domainPath);
+            ApplicationAssistant.GenerateEvents(entityName, domainPath, hasVersioning);
             ApplicationAssistant.GenerateHandlers(entityName, domainPath,properties.Item1,relations,hasVersioning,hasUserAction,hasNotification);
         }
-
+        if (hasPermissions)
+        {
+            Infrastructure.GeneratePermission(entityName,domainPath);
+        }
         Application.GenerateCreateCommand(entityName, entityPlural, createCommandPath, properties.Item1,hasLocalization,relations,hasVersioning,hasNotification,hasUserAction);
         Application.GenerateCreateCommandValidator(entityName, entityPlural, createCommandPath, properties.Item1, relations);
 
@@ -135,8 +143,8 @@ class Program
         Api.GenerateNeededDtos(entityName, entityPlural, properties.Item1, solutionDir,hasLocalization,relations);
 
         Api.AddRoutesToApiRoutes(entityName, entityPlural, solutionDir);
-
-        Api.GenerateController(entityName, entityPlural, properties.Item1, solutionDir,hasLocalization);
+      
+        Api.GenerateController(entityName, entityPlural, properties.Item1, solutionDir,hasLocalization,hasPermissions);
 
 
 
@@ -262,7 +270,9 @@ class Program
 
             relation.RelatedEntity = answer;
 
-            Console.Write(" - Relation Type: ");
+            Console.Write(" - Relation Type:" +
+                "\n" + "OneToOneSelfJoin : 0\r\nOneToOne : 1\r\nOneToOneNullable : 2\r\nOneToMany : 3\r\nOneToManyNullable : 4\r\nManyToOne : 5\r\nManyToOneNullable : 6\r\nManyToMany : 7 \n"
+                + "enter number of relation : ");
             answer = Console.ReadLine();
             relation.Type = (RelationType)Int32.Parse(answer);
 
