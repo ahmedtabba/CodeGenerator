@@ -6,6 +6,7 @@ using System.Numerics;
 using System.Reflection.Metadata;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace ApplicationGenerator
 {
@@ -247,6 +248,39 @@ namespace Domain.Events.{entityName}Events
                 lines[index] = consistentGroup;
                 File.WriteAllLines(notificationConsistentPath, lines);
             }
+
+            string notificationAdd = $@"
+            #region {entityName}
+
+            if (!notifications.Exists(n => n.Name == NotificationConsistent.{entityPlural}.Add))
+                _context.Notifications.Add(new Notification {{Name = NotificationConsistent.{entityPlural}.Add}});
+
+            if (!notifications.Exists(n => n.Name == NotificationConsistent.{entityPlural}.Edit))
+                _context.Notifications.Add(new Notification {{Name = NotificationConsistent.{entityPlural}.Edit}});
+
+            if (!notifications.Exists(n => n.Name == NotificationConsistent.{entityPlural}.Delete))
+                _context.Notifications.Add(new Notification {{Name = NotificationConsistent.{entityPlural}.Delete}});
+
+            if (!notifications.Exists(n => n.Name == NotificationConsistent.{entityPlural}.Restore))
+                _context.Notifications.Add(new Notification {{Name = NotificationConsistent.{entityPlural}.Restore}});
+
+            #endregion
+" + $"\n\t\t\t//Add Notifications Here";
+            lines.Clear();
+            var initialiserPath = Path.Combine(path, "..", "..", "Infrastructure", "Data", "ApplicationDbContextInitialiser.cs");
+            if (!File.Exists(initialiserPath))
+            {
+                Console.WriteLine("⚠️ ApplicationDbContextInitialiser.cs not found.");
+                return;
+            }
+            lines = File.ReadAllLines(initialiserPath).ToList();
+            index = lines.FindIndex(line => line.Contains("//Add Notifications Here"));
+
+            if (index >= 0)
+            {
+                lines[index] = notificationAdd;
+                File.WriteAllLines(initialiserPath, lines);
+            }
             #endregion
         }
         public static void GenerateUserActionNeeds(string entityName, string path)
@@ -364,9 +398,10 @@ $@"
             string? HandleUserActonMethod = !userActon ? null : $@"
         private async Task HandleUserAction({entityName}CreatedEvent notification, string? versionId = null)
         {{
-           if (versionId != null)
+            if (versionId != null)
                 await _userActionService.AddUserAction(UserActionType.Create, UserActionEntityType.{entityName}, notification.{entityName}.Id.ToString(), versionId);
-            await _userActionService.AddUserAction(UserActionType.Create, UserActionEntityType.{entityName}, notification.{entityName}.Id.ToString());
+            else
+                await _userActionService.AddUserAction(UserActionType.Create, UserActionEntityType.{entityName}, notification.{entityName}.Id.ToString());
         }}
 ";
 
@@ -519,9 +554,10 @@ $@"
             string? HandleUserActonMethod = !userActon ? null : $@"
         private async Task HandleUserAction({entityName}EditedEvent notification, string? versionId = null)
         {{
-           if (versionId != null)
+            if (versionId != null)
                 await _userActionService.AddUserAction(UserActionType.Update, UserActionEntityType.{entityName}, notification.Old{entityName}.Id.ToString(), versionId);
-            await _userActionService.AddUserAction(UserActionType.Update, UserActionEntityType.{entityName}, notification.Old{entityName}.Id.ToString());
+            else
+                await _userActionService.AddUserAction(UserActionType.Update, UserActionEntityType.{entityName}, notification.Old{entityName}.Id.ToString());
         }}
 ";
 
@@ -535,7 +571,6 @@ using Application.Common.Models.Versioning;
 using Application.Utilities;
 using Domain.Enums;
 using Domain.Events.{entityName}Events;
-using Application.Common.Models.Versioning;
 using Application.Common.Extensions;
 
 namespace Application.{entityPlural}.EventHandlers
@@ -663,7 +698,8 @@ $@"
         {{
             if (versionId != null)
                 await _userActionService.AddUserAction(UserActionType.Delete, UserActionEntityType.{entityName}, notification.{entityName}.Id.ToString(), versionId);
-            await _userActionService.AddUserAction(UserActionType.Delete, UserActionEntityType.{entityName}, notification.{entityName}.Id.ToString());
+            else
+                await _userActionService.AddUserAction(UserActionType.Delete, UserActionEntityType.{entityName}, notification.{entityName}.Id.ToString());
         }}
 ";
 

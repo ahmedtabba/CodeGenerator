@@ -280,5 +280,146 @@ namespace Infrastructure.Data.Configurations
                 File.WriteAllLines(initialiserPath, lines);
             }
         }
+
+        public static void UpdateLocalizationService(string entityName, string domainPath,List<string> localizedProperties)
+        {
+            string ILocalizationServicePath = Path.Combine(domainPath, "..", "..", "Application", "Common", "Interfaces", "Services", "ILocalizationService.cs");
+            if (!File.Exists(ILocalizationServicePath))
+            {
+                Console.WriteLine("⚠️ ILocalizationService.cs not found.");
+                return;
+            }
+            string entityPlural = entityName.EndsWith("y") ? entityName[..^1] + "ies" : entityName + "s";
+            string x = entityName;
+            string lowerEntityName = char.ToLower(x[0]) + x.Substring(1);
+            string usingNamespaces = $@"
+using Application.{entityPlural}.Queries.Get{entityName}Query;
+using Application.{entityPlural}.Queries.Get{entityPlural}WithPagination;
+" + "\n//Add Using Here";
+            string methodsDefine = $"\t\tpublic Task Fill{entityName}Localization(Get{entityName}Dto dto, Guid languageId);" + "\n" + $"\t\tpublic Task Fill{entityName}Localization(PaginatedList<Get{entityPlural}WithPaginationDto> list, Guid languageId);" + 
+                $"\n\t\t//Define Localization Method Here";
+            var lines = File.ReadAllLines(ILocalizationServicePath).ToList();
+            var index = lines.FindIndex(line => line.Contains("Define Localization Method Here"));
+
+            if (index >= 0)
+            {
+                lines[index] = methodsDefine;
+                File.WriteAllLines(ILocalizationServicePath, lines);
+            }
+
+            lines.Clear();
+            lines = File.ReadAllLines(ILocalizationServicePath).ToList();
+            index = lines.FindIndex(line => line.Contains("//Add Using Here"));
+            if (index >= 0)
+            {
+                lines[index] = usingNamespaces;
+                File.WriteAllLines(ILocalizationServicePath, lines);
+                Console.WriteLine("✅ ILocalizationService updated.");
+            }
+
+            string LocalizationServicePath = Path.Combine(domainPath, "..", "..", "Infrastructure", "Services", "LocalizationService.cs");
+            if (!File.Exists(LocalizationServicePath))
+            {
+                Console.WriteLine("⚠️ LocalizationService.cs not found.");
+                return;
+            }
+            string privateField = $"\t\tprivate readonly I{entityName}LocalizationRepository _{lowerEntityName}LocalizationRepository;" +
+                "\n\t\t//Add Private Field Here";
+            string injectService = $"\n\t\t\t\t\t\t\t\t\t,I{entityName}LocalizationRepository {lowerEntityName}LocalizationRepository" +
+                "\n\t\t\t\t\t\t\t\t\t//Inject Service Here";
+            string field = $"\t\t\t_{lowerEntityName}LocalizationRepository = {lowerEntityName}LocalizationRepository;" +
+                "\n\t\t\t//Add Field Here";
+            usingNamespaces = $@"
+using Application.{entityPlural}.Queries.Get{entityName}Query;
+using Application.{entityPlural}.Queries.Get{entityPlural}WithPagination;
+" +
+    "\n//Add Using Here";
+            lines.Clear();
+            lines = File.ReadAllLines(LocalizationServicePath).ToList();
+            index = lines.FindIndex(line => line.Contains("//Add Private Field Here"));
+
+            if (index >= 0)
+            {
+                lines[index] = privateField;
+                File.WriteAllLines(LocalizationServicePath, lines);
+            }
+            lines.Clear();
+            lines = File.ReadAllLines(LocalizationServicePath).ToList();
+            index = lines.FindIndex(line => line.Contains("//Add Using Here"));
+
+            if (index >= 0)
+            {
+                lines[index] = usingNamespaces;
+                File.WriteAllLines(LocalizationServicePath, lines);
+            }
+            lines.Clear();
+            lines = File.ReadAllLines(LocalizationServicePath).ToList();
+            index = lines.FindIndex(line => line.Contains("//Inject Service Here"));
+
+            if (index >= 0)
+            {
+                lines[index] = injectService;
+                File.WriteAllLines(LocalizationServicePath, lines);
+            }
+            lines.Clear();
+            lines = File.ReadAllLines(LocalizationServicePath).ToList();
+            index = lines.FindIndex(line => line.Contains("//Add Field Here"));
+
+            if (index >= 0)
+            {
+                lines[index] = field;
+                File.WriteAllLines(LocalizationServicePath, lines);
+            }
+
+            StringBuilder localizedIfs = new StringBuilder();
+            foreach (var prop in localizedProperties)
+            {
+                localizedIfs.Append($@"
+                    dto.{prop} = {lowerEntityName}Localization.FirstOrDefault(x => x.FieldType == (int){entityName}LocalizationFieldType.{prop}) != null
+                        ? {lowerEntityName}Localization.FirstOrDefault(x => x.FieldType == (int){entityName}LocalizationFieldType.{prop})!.Value
+                        : dto.{prop};");
+                localizedIfs.AppendLine();
+            }
+
+            string implementMethods = $@"
+        public async Task Fill{entityName}Localization(Get{entityName}Dto dto, Guid languageId)
+        {{
+            var {lowerEntityName}Localization = await _{lowerEntityName}LocalizationRepository.GetAll()
+                 .Where(x => x.{entityName}Id == dto.Id && x.LanguageId == languageId)
+                 .ToListAsync();
+
+            if ({lowerEntityName}Localization.Count > 0)
+            {{
+                {localizedIfs}
+            }}
+        }}
+
+        public async Task Fill{entityName}Localization(PaginatedList<Get{entityPlural}WithPaginationDto> list, Guid languageId)
+        {{
+            foreach (var dto in list.Items)
+            {{
+                var {lowerEntityName}Localization = await _{lowerEntityName}LocalizationRepository.GetAll()
+                 .Where(x => x.{entityName}Id == dto.Id && x.LanguageId == languageId)
+                 .ToListAsync();
+
+                if ({lowerEntityName}Localization.Count > 0)
+                {{
+                    {localizedIfs}
+                }}
+            }}
+        }}
+" +
+    "\n\t\t//Implement Method Here";
+
+            lines.Clear();
+            lines = File.ReadAllLines(LocalizationServicePath).ToList();
+            index = lines.FindIndex(line => line.Contains("//Implement Method Here"));
+
+            if (index >= 0)
+            {
+                lines[index] = implementMethods;
+                File.WriteAllLines(LocalizationServicePath, lines);
+            }
+        }
     }
 }

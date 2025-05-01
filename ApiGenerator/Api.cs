@@ -15,7 +15,7 @@ namespace ApiGenerator
             if (hasLocalization || hasImages)
                 GenerateCreateCommandDto(entityName, dtoPath,properties,entityPlural,relations,hasLocalization,hasImages);
             GenerateUpdateCommandDto(entityName, dtoPath, properties,hasLocalization,hasImages,entityPlural,relations);
-            GenerateGetWithPaginationQueryDto(entityName, entityPlural, dtoPath);
+            GenerateGetWithPaginationQueryDto(entityName, entityPlural, dtoPath,hasLocalization);
         }
 
         public static void GenerateCreateCommandDto(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties,string entityPlural,List<Relation> relations,bool hasLocalization,bool hasImages)
@@ -258,11 +258,11 @@ namespace Api.NeededDto.{entityName}
                 Console.WriteLine("✅ Api Extensions updated.");
             }
         }
-        public static void GenerateGetWithPaginationQueryDto(string entityName, string entityPlural, string path)
+        public static void GenerateGetWithPaginationQueryDto(string entityName, string entityPlural, string path, bool hasLocalization)
         {
             string fileName = $"Get{entityPlural}WithPaginationQueryDto.cs";
             string filePath = Path.Combine(path, fileName);
-
+            string? languageProp = !hasLocalization ? null : $"public string? LanguageCode {{ get; set; }}";
             string content = $@"
 using Api.Utilities;
 using Application.{entityPlural}.Queries.Get{entityPlural}WithPagination;
@@ -276,7 +276,7 @@ namespace Api.NeededDto.{entityName}
         public int PageSize {{ get; init; }} = 10;
         public string? SearchText {{ get; set; }}  
         public string? Sort {{ get; set; }}
-
+        {languageProp}
         // Add your Filters Here
 
         public class Mapping : Profile
@@ -337,7 +337,7 @@ namespace Api.NeededDto.{entityName}
         }
 
 
-        public static void GenerateController(string entityName, string entityPlural, List<(string Type, string Name, PropertyValidation Validation)> properties, string solutionDir,bool hazLocalization,bool hasPermissions)
+        public static void GenerateController(string entityName, string entityPlural, List<(string Type, string Name, PropertyValidation Validation)> properties, string solutionDir,bool hasLocalization,bool hasPermissions)
         {
             var controllerName = $"{entityPlural}Controller.cs";
             var filePath = Path.Combine(solutionDir, "Api", "Controllers", controllerName);
@@ -358,7 +358,7 @@ namespace Api.NeededDto.{entityName}
             string createCode = $@"
                 var result = await _sender.Send(command);
                 return Ok(result);";
-            if (hazLocalization)
+            if (hasLocalization)
             {
                 createParam = $"Create{entityName}CommandDto dto";
                 createCode = $@"
@@ -366,6 +366,34 @@ namespace Api.NeededDto.{entityName}
                 var result = await _sender.Send(command);
                 return Ok(result);";
             }
+            
+            string? localizationCode1 = !hasLocalization ? null : $@"
+                Language language = null!;
+                if (dto.LanguageCode != null)
+                {{
+                    language = await _languageRepository.GetLanguageByCodeAsync(dto.LanguageCode);
+                    if (language == null)
+                        throw new Exception(""Language is not found"");
+                }}
+";
+            string? localizationCode2 = !hasLocalization ? null : $"query.LanguageId = language != null ? language.Id : null;";
+            string getParam = !hasLocalization ? $"[FromRoute] Get{entityName}Query query" : $"[FromRoute] Guid {lowerEntity}Id, [FromQuery] string? languageCode";
+            string getCode = !hasLocalization ? $"return Ok(await _sender.Send(query));" : $@"
+                Language language = null!;
+                if (languageCode != null)
+                {{
+                    language = await _languageRepository.GetLanguageByCodeAsync(languageCode);
+                    if (language == null)
+                        throw new Exception(""Language is not found"");
+                }}
+
+                Get{entityName}Query query = new Get{entityName}Query
+                {{
+                    LanguageId = language != null ? language.Id : null,
+                    {entityName}Id = {lowerEntity}Id
+                }};
+                return Ok(await _sender.Send(query));
+";
 
             //string filledProperties = string.Join(Environment.NewLine, properties.Select(p =>
             //    $"                    {p.Name} = dto.{p.Name},"));
@@ -375,6 +403,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using Api.Helpers;
+using Application.Common.Interfaces.IRepositories;
 using Api.NeededDto.{entityName};
 using Api.Utilities;
 using Application.{entityPlural}.Commands.Create{entityName};
@@ -384,6 +413,7 @@ using Application.{entityPlural}.Queries.Get{entityName}Query;
 using Application.{entityPlural}.Queries.Get{entityPlural}WithPagination;
 using Infrastructure.Utilities;
 using AutoMapper;
+using Domain.Entities;
 
 namespace Api.Controllers
 {{
@@ -393,18 +423,20 @@ namespace Api.Controllers
         private readonly ILogger<{entityPlural}Controller> _logger;
         private readonly ISender _sender;
         private readonly IMapper _mapper;
+        private readonly ILanguageRepository _languageRepository;
 
-        public {entityPlural}Controller(ILogger<{entityPlural}Controller> logger, ISender sender,IMapper mapper)
+        public {entityPlural}Controller(ILogger<{entityPlural}Controller> logger, ISender sender,IMapper mapper,ILanguageRepository languageRepository)
         {{
             _logger = logger;
             _sender = sender;
             _mapper = mapper;
+            _languageRepository = languageRepository;
         }}
 
         [Route(ApiRoutes.{entityName}.Create)]
         [HttpPost]
         {createPermission}
-        public async Task<IActionResult> Create([FromBody] {createParam})
+        public async Task<IActionResult> Create([FromForm] {createParam})
         {{
             try
             {{
@@ -424,7 +456,9 @@ namespace Api.Controllers
         {{
             try
             {{
+                {localizationCode1}
                 Get{entityPlural}WithPaginationQuery query = _mapper.Map<Get{entityPlural}WithPaginationQuery>(dto);
+                {localizationCode2}
                 return Ok(await _sender.Send(query));
             }}
             catch (ValidationException ex)
@@ -442,11 +476,11 @@ namespace Api.Controllers
         [Route(ApiRoutes.{entityName}.Get)]
         [HttpGet]
         {GetPermission}
-        public async Task<IActionResult> Get([FromRoute] Get{entityName}Query query)
+        public async Task<IActionResult> Get({getParam})
         {{
             try
             {{
-                return Ok(await _sender.Send(query));
+                {getCode}
             }}
             catch (ValidationException ex)
             {{
@@ -485,7 +519,7 @@ namespace Api.Controllers
         [Route(ApiRoutes.{entityName}.Update)]
         [HttpPut]
         {UpdatePermission}
-        public async Task<IActionResult> Update([FromBody] Update{entityName}CommandDto dto, Guid {lowerEntity}Id)
+        public async Task<IActionResult> Update([FromForm] Update{entityName}CommandDto dto, Guid {lowerEntity}Id)
         {{
             try
             {{

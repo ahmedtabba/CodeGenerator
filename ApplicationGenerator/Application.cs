@@ -1007,9 +1007,14 @@ namespace Application.{entityPlural}.Queries.Get{entityName}Query
             string lowerEntityName = char.ToLower(x[0]) + x.Substring(1);
             string entityRepoName = $"_{lowerEntityName}";
             string? languageIdProp =hasLocalization ?  $"public Guid? LanguageId {{ get; set; }}" : null;
+            string? localizationCode = !hasLocalization ? null : $@"
+            if (request.LanguageId != null) 
+                await _localizationService.Fill{entityName}Localization(dto, request.LanguageId.Value);";
+
             string content = $@"
 using Microsoft.Extensions.Logging;
 using Application.Common.Interfaces.IRepositories;
+using Application.Common.Interfaces.Services;
 
 namespace Application.{entityPlural}.Queries.Get{entityName}Query
 {{
@@ -1042,8 +1047,7 @@ namespace Application.{entityPlural}.Queries.Get{entityName}Query
             var {entityName.ToLower()} = await {entityRepoName}Repository.GetByIdAsync(request.{entityName}Id);
             var dto = _mapper.Map<Get{entityName}Dto>({entityName.ToLower()});
 
-            //if (request.LanguageId != null) //If entity has localization, create and implement FillLocalization in LocalizationService
-            //    await _localizationService.FillGovernorateLocalization(result, request.LanguageId.Value);
+            {localizationCode}
             return dto;
         }}
     }}
@@ -1135,6 +1139,10 @@ namespace Application.{entityPlural}.Queries.Get{entityPlural}WithPagination
             string x = entityName;
             string lowerEntityName = char.ToLower(x[0]) + x.Substring(1);
             string? languageIdProp = hasLocalization ? $"public Guid? LanguageId {{ get; set; }}" : null;
+            string? localizationCode = !hasLocalization ? null : $@"
+            if (request.LanguageId != null) 
+                await _localizationService.Fill{entityName}Localization(result, request.LanguageId.Value);";
+
             StringBuilder filtersProps = new StringBuilder();
             List<string> filtersList = new List<string>();
             StringBuilder filters = new StringBuilder();
@@ -1163,6 +1171,8 @@ using Application.Common.Models;
 using Application.Utilities;
 using AutoMapper.QueryableExtensions;
 using Application.Common.Mappings;
+using Application.Common.Interfaces.Services;
+using Application.Common.Extensions;
 
 namespace Application.{entityPlural}.Queries.Get{entityPlural}WithPagination
 {{
@@ -1199,8 +1209,8 @@ namespace Application.{entityPlural}.Queries.Get{entityPlural}WithPagination
         {{
             var query = _{lowerEntityName}Repository.GetAll();
 
-            if (!string.IsNullOrWhiteSpace(request.SearchText))
-                query = query.Where(x => x.Name.ToLower().Contains(request.SearchText.ToLower()));
+            //if (!string.IsNullOrWhiteSpace(request.SearchText))
+            //    query = query.Where(x => x.Name.ToLower().Contains(request.SearchText.ToLower()));
 
             {filters}
 
@@ -1210,8 +1220,7 @@ namespace Application.{entityPlural}.Queries.Get{entityPlural}WithPagination
                 .OrderBy(request.Sort)
                 .PaginatedListAsync(request.PageNumber, request.PageSize);
 
-            //if (request.LanguageId != null)
-            //    await _localizationService.FillCityLocalization(result, request.LanguageId.Value);
+            {localizationCode}
 
             return result;
         }}

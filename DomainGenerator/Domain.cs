@@ -14,10 +14,13 @@ namespace DomainGenerator
             string filePath = Path.Combine(path, fileName);
 
             var tempProps = string.Join(Environment.NewLine, properties.Item1.Select(p =>
-        (p.Type == "GPG" && p.Validation == null)
-            ? $"        public {p.Type}? {p.Name} {{ get; set; }}"
-            : $"        public {p.Type} {p.Name} {{ get; set; }}"
+        (p.Type == "PNGs")
+         ? $"        public {p.Type} {p.Name} {{ get; set; }} = new {p.Type}();" 
+         : (p.Type == "GPG" && p.Validation == null)
+         ? $"        public {p.Type}? {p.Name} {{ get; set; }}"
+         : $"        public {p.Type} {p.Name} {{ get; set; }}"
     ));
+
             var props = tempProps.Replace("GPG", "string").Replace("PNGs", "List<string>").Replace("VD", "string?");
             string content = null!;
             if (!hasLocalization) 

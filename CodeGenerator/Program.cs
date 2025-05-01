@@ -72,6 +72,10 @@ class Program
         var properties = GetPropertiesFromUser(entityName,hasLocalization);
        
         var relations = GetRelationsFromUser();
+        if (hasPermissions)
+        {
+            Infrastructure.GeneratePermission(entityName, domainPath);
+        }
         Domain.GenerateEntityClass(entityName, domainPath, properties, hasLocalization, relations);
 
         
@@ -114,15 +118,12 @@ class Program
             ApplicationAssistant.GenerateNotificationNeeds(entityName, domainPath);
         if (hasUserAction)
             ApplicationAssistant.GenerateUserActionNeeds(entityName, domainPath);
-
+        if(hasLocalization)
+            Infrastructure.UpdateLocalizationService(entityName, domainPath,properties.localizedProp);
         if (hasNotification || hasVersioning || hasUserAction)
         {
             ApplicationAssistant.GenerateEvents(entityName, domainPath, hasVersioning);
             ApplicationAssistant.GenerateHandlers(entityName, domainPath,properties.Item1,relations,hasVersioning,hasUserAction,hasNotification);
-        }
-        if (hasPermissions)
-        {
-            Infrastructure.GeneratePermission(entityName,domainPath);
         }
         Application.GenerateCreateCommand(entityName, entityPlural, createCommandPath, properties.Item1,hasLocalization,relations,hasVersioning,hasNotification,hasUserAction);
         Application.GenerateCreateCommandValidator(entityName, entityPlural, createCommandPath, properties.Item1, relations);
