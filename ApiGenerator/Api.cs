@@ -293,7 +293,7 @@ namespace Api.NeededDto.{entityName}
         }
 
 
-        public static void AddRoutesToApiRoutes(string entityName, string entityPlural, string solutionDir)
+        public static void AddRoutesToApiRoutes(string entityName, string entityPlural, string solutionDir,bool hasLocalization)
         {
             string filePath = Path.Combine(solutionDir, "Api", "Utilities", "ApiRoutes.cs");
 
@@ -305,6 +305,7 @@ namespace Api.NeededDto.{entityName}
 
             string content = File.ReadAllText(filePath);
             string className = $"public static class {entityName}";
+            string? GetWithLocalizationRoute = hasLocalization? $"public const string GetWithLocalization = Base + \"/{entityPlural.ToLower()}/{{{entityName.ToLower()}Id}}/localization\";" : null;
             string routeClass = $@"
         public static class {entityName}
         {{
@@ -313,6 +314,7 @@ namespace Api.NeededDto.{entityName}
             public const string GetAll = Base + ""/{entityPlural.ToLower()}"";
             public const string Update = Base + ""/{entityPlural.ToLower()}/{{{entityName.ToLower()}Id}}"";
             public const string Delete = Base + ""/{entityPlural.ToLower()}/{{{entityName.ToLower()}Id}}"";
+            {GetWithLocalizationRoute}
         }}";
 
             if (content.Contains(className))
@@ -394,10 +396,26 @@ namespace Api.NeededDto.{entityName}
                 }};
                 return Ok(await _sender.Send(query));
 ";
-
+            string? getWithLocalizationEndpoint = !hasLocalization ? null : $@"
+        [Route(ApiRoutes.{entityName}.GetWithLocalization)]
+        [HttpGet]
+        [Permission(RoleConsistent.{entityName}.BrowseWithLocalization)]
+        public async Task<IActionResult> Get{entityName}WithLocalization([FromRoute] Get{entityName}WithLocalizationQuery query)
+        {{
+            try
+            {{
+                return Ok(await _sender.Send(query));
+            }}
+            catch (Exception ex)
+            {{
+                List<string> messages = JsonParser.ParseMessages(ex.Message);
+                return BadRequest(new {{ Errors = messages }});
+            }}
+        }}
+";
             //string filledProperties = string.Join(Environment.NewLine, properties.Select(p =>
             //    $"                    {p.Name} = dto.{p.Name},"));
-
+            string? usingLocalizationQuery = hasLocalization ? $"using Application.{entityPlural}.Queries.Get{entityName}WithLocalization;" : null ;
             string content = $@"using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
@@ -411,6 +429,7 @@ using Application.{entityPlural}.Commands.Delete{entityName};
 using Application.{entityPlural}.Commands.Update{entityName};
 using Application.{entityPlural}.Queries.Get{entityName}Query;
 using Application.{entityPlural}.Queries.Get{entityPlural}WithPagination;
+{usingLocalizationQuery}
 using Infrastructure.Utilities;
 using AutoMapper;
 using Domain.Entities;
@@ -493,6 +512,8 @@ namespace Api.Controllers
                 return BadRequest(new {{ Errors = messages }});
             }}
         }}
+
+        {getWithLocalizationEndpoint}
 
         [Route(ApiRoutes.{entityName}.Delete)]
         [HttpDelete]

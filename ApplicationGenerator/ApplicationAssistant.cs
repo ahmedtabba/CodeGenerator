@@ -84,7 +84,7 @@ namespace Application.Common.Models.Versioning
 
     public class {entityName}VersioningDTO : EntityDTO, IVersionable
     {{
-        //Add [EmbeddedList] to list properties
+        //TODO:AfterGenerateCode: Add [EmbeddedList] annotation to list properties i needed to be versioned
         //public Guid Id {{ get; set; }} // from EntityDTO and it has [IgnoreVersioning] attribute
         public string UniqueIdentifier {{ get; set; }} = null!;// from IVersionable and it has [IgnoreVersioning] attribute
         {props}
@@ -384,7 +384,7 @@ $@"
             string notificationConsistent;
 
             StringBuilder messageBuilder = new StringBuilder(""{entityName} : "");
-            messageBuilder.Append(notification.{entityName}.Id); //Replace Id with the proper property
+            messageBuilder.Append(notification.{entityName}.Id); //TODO:AfterGenerateCode:Replace Id with the proper property
             {HandleNotificationMethodVersionCase}
 
             signalRMessage = await _userNotificationService.Push(NotificationObjectTypes.{entityName}, notification.{entityName}.Id,
@@ -540,7 +540,7 @@ $@"
             string notificationConsistent;
 
             StringBuilder messageBuilder = new StringBuilder(""{entityName} : "");
-            messageBuilder.Append(notification.Old{entityName}.Id); //Replace Id with the proper property
+            messageBuilder.Append(notification.Old{entityName}.Id); //TODO:AfterGenerateCode:Replace Id with the proper property
             {HandleNotificationMethodVersionCase}
 
             signalRMessage = await _userNotificationService.Push(NotificationObjectTypes.{entityName}, notification.Old{entityName}.Id,
@@ -682,7 +682,7 @@ $@"
             string notificationConsistent;
 
             StringBuilder messageBuilder = new StringBuilder(""{entityName} : "");
-            messageBuilder.Append(notification.{entityName}.Id); //Replace Id with the proper property
+            messageBuilder.Append(notification.{entityName}.Id); //TODO:AfterGenerateCode:Replace Id with the proper property
             {HandleNotificationMethodVersionCase}
 
             signalRMessage = await _userNotificationService.Push(NotificationObjectTypes.{entityName}, notification.{entityName}.Id,

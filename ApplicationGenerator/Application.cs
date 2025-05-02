@@ -1,5 +1,7 @@
 ﻿using SharedClasses;
+using System;
 using System.Data;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -905,7 +907,7 @@ namespace Application.{entityPlural}.Commands.Delete{entityName}
         }
         public static void GenerateGetByIdQuery(string entityName, string entityPlural, string path, bool hasLocalization, List<Relation> relations)
         {
-            var folderPath = Path.Combine(path, $"Get{entityName}Query");
+            var folderPath = Path.Combine(path, $"Get{entityName}");
             Directory.CreateDirectory(folderPath);
 
             GenerateGetByIdDto(entityName, entityPlural, folderPath,relations);
@@ -925,6 +927,7 @@ namespace Application.Common.Models.AssistantModels
 {{
     public class {relation.RelatedEntity}NavigationDto 
     {{
+        //TODO:AfterGenerateCode: add properties of {relation.RelatedEntity} 
         public Guid Id {{ get; set; }}
         //Add Props Here
 
@@ -1044,7 +1047,7 @@ namespace Application.{entityPlural}.Queries.Get{entityName}Query
 
         public async Task<Get{entityName}Dto> Handle(Get{entityName}Query request, CancellationToken cancellationToken)
         {{
-            var {entityName.ToLower()} = await {entityRepoName}Repository.GetByIdAsync(request.{entityName}Id);
+            var {entityName.ToLower()} = await {entityRepoName}Repository.GetByIdAsync(request.{entityName}Id);//TODO:AfterGenerateCode: add method to repository to get object include Navigations if existed
             var dto = _mapper.Map<Get{entityName}Dto>({entityName.ToLower()});
 
             {localizationCode}
@@ -1099,6 +1102,159 @@ namespace Application.{entityPlural}.Queries.Get{entityName}Query
 }}";
             File.WriteAllText(filePath, content);
         }
+        public static void GenerateGetWithLocalizationQuery(string entityName, string entityPlural, string path, List<Relation> relations) 
+        {
+            var folderPath = Path.Combine(path, $"Get{entityName}WithLocalization");
+            Directory.CreateDirectory(folderPath);
+            GenerateGetWithLocalizationDto(entityName, entityPlural, folderPath, relations);
+            GenerateGetWithLocalizationQueryFile(entityName, entityPlural, folderPath);
+            GenerateGetWithLocalizationValidator(entityName, entityPlural, folderPath);
+        }
+        public static void GenerateGetWithLocalizationDto(string entityName, string entityPlural, string path, List<Relation> relations)
+        {
+            string fileName = $"Get{entityName}WithLocalizationDto.cs";
+            string filePath = Path.Combine(path, fileName);
+            string? dtoNavProps = string.Empty;
+            foreach (var relation in relations)
+            {
+                string dtoNavProp = null;
+                switch (relation.Type)
+                {
+                    case RelationType.OneToOneSelfJoin:
+                        dtoNavProp = $"\t\tpublic {relation.RelatedEntity}NavigationDto? {entityName}Parent {{  get; set; }}";
+                        break;
+                    case RelationType.OneToOne:
+                        dtoNavProp = $"\t\tpublic {relation.RelatedEntity}NavigationDto {relation.RelatedEntity} {{  get; set; }}";
+                        break;
+                    case RelationType.OneToOneNullable:
+                        dtoNavProp = $"\t\tpublic {relation.RelatedEntity}NavigationDto? {relation.RelatedEntity} {{  get; set; }}";
+                        break;
+                    case RelationType.ManyToOne:
+                        dtoNavProp = $"\t\tpublic {relation.RelatedEntity}NavigationDto {relation.RelatedEntity} {{  get; set; }}";
+                        break;
+                    case RelationType.ManyToOneNullable:
+                        dtoNavProp = $"\t\tpublic {relation.RelatedEntity}NavigationDto? {relation.RelatedEntity} {{  get; set; }}";
+                        break;
+                    default:
+                        break;
+                }
+                if (dtoNavProp != null)
+                    dtoNavProps += dtoNavProp;
+            }
+            string content = $@"using Domain.Entities;
+using Application.Common.Models.AssistantModels;
+
+namespace Application.{entityPlural}.Queries.Get{entityName}WithLocalization
+{{
+    public class Get{entityName}WithLocalizationDto : {entityName}BaseDto
+    {{
+{dtoNavProps}
+        public List<{entityName}LocalizationDto> {entityName}Localizations {{ get; set; }} = new List<{entityName}LocalizationDto>();
+
+        public class Mapping : Profile
+        {{
+            public Mapping()
+            {{
+                CreateMap<{entityName}, Get{entityName}WithLocalizationDto>();
+            }}
+        }}
+    }}
+}}";
+            File.WriteAllText(filePath, content);
+
+        }
+        public static void GenerateGetWithLocalizationQueryFile(string entityName,string entityPlural,string path)
+        {
+            string fileName = $"Get{entityName}WithLocalizationQuery.cs";
+            string filePath = Path.Combine(path, fileName);
+            string x = entityName;
+            string lowerEntityName = char.ToLower(x[0]) + x.Substring(1);
+            string entityRepoName = $"_{lowerEntityName}";
+
+            string content = $@"using System;
+using Microsoft.Extensions.Logging;
+using Application.Common.Interfaces.IRepositories;
+
+namespace Application.{entityPlural}.Queries.Get{entityName}WithLocalization
+{{
+    public class Get{entityName}WithLocalizationQuery : IRequest<Get{entityName}WithLocalizationDto>
+    {{
+        public Guid {entityName}Id {{ get; set; }}
+    }}
+
+    public class Get{entityName}WithLocalizationQueryHandler : IRequestHandler<Get{entityName}WithLocalizationQuery, Get{entityName}WithLocalizationDto>
+    {{
+        private readonly ILogger<Get{entityName}WithLocalizationQueryHandler> _logger;
+        private readonly IMapper _mapper;
+        private readonly I{entityName}Repository _{entityRepoName}Repository;
+
+        public Get{entityName}WithLocalizationQueryHandler(ILogger<Get{entityName}WithLocalizationQueryHandler> logger,
+                                           IMapper mapper,
+                                           I{entityName}Repository {lowerEntityName}Repository)
+        {{
+            _logger = logger;
+            _mapper = mapper;
+            _{entityRepoName}Repository = {lowerEntityName}Repository;
+        }}
+
+        public async Task<Get{entityName}WithLocalizationDto> Handle(Get{entityName}WithLocalizationQuery request, CancellationToken cancellationToken)
+        {{
+            var {entityName.ToLower()} = await _{entityRepoName}Repository.GetByIdAsync(request.{entityName}Id);//TODO:AfterGenerateCode: add method to repository to get object include Localization
+            var result = _mapper.Map<Get{entityName}WithLocalizationDto>({entityName.ToLower()});
+
+            return result;
+        }}
+    }}
+}}";
+            File.WriteAllText(filePath, content);
+        }
+
+        public static void GenerateGetWithLocalizationValidator(string entityName,string entityPlural,string path)
+        {
+            string fileName = $"Get{entityName}WithLocalizationQueryValidator.cs";
+            string filePath = Path.Combine(path, fileName);
+
+            string x = entityName;
+            string lowerEntityName = char.ToLower(x[0]) + x.Substring(1);
+
+            string content = $@"
+using FluentValidation;
+using Microsoft.Extensions.Logging;
+using Application.Common.Interfaces.IRepositories;
+
+namespace Application.{entityPlural}.Queries.Get{entityName}WithLocalization
+{{
+    public class Get{entityName}WithLocalizationQueryValidator : AbstractValidator<Get{entityName}WithLocalizationQuery>
+    {{
+        private readonly ILogger<Get{entityName}WithLocalizationQueryValidator> _logger;
+        private readonly I{entityName}Repository _{lowerEntityName}Repository;
+
+        public Get{entityName}WithLocalizationQueryValidator(ILogger<Get{entityName}WithLocalizationQueryValidator> logger,
+                                             I{entityName}Repository {lowerEntityName}Repository)
+        {{
+            _logger = logger;
+            _{lowerEntityName}Repository = {lowerEntityName}Repository;
+
+            RuleFor(x => x.{entityName}Id)
+                .NotEmpty().WithMessage(""{entityName} Id must not be empty"")
+                .CustomAsync(async (id, context, cancellationToken) =>
+                {{
+                    if (!await Is{entityName}Exists(context.InstanceToValidate))
+                    {{
+                        context.AddFailure(""Get {entityName}"", ""{entityName} not found"");
+                    }}
+                }});
+        }}
+
+        private async Task<bool> Is{entityName}Exists(Get{entityName}WithLocalizationQuery query)
+        {{
+            return await _{lowerEntityName}Repository.GetByIdAsync(query.{entityName}Id) != null;
+        }}
+    }}
+}}";
+            File.WriteAllText(filePath, content);
+        }
+        ////
         public static void GenerateGetWithPaginationQuery(string entityName, string entityPlural, string path, bool hasLocalization, List<Relation> relations)
         {
             var folderPath = Path.Combine(path, $"Get{entityPlural}WithPagination");
@@ -1121,7 +1277,7 @@ namespace Application.{entityPlural}.Queries.Get{entityPlural}WithPagination
     public class Get{entityPlural}WithPaginationDto : {entityName}BaseDto
     {{
         public class Mapping : Profile
-        {{
+        {{ //TODO:AfterGenerateCode: add NavigationDto properties here if existed and needed, be attention that the name of each property must match the name in Domain 
             public Mapping()
             {{
                 CreateMap<{entityName}, Get{entityPlural}WithPaginationDto>();
@@ -1207,9 +1363,9 @@ namespace Application.{entityPlural}.Queries.Get{entityPlural}WithPagination
 
         public async Task<PaginatedList<Get{entityPlural}WithPaginationDto>> Handle(Get{entityPlural}WithPaginationQuery request, CancellationToken cancellationToken)
         {{
-            var query = _{lowerEntityName}Repository.GetAll();
+            var query = _{lowerEntityName}Repository.GetAll();//TODO:AfterGenerateCode: add method to repository to get Queryable<object> include Navigations for filters
 
-            //if (!string.IsNullOrWhiteSpace(request.SearchText))
+            //if (!string.IsNullOrWhiteSpace(request.SearchText)) //TODO:AfterGenerateCode: replace Name with proper property to apply SearchText filter
             //    query = query.Where(x => x.Name.ToLower().Contains(request.SearchText.ToLower()));
 
             {filters}
@@ -1256,10 +1412,9 @@ namespace Application.{entityPlural}.Queries.Get{entityPlural}WithPagination
 }}";
             File.WriteAllText(filePath, content);
         }
-        public static void GenerateBaseDto(string entityName, string entityPlural, List<(string Type, string Name, PropertyValidation Validation)> properties, string solutionDir,List<Relation> relations)
+        public static void GenerateBaseDto(string entityName, string entityPlural, List<(string Type, string Name, PropertyValidation Validation)> properties, string solutionDir,List<Relation> relations,bool hasLocalization)
         {
             var filePath = Path.Combine(solutionDir, "Application", entityPlural, "Queries", $"{entityName}BaseDto.cs");
-
             if (File.Exists(filePath))
             {
                 Console.WriteLine($"ℹ️ {entityName}BaseDto.cs already exists. Skipping...");
@@ -1337,6 +1492,37 @@ namespace Application.{entityPlural}.Queries
 
             File.WriteAllText(filePath, content);
             Console.WriteLine($"✅ {entityName}BaseDto.cs created.");
+
+            string? fileLocalizationDtoPath = !hasLocalization ? null : Path.Combine(solutionDir, "Application", entityPlural, "Queries", $"{entityName}LocalizationDto.cs");
+            string? localizationDtoContent = !hasLocalization ? null : $@"using System;
+using Domain.Entities;
+using Domain.Enums;
+
+namespace Application.{entityPlural}.Queries
+{{
+    public class {entityName}LocalizationDto
+    {{
+        public Guid Id {{ get; set; }}
+        public Guid LanguageId {{ get; set; }}
+        public Guid {entityName}Id {{ get; set; }}
+        public {entityName}LocalizationFieldType {entityName}LocalizationFieldType {{ get; set; }}
+        public string Value {{ get; set; }} = null!;
+
+        public class Mapping : Profile
+        {{
+            public Mapping() 
+            {{
+                CreateMap<{entityName}Localization, {entityName}LocalizationDto>()
+                    .ForMember(dest => dest.{entityName}LocalizationFieldType, opt => opt.MapFrom(src =>({entityName}LocalizationFieldType) src.FieldType));
+            }}
+        }}
+    }}
+}}";
+            if (hasLocalization) 
+            {
+                File.WriteAllText(fileLocalizationDtoPath!, localizationDtoContent);
+                Console.WriteLine($"✅ {entityName}LocalizationDto.cs created.");
+            }
         }
 
         private static string? GeneratePropertyRules((string Type, string Name, PropertyValidation? Validation) property)

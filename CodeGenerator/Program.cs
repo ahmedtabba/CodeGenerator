@@ -74,7 +74,7 @@ class Program
         var relations = GetRelationsFromUser();
         if (hasPermissions)
         {
-            Infrastructure.GeneratePermission(entityName, domainPath);
+            Infrastructure.GeneratePermission(entityName, domainPath, hasLocalization);
         }
         Domain.GenerateEntityClass(entityName, domainPath, properties, hasLocalization, relations);
 
@@ -139,7 +139,10 @@ class Program
         Application.GenerateGetByIdQuery(entityName, entityPlural, queryPath, hasLocalization, relations);
 
         Application.GenerateGetWithPaginationQuery(entityName, entityPlural, queryPath,hasLocalization,relations);
-        Application.GenerateBaseDto(entityName, entityPlural, properties.Item1, solutionDir,relations);
+        Application.GenerateBaseDto(entityName, entityPlural, properties.Item1, solutionDir,relations,hasLocalization);
+
+        if(hasLocalization)
+            Application.GenerateGetWithLocalizationQuery(entityName,entityPlural,queryPath,relations);
 
         Api.GenerateNeededDtos(entityName, entityPlural, properties.Item1, solutionDir,hasLocalization,relations);
 

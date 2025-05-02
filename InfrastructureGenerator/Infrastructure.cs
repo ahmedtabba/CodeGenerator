@@ -155,7 +155,7 @@ namespace Infrastructure.Data.Configurations
             File.WriteAllText(filePath, content);
         }
 
-        public static void GeneratePermission(string entityName, string domainPath)
+        public static void GeneratePermission(string entityName, string domainPath,bool haslocalization)
         {
             string entityPlural = entityName.EndsWith("y") ? entityName[..^1] + "ies" : entityName + "s";
             string roleConsistentPath = Path.Combine(domainPath, "..", "..", "Infrastructure", "Utilities", "RoleConsistent.cs");
@@ -167,7 +167,7 @@ namespace Infrastructure.Data.Configurations
 
             string content = File.ReadAllText(roleConsistentPath);
             string className = $"public class {entityName}";
-            string consistentClass = $@"
+            string consistentClass = !haslocalization ? $@"
         public class {entityName}
         {{
             public const string Browse = @""{entityName}\Browse {entityName}"";
@@ -175,6 +175,17 @@ namespace Infrastructure.Data.Configurations
             public const string Add = @""{entityName}\Add {entityName}"";
             public const string Edit = @""{entityName}\Edit {entityName}"";
             public List<string> Roles = [Delete, Add, Edit, Browse];
+        }}
+"
+        : $@"
+        public class {entityName}
+        {{
+            public const string Browse = @""{entityName}\Browse {entityName}"";
+            public const string Delete = @""{entityName}\Delete {entityName}"";
+            public const string Add = @""{entityName}\Add {entityName}"";
+            public const string Edit = @""{entityName}\Edit {entityName}"";
+            public const string BrowseWithLocalization = @""{entityName}\Browse {entityName} With Localization"";
+            public List<string> Roles = [Delete, Add, Edit, Browse,BrowseWithLocalization];
         }}
 ";
 
@@ -212,7 +223,7 @@ namespace Infrastructure.Data.Configurations
                 return;
             }
             
-            string roleAdd = $@"
+            string roleAdd = !haslocalization ? $@"
             #region {entityName}
 
             if (!roles.Exists(r => r.Name == RoleConsistent.{entityName}.Add))
@@ -228,7 +239,27 @@ namespace Infrastructure.Data.Configurations
                 _identityContext.Roles.Add(new ApplicationRole {{Name = RoleConsistent.{entityName}.Delete,NormalizedName = RoleConsistent.{entityName}.Delete.ToUpper()}});
 
             #endregion
+" + $"\n\t\t\t//Add Permission Here"
+        : $@"
+            #region {entityName}
+
+            if (!roles.Exists(r => r.Name == RoleConsistent.{entityName}.Add))
+                _identityContext.Roles.Add(new ApplicationRole {{Name = RoleConsistent.{entityName}.Add,NormalizedName = RoleConsistent.{entityName}.Add.ToUpper()}});
+
+            if (!roles.Exists(r => r.Name == RoleConsistent.{entityName}.Edit))
+                _identityContext.Roles.Add(new ApplicationRole {{Name = RoleConsistent.{entityName}.Edit,NormalizedName = RoleConsistent.{entityName}.Edit.ToUpper()}});
+
+            if (!roles.Exists(r => r.Name == RoleConsistent.{entityName}.Browse))
+                _identityContext.Roles.Add(new ApplicationRole {{Name = RoleConsistent.{entityName}.Browse,NormalizedName = RoleConsistent.{entityName}.Browse.ToUpper()}});
+
+            if (!roles.Exists(r => r.Name == RoleConsistent.{entityName}.Delete))
+                _identityContext.Roles.Add(new ApplicationRole {{Name = RoleConsistent.{entityName}.Delete,NormalizedName = RoleConsistent.{entityName}.Delete.ToUpper()}});
+
+            if (!roles.Exists(r => r.Name == RoleConsistent.{entityName}.BrowseWithLocalization))
+                _identityContext.Roles.Add(new ApplicationRole {{Name = RoleConsistent.{entityName}.BrowseWithLocalization,NormalizedName = RoleConsistent.{entityName}.BrowseWithLocalization.ToUpper()}});
+            #endregion
 " + $"\n\t\t\t//Add Permission Here";
+
             lines.Clear();
             lines = File.ReadAllLines(initialiserPath).ToList();
             index = lines.FindIndex(line => line.Contains("//Add Permission Here"));
