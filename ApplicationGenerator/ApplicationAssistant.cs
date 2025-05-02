@@ -84,6 +84,7 @@ namespace Application.Common.Models.Versioning
 
     public class {entityName}VersioningDTO : EntityDTO, IVersionable
     {{
+        //Add [EmbeddedList] to list properties
         //public Guid Id {{ get; set; }} // from EntityDTO and it has [IgnoreVersioning] attribute
         public string UniqueIdentifier {{ get; set; }} = null!;// from IVersionable and it has [IgnoreVersioning] attribute
         {props}
