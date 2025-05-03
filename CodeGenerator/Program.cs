@@ -275,7 +275,7 @@ class Program
             relation.RelatedEntity = answer;
 
             Console.Write(" - Relation Type:" +
-                "\n" + "OneToOneSelfJoin : 0\r\nOneToOne : 1\r\nOneToOneNullable : 2\r\nOneToMany : 3\r\nOneToManyNullable : 4\r\nManyToOne : 5\r\nManyToOneNullable : 6\r\nManyToMany : 7 \n"
+                "\n" + "OneToOneSelfJoin : 0\r\nOneToOne (entity is child) : 1\r\nOneToOneNullable (entity is child) : 2\r\nOneToMany (entity is parent) : 3\r\nOneToManyNullable (entity is parent) : 4\r\nManyToOne (entity is child) : 5\r\nManyToOneNullable (entity is child) : 6\r\nManyToMany : 7 \n"
                 + "enter number of relation : ");
             answer = Console.ReadLine();
             relation.Type = (RelationType)Int32.Parse(answer);

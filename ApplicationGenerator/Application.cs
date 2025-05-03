@@ -918,71 +918,6 @@ namespace Application.{entityPlural}.Commands.Delete{entityName}
         {
             string fileName = $"Get{entityName}Dto.cs";
             string filePath = Path.Combine(path, fileName);
-            string? dtoNavProps = string.Empty;
-            foreach( var relation in relations )
-            {
-                string navigationDtoPath = Path.Combine(path, "..", "..", "..", "Common", "Models", "AssistantModels", $"{relation.RelatedEntity}NavigationDto.cs");
-                var navigationDtoContent = $@"using Domain.Entities;
-namespace Application.Common.Models.AssistantModels
-{{
-    public class {relation.RelatedEntity}NavigationDto 
-    {{
-        //TODO:AfterGenerateCode: add properties of {relation.RelatedEntity} 
-        public Guid Id {{ get; set; }}
-        //Add Props Here
-
-        public class Mapping : Profile
-        {{
-            public Mapping()
-            {{
-                CreateMap<{relation.RelatedEntity}, {relation.RelatedEntity}NavigationDto>();
-            }}
-        }}
-    }}
-}}
-";
-                if (File.Exists(navigationDtoPath))
-                {
-                    continue;
-                }
-                else
-                {
-                    string dtoNavProp = null; 
-                    switch (relation.Type)
-                    {
-                        case RelationType.OneToOneSelfJoin:
-                            if (!File.Exists(navigationDtoPath))
-                                File.WriteAllText(navigationDtoPath, navigationDtoContent);
-                            dtoNavProp = $"\t\tpublic {relation.RelatedEntity}NavigationDto? {entityName}Parent {{  get; set; }}";
-                            break;
-                        case RelationType.OneToOne:
-                            if (!File.Exists(navigationDtoPath))
-                                File.WriteAllText(navigationDtoPath, navigationDtoContent);
-                            dtoNavProp = $"\t\tpublic {relation.RelatedEntity}NavigationDto {relation.RelatedEntity} {{  get; set; }}";
-                            break;
-                        case RelationType.OneToOneNullable:
-                            if (!File.Exists(navigationDtoPath))
-                                File.WriteAllText(navigationDtoPath, navigationDtoContent);
-                            dtoNavProp = $"\t\tpublic {relation.RelatedEntity}NavigationDto? {relation.RelatedEntity} {{  get; set; }}";
-                            break;
-                        case RelationType.ManyToOne:
-                            if (!File.Exists(navigationDtoPath))
-                                File.WriteAllText(navigationDtoPath, navigationDtoContent);
-                            dtoNavProp = $"\t\tpublic {relation.RelatedEntity}NavigationDto {relation.RelatedEntity} {{  get; set; }}";
-                            break;
-                        case RelationType.ManyToOneNullable:
-                            if (!File.Exists(navigationDtoPath))
-                                File.WriteAllText(navigationDtoPath, navigationDtoContent);
-                            dtoNavProp = $"\t\tpublic {relation.RelatedEntity}NavigationDto? {relation.RelatedEntity} {{  get; set; }}";
-                            break;
-                        default:
-                            break;
-                    }
-                    if (dtoNavProp != null)
-                        dtoNavProps += dtoNavProp;
-                }
-                
-            }
             string content = $@"using Domain.Entities;
 using Application.Common.Models.AssistantModels;
 
@@ -990,7 +925,7 @@ namespace Application.{entityPlural}.Queries.Get{entityName}Query
 {{
     public class Get{entityName}Dto : {entityName}BaseDto
     {{
-{dtoNavProps}    
+        //TODO:AfterGenerateCode: add properties of related entities and update mapper 
         public class Mapping : Profile
         {{
             public Mapping()
@@ -1114,33 +1049,6 @@ namespace Application.{entityPlural}.Queries.Get{entityName}Query
         {
             string fileName = $"Get{entityName}WithLocalizationDto.cs";
             string filePath = Path.Combine(path, fileName);
-            string? dtoNavProps = string.Empty;
-            foreach (var relation in relations)
-            {
-                string dtoNavProp = null;
-                switch (relation.Type)
-                {
-                    case RelationType.OneToOneSelfJoin:
-                        dtoNavProp = $"\t\tpublic {relation.RelatedEntity}NavigationDto? {entityName}Parent {{  get; set; }}";
-                        break;
-                    case RelationType.OneToOne:
-                        dtoNavProp = $"\t\tpublic {relation.RelatedEntity}NavigationDto {relation.RelatedEntity} {{  get; set; }}";
-                        break;
-                    case RelationType.OneToOneNullable:
-                        dtoNavProp = $"\t\tpublic {relation.RelatedEntity}NavigationDto? {relation.RelatedEntity} {{  get; set; }}";
-                        break;
-                    case RelationType.ManyToOne:
-                        dtoNavProp = $"\t\tpublic {relation.RelatedEntity}NavigationDto {relation.RelatedEntity} {{  get; set; }}";
-                        break;
-                    case RelationType.ManyToOneNullable:
-                        dtoNavProp = $"\t\tpublic {relation.RelatedEntity}NavigationDto? {relation.RelatedEntity} {{  get; set; }}";
-                        break;
-                    default:
-                        break;
-                }
-                if (dtoNavProp != null)
-                    dtoNavProps += dtoNavProp;
-            }
             string content = $@"using Domain.Entities;
 using Application.Common.Models.AssistantModels;
 
@@ -1148,7 +1056,7 @@ namespace Application.{entityPlural}.Queries.Get{entityName}WithLocalization
 {{
     public class Get{entityName}WithLocalizationDto : {entityName}BaseDto
     {{
-{dtoNavProps}
+        //TODO:AfterGenerateCode: add properties of related entities and update mapper 
         public List<{entityName}LocalizationDto> {entityName}Localizations {{ get; set; }} = new List<{entityName}LocalizationDto>();
 
         public class Mapping : Profile
@@ -1277,7 +1185,7 @@ namespace Application.{entityPlural}.Queries.Get{entityPlural}WithPagination
     public class Get{entityPlural}WithPaginationDto : {entityName}BaseDto
     {{
         public class Mapping : Profile
-        {{ //TODO:AfterGenerateCode: add NavigationDto properties here if existed and needed, be attention that the name of each property must match the name in Domain 
+        {{ //TODO:AfterGenerateCode: add properties of related entities and update mapper 
             public Mapping()
             {{
                 CreateMap<{entityName}, Get{entityPlural}WithPaginationDto>();
