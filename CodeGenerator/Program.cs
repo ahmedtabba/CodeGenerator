@@ -146,7 +146,7 @@ class Program
 
         Api.GenerateNeededDtos(entityName, entityPlural, properties.Item1, solutionDir,hasLocalization,relations);
 
-        Api.AddRoutesToApiRoutes(entityName, entityPlural, solutionDir);
+        Api.AddRoutesToApiRoutes(entityName, entityPlural, solutionDir,hasLocalization);
       
         Api.GenerateController(entityName, entityPlural, properties.Item1, solutionDir,hasLocalization,hasPermissions);
 
