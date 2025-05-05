@@ -24,7 +24,7 @@ namespace Application.Common.Interfaces.IRepositories
 }}";
             File.WriteAllText(filePath, content);
         }
-        public static void GenerateCreateCommand(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties,bool hasLocalization,List<Relation> relations, bool hasVersioning,bool hasNotification, bool hasUserAction)
+        public static void GenerateCreateCommand(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, bool hasLocalization,List<Relation> relations, bool hasVersioning,bool hasNotification, bool hasUserAction)
         {
             string className = $"Create{entityName}Command";
             string filePath = Path.Combine(path, $"{className}.cs");
@@ -45,6 +45,7 @@ namespace Application.Common.Interfaces.IRepositories
 ";
 
             var propList = new List<string>();
+            StringBuilder mapperEnum = new StringBuilder();
             StringBuilder imageCode = new StringBuilder();
             foreach (var prop in properties)
             {
@@ -85,7 +86,23 @@ namespace Application.Common.Interfaces.IRepositories
                 }
                 else
                 {
-                    propList.Add($"\t\tpublic {prop.Type} {prop.Name} {{ get; set; }}");
+                    if (enumProps.Any(p => p.prop == prop.Name))
+                    {
+                        if (prop.Validation != null && prop.Validation.Required)
+                        {
+                            propList.Add($"\t\tpublic {entityName}{prop.Name} {prop.Name} {{ get; set; }}");
+                            mapperEnum.Append($".ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => (int)src.{prop.Name}))");
+                            mapperEnum.AppendLine();
+                        }
+                        else
+                        {
+                            propList.Add($"\t\tpublic {entityName}{prop.Name}? {prop.Name} {{ get; set; }}");
+                            mapperEnum.Append($".ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => (int?)src.{prop.Name}))");
+                            mapperEnum.AppendLine();
+                        }
+                    }
+                    else
+                        propList.Add($"\t\tpublic {prop.Type} {prop.Name} {{ get; set; }}");
                 }
 
             }
@@ -160,6 +177,7 @@ using Application.Common.Interfaces.Assets;
 using Application.Common.Interfaces.IRepositories;
 using Application.Common.Models.Localization;
 using Domain.Entities;
+using Domain.Enums;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -179,7 +197,9 @@ namespace Application.{entityPlural}.Commands.Create{entityName}
             {{
                 public Mapping()
                 {{
-                    CreateMap<Create{entityName}Command, {entityName}>();
+                    CreateMap<Create{entityName}Command, {entityName}>()
+                    {mapperEnum}
+                    ;
                 }}
             }}
     }}
@@ -326,7 +346,7 @@ namespace Application.{entityPlural}.Commands.Create{entityName}
 
             File.WriteAllText(filePath, content);
         }
-        public static void GenerateUpdateCommand(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, bool hasLocalization ,List<Relation> relations, bool hasVersioning, bool hasNotification, bool hasUserAction)
+        public static void GenerateUpdateCommand(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, bool hasLocalization ,List<Relation> relations, bool hasVersioning, bool hasNotification, bool hasUserAction)
         {
             string className = $"Update{entityName}Command";
             string filePath = Path.Combine(path, $"{className}.cs");
@@ -353,7 +373,7 @@ namespace Application.{entityPlural}.Commands.Create{entityName}
             string? oldImageUrl = string.Empty;
             StringBuilder oldImageToDeleteCode = new StringBuilder();
             StringBuilder oldImagesToDeleteCode = new StringBuilder();
-
+            StringBuilder mapperEnum = new StringBuilder();
             foreach (var prop in properties)
             {
                 if (prop.Type == "GPG")
@@ -463,7 +483,24 @@ namespace Application.{entityPlural}.Commands.Create{entityName}
                 }
                 else
                 {
-                    propList.Add($"\t\tpublic {prop.Type} {prop.Name} {{ get; set; }}");
+                    if (enumProps.Any(p => p.prop == prop.Name))
+                    {
+                        if (prop.Validation != null && prop.Validation.Required)
+                        {
+                            propList.Add($"\t\tpublic {entityName}{prop.Name} {prop.Name} {{ get; set; }}");
+                            mapperEnum.Append($".ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => (int)src.{prop.Name}))");
+                            mapperEnum.AppendLine();
+                        }
+                        else
+                        {
+                            propList.Add($"\t\tpublic {entityName}{prop.Name}? {prop.Name} {{ get; set; }}");
+                            mapperEnum.Append($".ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => (int?)src.{prop.Name}))");
+                            mapperEnum.AppendLine();
+                        }
+
+                    }
+                    else
+                        propList.Add($"\t\tpublic {prop.Type} {prop.Name} {{ get; set; }}");
                 }
 
             }
@@ -554,6 +591,7 @@ using System.Threading.Tasks;
 using Application.Common.Interfaces.Db;
 using Application.Common.Interfaces.IRepositories;
 using Domain.Entities;
+using Domain.Enums;
 using Application.Common.Models.Localization;
 using Application.Common.Extensions;
 {neededUsing}
@@ -570,7 +608,9 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
         {{
             public Mapping()
             {{
-                CreateMap<{className}, {entityName}>();
+                CreateMap<{className}, {entityName}>()
+                {mapperEnum}    
+                ;
             }}
         }}
     }}
@@ -905,22 +945,41 @@ namespace Application.{entityPlural}.Commands.Delete{entityName}
 ";
             File.WriteAllText(filePath, content);
         }
-        public static void GenerateGetByIdQuery(string entityName, string entityPlural, string path, bool hasLocalization, List<Relation> relations)
+        public static void GenerateGetByIdQuery(string entityName, string entityPlural, string path, bool hasLocalization, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, List<Relation> relations)
         {
             var folderPath = Path.Combine(path, $"Get{entityName}");
             Directory.CreateDirectory(folderPath);
 
-            GenerateGetByIdDto(entityName, entityPlural, folderPath,relations);
+            GenerateGetByIdDto(entityName, entityPlural, folderPath,properties, enumProps, relations);
             GenerateGetByIdQueryFile(entityName, entityPlural, folderPath,hasLocalization);
             GenerateGetByIdValidator(entityName, entityPlural, folderPath);
         }
-        public static void GenerateGetByIdDto(string entityName, string entityPlural, string path,List<Relation> relations)
+        public static void GenerateGetByIdDto(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, List<Relation> relations)
         {
             string fileName = $"Get{entityName}Dto.cs";
             string filePath = Path.Combine(path, fileName);
+            StringBuilder mapperEnum = new StringBuilder();
+            foreach (var prop in properties)
+            {
+                if (enumProps.Any(p => p.prop == prop.Name))
+                {
+                    if (prop.Validation != null && prop.Validation.Required)
+                    {
+                        mapperEnum.Append($".ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => ({entityName}{prop.Name})src.{prop.Name}))");
+                        mapperEnum.AppendLine();
+                    }
+                    else
+                    {
+                        mapperEnum.Append($".ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => ({entityName}{prop.Name}?)src.{prop.Name}))");
+                        mapperEnum.AppendLine();
+                    }
+
+                }
+            }
+
             string content = $@"using Domain.Entities;
 using Application.Common.Models.AssistantModels;
-
+using Domain.Enums;
 namespace Application.{entityPlural}.Queries.Get{entityName}Query
 {{
     public class Get{entityName}Dto : {entityName}BaseDto
@@ -930,7 +989,9 @@ namespace Application.{entityPlural}.Queries.Get{entityName}Query
         {{
             public Mapping()
             {{
-                CreateMap<{entityName}, Get{entityName}Dto>();
+                CreateMap<{entityName}, Get{entityName}Dto>()
+                {mapperEnum}
+                ;
             }}
         }}
     }}
@@ -1037,21 +1098,39 @@ namespace Application.{entityPlural}.Queries.Get{entityName}Query
 }}";
             File.WriteAllText(filePath, content);
         }
-        public static void GenerateGetWithLocalizationQuery(string entityName, string entityPlural, string path, List<Relation> relations) 
+        public static void GenerateGetWithLocalizationQuery(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, List<Relation> relations) 
         {
             var folderPath = Path.Combine(path, $"Get{entityName}WithLocalization");
             Directory.CreateDirectory(folderPath);
-            GenerateGetWithLocalizationDto(entityName, entityPlural, folderPath, relations);
+            GenerateGetWithLocalizationDto(entityName, entityPlural, folderPath,properties,enumProps, relations);
             GenerateGetWithLocalizationQueryFile(entityName, entityPlural, folderPath);
             GenerateGetWithLocalizationValidator(entityName, entityPlural, folderPath);
         }
-        public static void GenerateGetWithLocalizationDto(string entityName, string entityPlural, string path, List<Relation> relations)
+        public static void GenerateGetWithLocalizationDto(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, List<Relation> relations)
         {
             string fileName = $"Get{entityName}WithLocalizationDto.cs";
             string filePath = Path.Combine(path, fileName);
+            StringBuilder mapperEnum = new StringBuilder();
+            foreach (var prop in properties)
+            {
+                if (enumProps.Any(p => p.prop == prop.Name))
+                {
+                    if (prop.Validation != null && prop.Validation.Required)
+                    {
+                        mapperEnum.Append($".ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => ({entityName}{prop.Name})src.{prop.Name}))");
+                        mapperEnum.AppendLine();
+                    }
+                    else
+                    {
+                        mapperEnum.Append($".ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => ({entityName}{prop.Name}?)src.{prop.Name}))");
+                        mapperEnum.AppendLine();
+                    }
+
+                }
+            }
             string content = $@"using Domain.Entities;
 using Application.Common.Models.AssistantModels;
-
+using Domain.Enums;
 namespace Application.{entityPlural}.Queries.Get{entityName}WithLocalization
 {{
     public class Get{entityName}WithLocalizationDto : {entityName}BaseDto
@@ -1063,7 +1142,9 @@ namespace Application.{entityPlural}.Queries.Get{entityName}WithLocalization
         {{
             public Mapping()
             {{
-                CreateMap<{entityName}, Get{entityName}WithLocalizationDto>();
+                CreateMap<{entityName}, Get{entityName}WithLocalizationDto>()
+                {mapperEnum}
+                ;
             }}
         }}
     }}
@@ -1320,7 +1401,7 @@ namespace Application.{entityPlural}.Queries.Get{entityPlural}WithPagination
 }}";
             File.WriteAllText(filePath, content);
         }
-        public static void GenerateBaseDto(string entityName, string entityPlural, List<(string Type, string Name, PropertyValidation Validation)> properties, string solutionDir,List<Relation> relations,bool hasLocalization)
+        public static void GenerateBaseDto(string entityName, string entityPlural, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, string solutionDir,List<Relation> relations,bool hasLocalization)
         {
             var filePath = Path.Combine(solutionDir, "Application", entityPlural, "Queries", $"{entityName}BaseDto.cs");
             if (File.Exists(filePath))
@@ -1378,7 +1459,19 @@ namespace Application.{entityPlural}.Queries.Get{entityPlural}WithPagination
                 }
                 else
                 {
-                    propList.Add($"\t\tpublic {prop.Type} {prop.Name} {{ get; set; }}");
+                    if (enumProps.Any(p => p.prop == prop.Name))
+                    {
+                        if (prop.Validation != null && prop.Validation.Required)
+                        {
+                            propList.Add($"\t\tpublic {entityName}{prop.Name} {prop.Name} {{ get; set; }}");
+                        }
+                        else
+                        {
+                            propList.Add($"\t\tpublic {entityName}{prop.Name}? {prop.Name} {{ get; set; }}");
+                        }
+                    }
+                    else
+                        propList.Add($"\t\tpublic {prop.Type} {prop.Name} {{ get; set; }}");
                 }
 
             }
@@ -1387,7 +1480,7 @@ namespace Application.{entityPlural}.Queries.Get{entityPlural}WithPagination
 
             string content = $@"
 using System;
-
+using Domain.Enums;
 namespace Application.{entityPlural}.Queries
 {{
     public class {entityName}BaseDto

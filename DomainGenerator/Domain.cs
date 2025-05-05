@@ -8,7 +8,7 @@ namespace DomainGenerator
 {
     public static class Domain
     {
-        public static void GenerateEntityClass(string entityName, string path, (List<(string Type, string Name, PropertyValidation Validation)>,List<string>) properties, bool hasLocalization, List<Relation> relations)
+        public static void GenerateEntityClass(string entityName, string path, (List<(string Type, string Name, PropertyValidation Validation)>,List<string> localizedProps, List<(string prop, List<string> enumValues)>) properties, bool hasLocalization, List<Relation> relations)
         {
             string fileName = $"{entityName}.cs";
             string filePath = Path.Combine(path, fileName);
@@ -25,7 +25,7 @@ namespace DomainGenerator
             string content = null!;
             if (!hasLocalization) 
             {
-                    content = $@"using Domain.Common;
+                content = $@"using Domain.Common;
 using System;
 using System.Collections.Generic;
 
@@ -41,8 +41,7 @@ namespace Domain.Entities
     }}
 }}";
 
-                    File.WriteAllText(filePath, content);
-                
+                File.WriteAllText(filePath, content);
             }
             else
             {
@@ -67,12 +66,40 @@ namespace Domain.Entities
                 GenerateEntityLocalizationClass(entityName, path,properties.Item2);
                 UpdateLanguageClass($"{entityName}Localization", path);
             }
+
+            if (properties.Item3.Any())
+                GenerateEntityEnums(entityName, properties.Item3, path);
             if (relations.Count > 0)
                 UpdateRelations(entityName,relations, path);
 
 
         }
-
+        static void GenerateEntityEnums(string entityName, List<(string prop, List<string> enumValues)> enumProps, string path)
+        {
+            foreach (var enumProp in enumProps)
+            {
+                string filePropEnumName = $"{entityName}{enumProp.prop}.cs";
+                string filePropEnumPath = Path.Combine(path, "..", "Enums");
+                string fileEnumPath = Path.Combine(filePropEnumPath, filePropEnumName);
+                StringBuilder values = new StringBuilder();
+                foreach (var item in enumProp.enumValues)
+                {
+                    values.Append("\t\t" + item + ",");
+                    values.AppendLine();
+                }
+                string enumContent = $@"using System;
+namespace Domain.Enums
+{{
+    public enum {entityName}{enumProp.prop}
+    {{
+{values}
+    }}
+}}
+";
+                File.WriteAllText(fileEnumPath, enumContent);
+            }
+            
+        }
         static void GenerateEntityLocalizationClass(string entityName, string path, List<string> localizedProp)
         {
             string fileName = $"{entityName}Localization.cs";

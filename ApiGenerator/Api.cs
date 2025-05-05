@@ -1,24 +1,25 @@
 ﻿using Microsoft.Win32;
 using SharedClasses;
+using System.Text;
 
 namespace ApiGenerator
 {
     public static class Api
     {
-        public static void GenerateNeededDtos(string entityName, string entityPlural, List<(string Type, string Name, PropertyValidation Validation)> properties, string solutionDir,bool hasLocalization,List<Relation> relations)
+        public static void GenerateNeededDtos(string entityName, string entityPlural, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, string solutionDir,bool hasLocalization,List<Relation> relations)
         {
             var dtoPath = Path.Combine(solutionDir, "Api", "NeededDto", entityName);
             Directory.CreateDirectory(dtoPath);
             var hasImages = properties.Any(p => p.Type == "GPG" || p.Type == "PNGs");
             if (hasLocalization)
                 GenerateLocalizationDto(entityName, dtoPath);
-            if (hasLocalization || hasImages)
-                GenerateCreateCommandDto(entityName, dtoPath,properties,entityPlural,relations,hasLocalization,hasImages);
-            GenerateUpdateCommandDto(entityName, dtoPath, properties,hasLocalization,hasImages,entityPlural,relations);
+            if (hasLocalization || hasImages || enumProps.Any())
+                GenerateCreateCommandDto(entityName, dtoPath,properties,enumProps,entityPlural,relations,hasLocalization,hasImages);
+            GenerateUpdateCommandDto(entityName, dtoPath, properties,enumProps,hasLocalization,hasImages,entityPlural,relations);
             GenerateGetWithPaginationQueryDto(entityName, entityPlural, dtoPath,hasLocalization);
         }
 
-        public static void GenerateCreateCommandDto(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties,string entityPlural,List<Relation> relations,bool hasLocalization,bool hasImages)
+        public static void GenerateCreateCommandDto(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, string entityPlural,List<Relation> relations,bool hasLocalization,bool hasImages)
         {
             string fileName = $"Create{entityName}CommandDto.cs";
             string filePath = Path.Combine(path, fileName);
@@ -42,6 +43,24 @@ namespace ApiGenerator
 
             string? VideoProp = properties.Any(p => p.Type == "VD") ? $"\t\tpublic string? {properties.First(t => t.Type == "VD").Name} {{ get; set;}}" : null;
 
+            StringBuilder mapperEnum = new StringBuilder();
+            foreach (var prop in properties)
+            {
+                if (enumProps.Any(p => p.prop == prop.Name))
+                {
+                    if (prop.Validation != null && prop.Validation.Required)
+                    {
+                        mapperEnum.Append($".ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => ({entityName}{prop.Name})src.{prop.Name}))");
+                        mapperEnum.AppendLine();
+                    }
+                    else
+                    {
+                        mapperEnum.Append($".ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => ({entityName}{prop.Name}?)src.{prop.Name}))");
+                        mapperEnum.AppendLine();
+                    }
+
+                }
+            }
             List<string> filtersProps = new List<string>();
             foreach (var relation in relations)
             {
@@ -76,6 +95,7 @@ namespace ApiGenerator
                     {localizationMapp}
                     {ImageMapp}
                     {ListImageMapp}
+                    {mapperEnum}
                     ;
             }}
         }}
@@ -87,7 +107,7 @@ namespace ApiGenerator
             string content = $@"using AutoMapper;
 using Application.{entityPlural}.Commands.Create{entityName};
 using Api.Utilities;
-
+using Domain.Enums;
 namespace Api.NeededDto.{entityName}
 {{
     public class Create{entityName}CommandDto
@@ -105,7 +125,7 @@ namespace Api.NeededDto.{entityName}
             File.WriteAllText(filePath, content);
         }
 
-        public static void GenerateUpdateCommandDto(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties,bool hasLocalization,bool hasImages,string entityPlural,List<Relation> relations)
+        public static void GenerateUpdateCommandDto(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, bool hasLocalization,bool hasImages,string entityPlural,List<Relation> relations)
         {
             string fileName = $"Update{entityName}CommandDto.cs";
             string filePath = Path.Combine(path, fileName);
@@ -135,7 +155,24 @@ namespace Api.NeededDto.{entityName}
                 : null;
 
             string? VideoProp = properties.Any(p => p.Type == "VD") ? $"\t\tpublic string? {properties.First(t => t.Type == "VD").Name} {{ get; set;}}" : null;
+            StringBuilder mapperEnum = new StringBuilder();
+            foreach (var prop in properties)
+            {
+                if (enumProps.Any(p => p.prop == prop.Name))
+                {
+                    if (prop.Validation != null && prop.Validation.Required)
+                    {
+                        mapperEnum.Append($".ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => ({entityName}{prop.Name})src.{prop.Name}))");
+                        mapperEnum.AppendLine();
+                    }
+                    else
+                    {
+                        mapperEnum.Append($".ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => ({entityName}{prop.Name}?)src.{prop.Name}))");
+                        mapperEnum.AppendLine();
+                    }
 
+                }
+            }
             List<string> filtersProps = new List<string>();
             foreach (var relation in relations)
             {
@@ -171,6 +208,7 @@ namespace Api.NeededDto.{entityName}
                     {localizationMapp}
                     {ImageMapp}
                     {ListImageMapp}
+                    {mapperEnum}
                     ;
             }}
         }}
@@ -182,6 +220,7 @@ namespace Api.NeededDto.{entityName}
             string content = $@"using AutoMapper;
 using Application.{entityPlural}.Commands.Update{entityName};
 using Api.Utilities;
+using Domain.Enums;
 
 namespace Api.NeededDto.{entityName}
 {{
@@ -285,6 +324,7 @@ namespace Api.NeededDto.{entityName}
             {{
                 CreateMap<Get{entityPlural}WithPaginationQueryDto, Get{entityPlural}WithPaginationQuery>()
                     .ForMember(dest => dest.Filters, opt => opt.MapFrom(src => src.Filters.ToFilterRequest()));
+                    //Add mapper for enum if needed as filters
             }}
         }}
     }}
@@ -339,7 +379,7 @@ namespace Api.NeededDto.{entityName}
         }
 
 
-        public static void GenerateController(string entityName, string entityPlural, List<(string Type, string Name, PropertyValidation Validation)> properties, string solutionDir,bool hasLocalization,bool hasPermissions)
+        public static void GenerateController(string entityName, string entityPlural, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, string solutionDir,bool hasLocalization,bool hasPermissions)
         {
             var controllerName = $"{entityPlural}Controller.cs";
             var filePath = Path.Combine(solutionDir, "Api", "Controllers", controllerName);
@@ -347,6 +387,7 @@ namespace Api.NeededDto.{entityName}
             string? UpdatePermission = null!;
             string? GetPermission = null!;
             string? DeletePermission = null!;
+            var hasImages = properties.Any(p => p.Type == "GPG" || p.Type == "PNGs");
             if (hasPermissions)
             {
                 createPermission = $"[Permission(RoleConsistent.{entityName}.Add)]";
@@ -360,7 +401,7 @@ namespace Api.NeededDto.{entityName}
             string createCode = $@"
                 var result = await _sender.Send(command);
                 return Ok(result);";
-            if (hasLocalization)
+            if (hasLocalization || enumProps.Any() || hasImages)
             {
                 createParam = $"Create{entityName}CommandDto dto";
                 createCode = $@"

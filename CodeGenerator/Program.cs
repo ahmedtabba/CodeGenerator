@@ -95,7 +95,7 @@ class Program
                     ("Guid",$"{entityName}Id",new PropertyValidation()),
                     ("Guid",$"{relation.RelatedEntity}Id",new PropertyValidation())
                 };
-                Domain.GenerateEntityClass($"{entityName}{relation.RelatedEntity}", domainPath, (props,new List<string>()), false, new List<Relation>());
+                Domain.GenerateEntityClass($"{entityName}{relation.RelatedEntity}", domainPath, (props,new List<string>(),new List<(string,List<string>)>()), false, new List<Relation>());
                 Infrastructure.UpdateAppDbContext($"{entityName}{relation.RelatedEntity}", domainPath);
                 Application.GenerateIRepositoryInterface($"{entityName}{relation.RelatedEntity}", repoInterfacePath);
                 Infrastructure.GenerateRepository($"{entityName}{relation.RelatedEntity}", repoPath);
@@ -125,10 +125,10 @@ class Program
             ApplicationAssistant.GenerateEvents(entityName, domainPath, hasVersioning);
             ApplicationAssistant.GenerateHandlers(entityName, domainPath,properties.Item1,relations,hasVersioning,hasUserAction,hasNotification);
         }
-        Application.GenerateCreateCommand(entityName, entityPlural, createCommandPath, properties.Item1,hasLocalization,relations,hasVersioning,hasNotification,hasUserAction);
+        Application.GenerateCreateCommand(entityName, entityPlural, createCommandPath, properties.Item1, properties.propEnums, hasLocalization,relations,hasVersioning,hasNotification,hasUserAction);
         Application.GenerateCreateCommandValidator(entityName, entityPlural, createCommandPath, properties.Item1, relations);
 
-        Application.GenerateUpdateCommand(entityName, entityPlural, updateCommandPath, properties.Item1, hasLocalization, relations, hasVersioning, hasNotification, hasUserAction);
+        Application.GenerateUpdateCommand(entityName, entityPlural, updateCommandPath, properties.Item1, properties.propEnums, hasLocalization, relations, hasVersioning, hasNotification, hasUserAction);
         Application.GenerateUpdateCommandValidator(entityName, entityPlural, updateCommandPath, properties.Item1, relations);
 
 
@@ -136,19 +136,19 @@ class Program
         Application.GenerateDeleteCommandValidator(entityName, entityPlural, deleteCommandPath, properties.Item1);
 
          
-        Application.GenerateGetByIdQuery(entityName, entityPlural, queryPath, hasLocalization, relations);
+        Application.GenerateGetByIdQuery(entityName, entityPlural, queryPath, hasLocalization, properties.Item1,properties.propEnums, relations);
 
         Application.GenerateGetWithPaginationQuery(entityName, entityPlural, queryPath,hasLocalization,relations);
-        Application.GenerateBaseDto(entityName, entityPlural, properties.Item1, solutionDir,relations,hasLocalization);
+        Application.GenerateBaseDto(entityName, entityPlural,properties.Item1, properties.propEnums, solutionDir,relations,hasLocalization);
 
         if(hasLocalization)
-            Application.GenerateGetWithLocalizationQuery(entityName,entityPlural,queryPath,relations);
+            Application.GenerateGetWithLocalizationQuery(entityName,entityPlural,queryPath, properties.Item1, properties.propEnums, relations);
 
-        Api.GenerateNeededDtos(entityName, entityPlural, properties.Item1, solutionDir,hasLocalization,relations);
+        Api.GenerateNeededDtos(entityName, entityPlural, properties.Item1, properties.propEnums, solutionDir,hasLocalization,relations);
 
         Api.AddRoutesToApiRoutes(entityName, entityPlural, solutionDir,hasLocalization);
       
-        Api.GenerateController(entityName, entityPlural, properties.Item1, solutionDir,hasLocalization,hasPermissions);
+        Api.GenerateController(entityName, entityPlural, properties.Item1,properties.propEnums, solutionDir,hasLocalization,hasPermissions);
 
 
 
@@ -157,10 +157,11 @@ class Program
 
 
 
-    static (List<(string Type, string Name, PropertyValidation Validation)>,List<string> localizedProp) GetPropertiesFromUser(string entityName,bool hasLocalization)
+    static (List<(string Type, string Name, PropertyValidation Validation)>,List<string> localizedProp, List<(string prop, List<string> enumValues)> propEnums) GetPropertiesFromUser(string entityName,bool hasLocalization)
     {
         var properties = new List<(string Type, string Name, PropertyValidation Validation)>();
         var localizedProp = new List<string>();
+        var enumProps = new List<(string prop,List<string> enumValues)>();
         while (true)
         {
             Console.Write("Add new property? (y/n): ");
@@ -199,6 +200,27 @@ class Program
                 }
                 Console.Write(" - Property Type: ");
                 type = Console.ReadLine()?.Trim();
+                if (type == "int" || type == "int?")
+                {
+                    Console.Write(" - Is Property enum? (y/n): ");
+                    answer = Console.ReadLine()?.Trim();
+                    if (answer?.ToLower() == "y")
+                    {
+                        List<string> values = new List<string>();
+                        while(true) 
+                        {
+                            Console.Write(" - Enter Value for enum: ");
+                            answer = Console.ReadLine()?.Trim();
+                            values.Add(answer);
+                            Console.Write(" - Enter other Values? (y/n): ");
+                            answer = Console.ReadLine()?.Trim();
+                            if (answer?.ToLower() == "n")
+                                break;
+                        }
+                        enumProps.Add((name, values));
+                    }
+                }
+
                 Console.Write(" - Is Property Required? (y/n): ");
 
                 answer = Console.ReadLine();
@@ -256,7 +278,7 @@ class Program
 
         }
 
-        return (properties,localizedProp);
+        return (properties,localizedProp,enumProps);
     }
     static List<Relation> GetRelationsFromUser()
     {
