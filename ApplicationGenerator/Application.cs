@@ -307,8 +307,8 @@ namespace Application.{entityPlural}.Commands.Create{entityName}
                     if (!injectCTOR1.ToString().Contains($"I{entityName}Repository {char.ToLower(entityName[0]) + entityName.Substring(1)}Repository"))
                     {
                         injectCTOR1.Append($",I{entityName}Repository {char.ToLower(entityName[0]) + entityName.Substring(1)}Repository");
-                        injectCTOR2.AppendLine($"_{char.ToLower(entityName[0]) + entityName.Substring(1)}Repository = {char.ToLower(entityName[0]) + entityName.Substring(1)}Repository;");
-                        injectCTOR3.AppendLine($"private readonly I{entityName}Repository _{char.ToLower(entityName[0]) + entityName.Substring(1)}Repository;");
+                        injectCTOR2.Append($"_{char.ToLower(entityName[0]) + entityName.Substring(1)}Repository = {char.ToLower(entityName[0]) + entityName.Substring(1)}Repository;");
+                        injectCTOR3.Append($"private readonly I{entityName}Repository _{char.ToLower(entityName[0]) + entityName.Substring(1)}Repository;");
                     }
                     
                     string methodUnique = $@"
@@ -1548,17 +1548,19 @@ namespace Application.{entityPlural}.Queries
             // Handle required validation differently based on type
             if (property.Validation.Required)
             {
-                rules.Append(".");
+                //rules.Append(".");
 
                 // Use NotNull() for numeric types, NotEmpty() for strings
                 if (property.Type == "int" || property.Type == "decimal" || property.Type == "float" || property.Type == "double" || property.Type == "GPG")
                 {
-                    rules.AppendLine($"\t\t\t\tNotNull().WithMessage(\"{property.Name} is required.\")");
+                    rules.AppendLine($"\t\t\t\t.NotNull().WithMessage(\"{property.Name} is required.\")");
                 }
-                else if (property.Type == "string" || property.Type == "PNGs")
+                else if (property.Type == "string" || property.Type == "PNGs" || property.Type.Contains ("List<") || property.Type.Contains("Date") || property.Type.Contains("Time"))
                 {
-                    rules.AppendLine($"\t\t\t\tNotEmpty().WithMessage(\"{property.Name} is required.\")");
+                    rules.AppendLine($"\t\t\t\t.NotEmpty().WithMessage(\"{property.Name} is required.\")");
                 }
+                else if(property.Type == "bool")
+                    rules.AppendLine($"\t\t\t\t.Must(x => x == true || x == false).WithMessage(\"{property.Name} is required.\")");
             }
 
             // Handle string-specific validations

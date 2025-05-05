@@ -47,7 +47,7 @@ class Program
             hasUserAction = true;
 
 
-        string solutionDir = "F:\\Boulevard\\TestGenerator\\TestGenerator";
+        string solutionDir = "F:\\Boulevard\\DamascusLandRegistry\\DamascusLandRegistry";
         //Directory.GetParent(Directory.GetCurrentDirectory()).Parent.Parent.Parent.FullName;
 
         // Pluralize (simplified)
