@@ -1,11 +1,24 @@
 ﻿using Microsoft.Win32;
 using SharedClasses;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace ApiGenerator
 {
     public static class Api
     {
+        private static readonly Regex ClassPattern = new Regex(
+    @"public\s+class\s+(\w+)\s*\{",
+    RegexOptions.Multiline | RegexOptions.IgnoreCase);
+        /*
+         public: Matches the keyword literally
+        \s+: One or more whitespace characters
+        class: Matches the keyword literally
+        (\w+): Captures one or more word characters (the class name)
+        \s*: Zero or more whitespace characters
+        \{: Matches the opening brace literally
+        The RegexOptions.Multiline | RegexOptions.IgnoreCase ensures we handle multi-line code and case variations correctly.
+         */
         public static void GenerateNeededDtos(string entityName, string entityPlural, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, string solutionDir,bool hasLocalization,List<Relation> relations)
         {
             var dtoPath = Path.Combine(solutionDir, "Api", "NeededDto", entityName);
@@ -357,11 +370,21 @@ namespace Api.NeededDto.{entityName}
             {GetWithLocalizationRoute}
         }}";
 
-            if (content.Contains(className))
+            var matches = ClassPattern.Matches(content);
+            foreach (Match match in matches)
             {
-                Console.WriteLine($"⚠️ ApiRoutes already contains routes for {entityName}.");
-                return;
+                if (match.Groups[1].Value == entityName)
+                {
+                    Console.WriteLine($"⚠️ RoleConsistent already contains Roles for {entityName}.");
+                    return;
+                }
             }
+
+            //if (content.Contains(className))
+            //{
+            //    Console.WriteLine($"⚠️ ApiRoutes already contains routes for {entityName}.");
+            //    return;
+            //}
 
             // Add before the last closing brace
             int insertIndex = content.LastIndexOf("}") - 3;

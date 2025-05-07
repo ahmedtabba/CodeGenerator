@@ -4,12 +4,25 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
 namespace InfrastructureGenerator
 {
     public static class Infrastructure
     {
+        private static readonly Regex ClassPattern = new Regex(
+    @"public\s+class\s+(\w+)\s*\{",
+    RegexOptions.Multiline | RegexOptions.IgnoreCase);
+        /*
+         public: Matches the keyword literally
+        \s+: One or more whitespace characters
+        class: Matches the keyword literally
+        (\w+): Captures one or more word characters (the class name)
+        \s*: Zero or more whitespace characters
+        \{: Matches the opening brace literally
+        The RegexOptions.Multiline | RegexOptions.IgnoreCase ensures we handle multi-line code and case variations correctly.
+         */
         public static void UpdateAppDbContext(string entityName, string domainPath)
         {
             string entityPlural = entityName.EndsWith("y") ? entityName[..^1] + "ies" : entityName + "s";
@@ -189,11 +202,21 @@ namespace Infrastructure.Data.Configurations
         }}
 ";
 
-            if (content.Contains(className))
+            var matches = ClassPattern.Matches(content);
+            foreach (Match match in matches)
             {
-                Console.WriteLine($"⚠️ RoleConsistent already contains Roles for {entityName}.");
-                return;
+                if (match.Groups[1].Value == entityName)
+                {
+                    Console.WriteLine($"⚠️ RoleConsistent already contains Roles for {entityName}.");
+                    return;
+                }
             }
+
+            //if (content.Contains(className))
+            //{
+            //    Console.WriteLine($"⚠️ RoleConsistent already contains routes for {entityName}.");
+            //    return;
+            //}
 
             // Add before Dictionary
             int insertIndex = content.LastIndexOf("public static Dictionary") - 1;
