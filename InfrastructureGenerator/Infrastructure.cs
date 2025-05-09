@@ -30,12 +30,12 @@ namespace InfrastructureGenerator
             string IContextPath = Path.Combine(domainPath, "..", "..", "Application", "Common", "Interfaces", "Db", "IApplicationDbContext.cs");
             if (!File.Exists(IContextPath))
             {
-                Console.WriteLine("⚠️ IApplicationDbContext.cs not found.");
+                //Console.WriteLine("⚠️ IApplicationDbContext.cs not found.");
                 return;
             }
             if (!File.Exists(contextPath))
             {
-                Console.WriteLine("⚠️ AppDbContext.cs not found.");
+                //Console.WriteLine("⚠️ AppDbContext.cs not found.");
                 return;
             }
             string IdbSet = $"\t\tpublic DbSet<{entityName}> {entityPlural} {{ get;}}" +
@@ -49,7 +49,7 @@ namespace InfrastructureGenerator
             {
                 lines[index] = IdbSet;
                 File.WriteAllLines(IContextPath, lines);
-                Console.WriteLine("✅ IApplicationDbContext updated.");
+                //Console.WriteLine("✅ IApplicationDbContext updated.");
             }
             lines.Clear();
             index = -1;
@@ -64,7 +64,7 @@ namespace InfrastructureGenerator
             {
                 lines[index] = dbSet;
                 File.WriteAllLines(contextPath, lines);
-                Console.WriteLine("✅ AppDbContext updated.");
+                //Console.WriteLine("✅ AppDbContext updated.");
             }
         }
 
@@ -105,7 +105,7 @@ namespace Infrastructure.Repositories
             string dependencyInjectionPath = Path.Combine(domainPath, "..", "..", "Infrastructure", "DependencyInjection.cs");
             if (!File.Exists(dependencyInjectionPath))
             {
-                Console.WriteLine("⚠️ Infrastructure DependencyInjection.cs not found.");
+                //Console.WriteLine("⚠️ Infrastructure DependencyInjection.cs not found.");
                 return;
             }
             string register = $"\t\t\tservices.AddScoped<I{entityName}Repository, {entityName}Repository>();" +
@@ -119,7 +119,7 @@ namespace Infrastructure.Repositories
             {
                 lines[index] = register;
                 File.WriteAllLines(dependencyInjectionPath, lines);
-                Console.WriteLine("✅ Infrastructure DependencyInjection updated.");
+                //Console.WriteLine("✅ Infrastructure DependencyInjection updated.");
             }
         }
 
@@ -174,7 +174,7 @@ namespace Infrastructure.Data.Configurations
             string roleConsistentPath = Path.Combine(domainPath, "..", "..", "Infrastructure", "Utilities", "RoleConsistent.cs");
             if (!File.Exists(roleConsistentPath))
             {
-                Console.WriteLine("⚠️ RoleConsistent.cs not found.");
+                //Console.WriteLine("⚠️ RoleConsistent.cs not found.");
                 return;
             }
 
@@ -207,7 +207,7 @@ namespace Infrastructure.Data.Configurations
             {
                 if (match.Groups[1].Value == entityName)
                 {
-                    Console.WriteLine($"⚠️ RoleConsistent already contains Roles for {entityName}.");
+                    //Console.WriteLine($"⚠️ RoleConsistent already contains Roles for {entityName}.");
                     return;
                 }
             }
@@ -223,7 +223,7 @@ namespace Infrastructure.Data.Configurations
 
             if (insertIndex < 0)
             {
-                Console.WriteLine("❌ Failed to find insertion point in Roles");
+                //Console.WriteLine("❌ Failed to find insertion point in Roles");
                 return;
             }
             content = content.Insert(insertIndex, "\n" + consistentClass + "\n\t");
@@ -242,7 +242,7 @@ namespace Infrastructure.Data.Configurations
             var initialiserPath = Path.Combine(domainPath, "..", "..", "Infrastructure", "Data", "ApplicationDbContextInitialiser.cs");
             if (!File.Exists(initialiserPath))
             {
-                Console.WriteLine("⚠️ ApplicationDbContextInitialiser.cs not found.");
+                //Console.WriteLine("⚠️ ApplicationDbContextInitialiser.cs not found.");
                 return;
             }
             
@@ -340,7 +340,7 @@ namespace Infrastructure.Data.Configurations
             string ILocalizationServicePath = Path.Combine(domainPath, "..", "..", "Application", "Common", "Interfaces", "Services", "ILocalizationService.cs");
             if (!File.Exists(ILocalizationServicePath))
             {
-                Console.WriteLine("⚠️ ILocalizationService.cs not found.");
+                //Console.WriteLine("⚠️ ILocalizationService.cs not found.");
                 return;
             }
             string entityPlural = entityName.EndsWith("y") ? entityName[..^1] + "ies" : entityName + "s";
@@ -368,13 +368,13 @@ using Application.{entityPlural}.Queries.Get{entityPlural}WithPagination;
             {
                 lines[index] = usingNamespaces;
                 File.WriteAllLines(ILocalizationServicePath, lines);
-                Console.WriteLine("✅ ILocalizationService updated.");
+                //Console.WriteLine("✅ ILocalizationService updated.");
             }
 
             string LocalizationServicePath = Path.Combine(domainPath, "..", "..", "Infrastructure", "Services", "LocalizationService.cs");
             if (!File.Exists(LocalizationServicePath))
             {
-                Console.WriteLine("⚠️ LocalizationService.cs not found.");
+                //Console.WriteLine("⚠️ LocalizationService.cs not found.");
                 return;
             }
             string privateField = $"\t\tprivate readonly I{entityName}LocalizationRepository _{lowerEntityName}LocalizationRepository;" +

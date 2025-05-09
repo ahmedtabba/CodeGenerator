@@ -5,6 +5,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 
+
 namespace ApplicationGenerator
 {
     public static class Application
@@ -1406,7 +1407,7 @@ namespace Application.{entityPlural}.Queries.Get{entityPlural}WithPagination
             var filePath = Path.Combine(solutionDir, "Application", entityPlural, "Queries", $"{entityName}BaseDto.cs");
             if (File.Exists(filePath))
             {
-                Console.WriteLine($"ℹ️ {entityName}BaseDto.cs already exists. Skipping...");
+                //Console.WriteLine($"ℹ️ {entityName}BaseDto.cs already exists. Skipping...");
                 return;
             }
             List<string> relationsProps = new List<string>();
@@ -1492,7 +1493,8 @@ namespace Application.{entityPlural}.Queries
 }}";
 
             File.WriteAllText(filePath, content);
-            Console.WriteLine($"✅ {entityName}BaseDto.cs created.");
+            //Console.WriteLine($"✅ {entityName}BaseDto.cs created.");
+            
 
             string? fileLocalizationDtoPath = !hasLocalization ? null : Path.Combine(solutionDir, "Application", entityPlural, "Queries", $"{entityName}LocalizationDto.cs");
             string? localizationDtoContent = !hasLocalization ? null : $@"using System;
@@ -1522,7 +1524,7 @@ namespace Application.{entityPlural}.Queries
             if (hasLocalization) 
             {
                 File.WriteAllText(fileLocalizationDtoPath!, localizationDtoContent);
-                Console.WriteLine($"✅ {entityName}LocalizationDto.cs created.");
+                //Console.WriteLine($"✅ {entityName}LocalizationDto.cs created.");
             }
         }
 

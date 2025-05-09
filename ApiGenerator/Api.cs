@@ -272,7 +272,7 @@ namespace Api.NeededDto.{entityName}
             string extensionsPath = Path.Combine(path, "..", "..", "Utilities", "Extensions.cs");
             if (!File.Exists(extensionsPath))
             {
-                Console.WriteLine("⚠️ Api Extensions.cs not found.");
+                //Console.WriteLine("⚠️ Api Extensions.cs not found.");
                 return;
             }
 
@@ -307,7 +307,7 @@ namespace Api.NeededDto.{entityName}
                 if(index2 >= 0)
                     lines[index2] = usingExtension;
                 File.WriteAllLines(extensionsPath, lines);
-                Console.WriteLine("✅ Api Extensions updated.");
+                //Console.WriteLine("✅ Api Extensions updated.");
             }
         }
         public static void GenerateGetWithPaginationQueryDto(string entityName, string entityPlural, string path, bool hasLocalization)
@@ -352,7 +352,7 @@ namespace Api.NeededDto.{entityName}
 
             if (!File.Exists(filePath))
             {
-                Console.WriteLine("❌ ApiRoutes.cs not found.");
+                //Console.WriteLine("❌ ApiRoutes.cs not found.");
                 return;
             }
 
@@ -375,7 +375,7 @@ namespace Api.NeededDto.{entityName}
             {
                 if (match.Groups[1].Value == entityName)
                 {
-                    Console.WriteLine($"⚠️ RoleConsistent already contains Roles for {entityName}.");
+                    Console.WriteLine($"⚠️ ApiRoutes already contains routes for {entityName}.");
                     return;
                 }
             }
@@ -391,14 +391,14 @@ namespace Api.NeededDto.{entityName}
 
             if (insertIndex < 0)
             {
-                Console.WriteLine("❌ Failed to find insertion point in ApiRoutes.cs");
+                //Console.WriteLine("❌ Failed to find insertion point in ApiRoutes.cs");
                 return;
             }
 
             content = content.Insert(insertIndex, "\n" + routeClass + "\n\t");
             File.WriteAllText(filePath, content);
 
-            Console.WriteLine($"✅ ApiRoutes updated with {entityName} routes.");
+            //Console.WriteLine($"✅ ApiRoutes updated with {entityName} routes.");
         }
 
 
@@ -623,9 +623,9 @@ namespace Api.Controllers
 }}";
 
             File.WriteAllText(filePath, content);
-            Console.WriteLine($"✅ {controllerName} created.");
+            //Console.WriteLine($"✅ {controllerName} created.");
         }
 
-
+         
     }
 }

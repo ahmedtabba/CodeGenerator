@@ -17,7 +17,7 @@ namespace ApplicationGenerator
             string versionEntityTypePath = Path.Combine(path, "..", "Enums", "VersionEntityType.cs");
             if (!File.Exists(versionEntityTypePath))
             {
-                Console.WriteLine("⚠️ VersionEntityType.cs not found.");
+                //Console.WriteLine("⚠️ VersionEntityType.cs not found.");
                 return;
             }
             string enumAdd = $"\t\t{entityName}," +
@@ -28,7 +28,7 @@ namespace ApplicationGenerator
             {
                 lines[index] = enumAdd;
                 File.WriteAllLines(versionEntityTypePath, lines);
-                Console.WriteLine("✅ VersionEntityType updated.");
+                //Console.WriteLine("✅ VersionEntityType updated.");
             }
 
             #region Create VersioningDto
@@ -184,7 +184,7 @@ namespace Domain.Events.{entityName}Events
             string notificationObjectTypesPath = Path.Combine(path, "..", "Enums", "NotificationObjectTypes.cs");
             if (!File.Exists(notificationObjectTypesPath))
             {
-                Console.WriteLine("⚠️ NotificationObjectTypes.cs not found.");
+                //Console.WriteLine("⚠️ NotificationObjectTypes.cs not found.");
                 return;
             }
             string enumAdd = $"\t\t{entityName}," +
@@ -195,7 +195,7 @@ namespace Domain.Events.{entityName}Events
             {
                 lines[index] = enumAdd;
                 File.WriteAllLines(notificationObjectTypesPath, lines);
-                Console.WriteLine("✅ NotificationObjectTypes updated.");
+                //Console.WriteLine("✅ NotificationObjectTypes updated.");
             }
 
             #endregion
@@ -205,7 +205,7 @@ namespace Domain.Events.{entityName}Events
 
             if (!File.Exists(notificationConsistentPath))
             {
-                Console.WriteLine("❌ NotificationConsistent.cs not found.");
+                //Console.WriteLine("❌ NotificationConsistent.cs not found.");
                 return;
             }
             
@@ -223,7 +223,7 @@ namespace Domain.Events.{entityName}Events
 
             if (content.Contains(className))
             {
-                Console.WriteLine($"⚠️ NotificationConsistent already contains Notification for {entityName}.");
+                //Console.WriteLine($"⚠️ NotificationConsistent already contains Notification for {entityName}.");
                 return;
             }
 
@@ -232,7 +232,7 @@ namespace Domain.Events.{entityName}Events
 
             if (insertIndex < 0)
             {
-                Console.WriteLine("❌ Failed to find insertion point in Notification");
+                //Console.WriteLine("❌ Failed to find insertion point in Notification");
                 return;
             }
 
@@ -271,7 +271,7 @@ namespace Domain.Events.{entityName}Events
             var initialiserPath = Path.Combine(path, "..", "..", "Infrastructure", "Data", "ApplicationDbContextInitialiser.cs");
             if (!File.Exists(initialiserPath))
             {
-                Console.WriteLine("⚠️ ApplicationDbContextInitialiser.cs not found.");
+                //Console.WriteLine("⚠️ ApplicationDbContextInitialiser.cs not found.");
                 return;
             }
             lines = File.ReadAllLines(initialiserPath).ToList();
@@ -290,7 +290,7 @@ namespace Domain.Events.{entityName}Events
             string userActionEntityTypePath = Path.Combine(path, "..", "Enums", "UserActionEntityType.cs");
             if (!File.Exists(userActionEntityTypePath))
             {
-                Console.WriteLine("⚠️ UserActionEntityType.cs not found.");
+                //Console.WriteLine("⚠️ UserActionEntityType.cs not found.");
                 return;
             }
             string enumAdd = $"\t\t{entityName}," +
@@ -301,7 +301,7 @@ namespace Domain.Events.{entityName}Events
             {
                 lines[index] = enumAdd;
                 File.WriteAllLines(userActionEntityTypePath, lines);
-                Console.WriteLine("✅ UserActionEntityType updated.");
+                //Console.WriteLine("✅ UserActionEntityType updated.");
             }
 
             #endregion

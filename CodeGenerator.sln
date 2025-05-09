@@ -5,15 +5,17 @@ VisualStudioVersion = 17.13.35931.197
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CodeGenerator", "CodeGenerator\CodeGenerator.csproj", "{C0063AC2-519B-43EB-A427-2DC1E981B590}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ApiGenerator", "ApiGenerator\ApiGenerator.csproj", "{5D8660C7-8B91-4E8A-B654-FFFCAA1296FC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ApiGenerator", "ApiGenerator\ApiGenerator.csproj", "{5D8660C7-8B91-4E8A-B654-FFFCAA1296FC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DomainGenerator", "DomainGenerator\DomainGenerator.csproj", "{8C781B91-63FC-42B9-9B7A-E75AB91F086F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DomainGenerator", "DomainGenerator\DomainGenerator.csproj", "{8C781B91-63FC-42B9-9B7A-E75AB91F086F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ApplicationGenerator", "ApplicationGenerator\ApplicationGenerator.csproj", "{6B6B2A2D-53DB-43E3-8D09-FB97245B086D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ApplicationGenerator", "ApplicationGenerator\ApplicationGenerator.csproj", "{6B6B2A2D-53DB-43E3-8D09-FB97245B086D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InfrastructureGenerator", "InfrastructureGenerator\InfrastructureGenerator.csproj", "{29E273EC-A3B1-4320-BBA0-AB6CA96471B8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InfrastructureGenerator", "InfrastructureGenerator\InfrastructureGenerator.csproj", "{29E273EC-A3B1-4320-BBA0-AB6CA96471B8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharedClasses", "SharedClasses\SharedClasses.csproj", "{CCB2B6A5-1FED-46CF-9C08-093FDD0473A9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharedClasses", "SharedClasses\SharedClasses.csproj", "{CCB2B6A5-1FED-46CF-9C08-093FDD0473A9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeGeneratorForm", "CodeGeneratorForm\CodeGeneratorForm.csproj", "{4AB1F61E-8759-443E-8A5D-96DD10E4A6A1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,6 +47,10 @@ Global
 		{CCB2B6A5-1FED-46CF-9C08-093FDD0473A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CCB2B6A5-1FED-46CF-9C08-093FDD0473A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CCB2B6A5-1FED-46CF-9C08-093FDD0473A9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4AB1F61E-8759-443E-8A5D-96DD10E4A6A1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4AB1F61E-8759-443E-8A5D-96DD10E4A6A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4AB1F61E-8759-443E-8A5D-96DD10E4A6A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4AB1F61E-8759-443E-8A5D-96DD10E4A6A1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

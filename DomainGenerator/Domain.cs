@@ -167,7 +167,7 @@ namespace Domain.Enums
             string languagePath = Path.Combine(domainPath, "Language.cs");
             if (!File.Exists(languagePath))
             {
-                Console.WriteLine("⚠️ Language.cs not found.");
+                //Console.WriteLine("⚠️ Language.cs not found.");
                 return;
             }
             string ICollection = $"\t\tpublic virtual ICollection<{entityName}> {entityName}s {{ get; set; }} = new List<{entityName}>();" +
@@ -180,7 +180,7 @@ namespace Domain.Enums
             {
                 lines[index] = ICollection;
                 File.WriteAllLines(languagePath, lines);
-                Console.WriteLine("✅ Language updated.");
+                //Console.WriteLine("✅ Language updated.");
             }
         }
 
@@ -195,7 +195,7 @@ namespace Domain.Enums
                 var fileRelatedEntityPath =Path.Combine(domainPath, $"{relation.RelatedEntity}.cs") ;
                 if (!File.Exists(fileRelatedEntityPath))
                 {
-                    Console.WriteLine($"⚠️ {relation.RelatedEntity}.cs not found.");
+                    //Console.WriteLine($"⚠️ {relation.RelatedEntity}.cs not found.");
                     return;
                 }
                 string contentRelatedEntity = File.ReadAllText(fileRelatedEntityPath);
