@@ -137,7 +137,7 @@ namespace CodeGeneratorForm
                 propValidation.MinRange = Int32.Parse(txtMinRng.Text); ;
                 numOfValidation++;
             }
-            
+
             //Fill Name
             property.Name = txtName.Text;
 
@@ -174,7 +174,7 @@ namespace CodeGeneratorForm
                 property.Validation = propValidation;
             else
                 propValidation = null;
-            
+
             this.PropertyInfo.GeneralInfo = property;
             this.PropertyInfo.EnumValues = enumProp;
             this.PropertyInfo.Localized = localizedProp;
@@ -182,5 +182,112 @@ namespace CodeGeneratorForm
             this.Close();
         }
 
+        private void PropertyForm_Load(object sender, EventArgs e)
+        {
+            if (PropertyInfo.GeneralInfo.Name == null || PropertyInfo.GeneralInfo.Type == null)
+                return;
+            this.txtName.Text = PropertyInfo.GeneralInfo.Name;
+            this.chkLocalized.Checked = PropertyInfo.Localized ? true : false;
+
+            if (PropertyInfo.GeneralInfo.Type.StartsWith("List"))
+            {
+                cmboType.SelectedIndex = 7;
+                cmboListType.Visible = true;
+                cmboListType.SelectedItem = GetGenericType(PropertyInfo.GeneralInfo.Type);
+                FillValidation();
+                return;
+            }
+            if (PropertyInfo.GeneralInfo.Type.StartsWith("int") && PropertyInfo.EnumValues.enumValues != null && PropertyInfo.EnumValues.enumValues.Any())
+            {
+                cmboType.SelectedIndex = 6;
+                txtEnums.Visible = true;
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < PropertyInfo.EnumValues.enumValues.Count; i++)
+                {
+                    if (sb.Length > 0)
+                        sb.Append(",");
+                    sb.Append(PropertyInfo.EnumValues.enumValues[i]);
+                }
+                txtEnums.Text = sb.ToString();
+                FillValidation();
+                return;
+            }
+            if (PropertyInfo.GeneralInfo.Type == "GPG")
+            {
+                cmboType.SelectedIndex = 8;
+                FillValidation();
+                return;
+            }
+            if (PropertyInfo.GeneralInfo.Type == "PNGs")
+            {
+                cmboType.SelectedIndex = 9;
+                FillValidation();
+                return;
+            }
+            if (PropertyInfo.GeneralInfo.Type == "VD")
+            {
+                cmboType.SelectedIndex = 10;
+                FillValidation();
+                return;
+            }
+            var type = PropertyInfo.GeneralInfo.Type.TrimEnd('?');
+            cmboType.SelectedItem = type;
+            FillValidation();
+        }
+
+        private void FillValidation()
+        {
+            if (PropertyInfo.GeneralInfo.Validation != null)
+            {
+                if (PropertyInfo.GeneralInfo.Validation.Required)
+                    chkValidation.SetItemChecked(0, true);
+                if (PropertyInfo.GeneralInfo.Validation.Unique)
+                    chkValidation.SetItemChecked(1, true);
+                if (PropertyInfo.GeneralInfo.Validation.MaxLength != null)
+                {
+                    chkValidation.SetItemChecked(2, true);
+                    txtMaxLen.Text = PropertyInfo.GeneralInfo.Validation.MaxLength.ToString();
+                    txtMaxLen.Visible = true;
+                    lblMaxLen.Visible = true;
+                }
+                if (PropertyInfo.GeneralInfo.Validation.MinLength != null)
+                {
+                    chkValidation.SetItemChecked(3, true);
+                    txtMinLen.Text = PropertyInfo.GeneralInfo.Validation.MinLength.ToString();
+                    txtMinLen.Visible = true;
+                    lblMinLen.Visible = true;
+                }
+                if (PropertyInfo.GeneralInfo.Validation.MaxRange != null)
+                {
+                    chkValidation.SetItemChecked(4, true);
+                    txtMaxRng.Text = PropertyInfo.GeneralInfo.Validation.MaxRange.ToString();
+                    txtMaxRng.Visible = true;
+                    lblMaxRng.Visible = true;
+                }
+                if (PropertyInfo.GeneralInfo.Validation.MinRange != null)
+                {
+                    chkValidation.SetItemChecked(5, true);
+                    txtMinRng.Text = PropertyInfo.GeneralInfo.Validation.MinRange.ToString();
+                    txtMinRng.Visible = true;
+                    lblMinRng.Visible = true;
+                }
+            }
+        }
+
+        string GetGenericType(string typeName)
+        {
+            if (string.IsNullOrEmpty(typeName) || !typeName.Contains("<"))
+                return string.Empty;
+
+            int startIndex = typeName.IndexOf("<") + 1;
+            int endIndex = typeName.IndexOf(">");
+
+            if (startIndex > 0 && endIndex > 0)
+            {
+                return typeName.Substring(startIndex, endIndex - startIndex);
+            }
+
+            return string.Empty;
+        }
     }
 }

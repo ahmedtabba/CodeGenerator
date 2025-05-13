@@ -91,6 +91,7 @@
             Controls.Add(lblRelation);
             Name = "RelationForm";
             Text = "RelationForm";
+            Load += RelationForm_Load;
             ResumeLayout(false);
             PerformLayout();
         }

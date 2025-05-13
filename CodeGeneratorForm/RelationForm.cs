@@ -23,7 +23,7 @@ namespace CodeGeneratorForm
 
         private void btnAddRelation_Click(object sender, EventArgs e)
         {
-            if(cmboRel.SelectedItem != null && !string.IsNullOrWhiteSpace(txtRelEnt.Text)) 
+            if (cmboRel.SelectedItem != null && !string.IsNullOrWhiteSpace(txtRelEnt.Text))
             {
                 Relation.Type = (RelationType)(cmboRel.SelectedIndex);
                 Relation.RelatedEntity = txtRelEnt.Text;
@@ -32,6 +32,44 @@ namespace CodeGeneratorForm
             }
             else
                 MessageBox.Show("You do not add relation yet");
+        }
+
+        private void RelationForm_Load(object sender, EventArgs e)
+        {
+            if(Relation != null)
+            {
+                if(Relation.RelatedEntity!= null)
+                    txtRelEnt.Text = Relation.RelatedEntity.ToString();
+                switch (Relation.Type)
+                {
+                    case RelationType.OneToOneSelfJoin:
+                        cmboRel.SelectedIndex = 0;
+                        break;
+                    case RelationType.OneToOne:
+                        cmboRel.SelectedIndex = 1;
+                        break;
+                    case RelationType.OneToOneNullable:
+                        cmboRel.SelectedIndex = 2;
+                        break;
+                    case RelationType.OneToMany:
+                        cmboRel.SelectedIndex = 3;
+                        break;
+                    case RelationType.OneToManyNullable:
+                        cmboRel.SelectedIndex = 4;
+                        break;
+                    case RelationType.ManyToOne:
+                        cmboRel.SelectedIndex = 5;
+                        break;
+                    case RelationType.ManyToOneNullable:
+                        cmboRel.SelectedIndex = 6;
+                        break;
+                    case RelationType.ManyToMany:
+                        cmboRel.SelectedIndex = 7;
+                        break;
+                    default:
+                        break;
+                }
+            }
         }
     }
 }

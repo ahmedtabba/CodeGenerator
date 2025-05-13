@@ -10,7 +10,7 @@ namespace SharedClasses
     {
         public (string Type, string Name, PropertyValidation Validation) GeneralInfo { get; set; } = new();
         public bool Localized { get; set; } = false;
-        public (string prop, List<string> enumValues) EnumValues { get; set; } = new();
+        public (string prop, List<string> enumValues) EnumValues { get; set; } = new(); 
         public bool IsSaved { get; set; } = false;
     }
 }

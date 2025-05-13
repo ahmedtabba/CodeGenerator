@@ -187,7 +187,7 @@
             chkLocalized.TabIndex = 14;
             chkLocalized.Text = "Localized";
             chkLocalized.UseVisualStyleBackColor = true;
-            chkLocalized.Visible = HasLocalization;
+            chkLocalized.Visible = this.HasLocalization;
             // 
             // lblEnum
             // 
@@ -264,6 +264,7 @@
             Controls.Add(label1);
             Name = "PropertyForm";
             Text = "PropertyForm";
+            Load += PropertyForm_Load;
             groupBox1.ResumeLayout(false);
             groupBox1.PerformLayout();
             ResumeLayout(false);

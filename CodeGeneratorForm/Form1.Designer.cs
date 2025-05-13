@@ -46,12 +46,12 @@
             btnProperty = new Button();
             label8 = new Label();
             btnSave = new Button();
-            richtxtProps = new RichTextBox();
-            label9 = new Label();
             btnNewRelation = new Button();
             label3 = new Label();
-            richtxtRelations = new RichTextBox();
             label4 = new Label();
+            pnlScrollable = new Panel();
+            label5 = new Label();
+            pnlRelations = new Panel();
             groupBoxOption.SuspendLayout();
             SuspendLayout();
             // 
@@ -216,7 +216,7 @@
             // 
             btnProperty.Location = new Point(10, 146);
             btnProperty.Name = "btnProperty";
-            btnProperty.Size = new Size(102, 43);
+            btnProperty.Size = new Size(90, 25);
             btnProperty.TabIndex = 6;
             btnProperty.Text = "New Property";
             btnProperty.UseVisualStyleBackColor = true;
@@ -233,39 +233,19 @@
             // 
             // btnSave
             // 
-            btnSave.Location = new Point(12, 557);
+            btnSave.Location = new Point(9, 574);
             btnSave.Name = "btnSave";
-            btnSave.Size = new Size(160, 48);
+            btnSave.Size = new Size(99, 48);
             btnSave.TabIndex = 54;
             btnSave.Text = "Save";
             btnSave.UseVisualStyleBackColor = true;
             btnSave.Click += btnSave_Click;
             // 
-            // richtxtProps
-            // 
-            richtxtProps.BackColor = Color.WhiteSmoke;
-            richtxtProps.BorderStyle = BorderStyle.FixedSingle;
-            richtxtProps.Location = new Point(218, 146);
-            richtxtProps.Name = "richtxtProps";
-            richtxtProps.ReadOnly = true;
-            richtxtProps.Size = new Size(478, 190);
-            richtxtProps.TabIndex = 55;
-            richtxtProps.Text = "";
-            // 
-            // label9
-            // 
-            label9.AutoSize = true;
-            label9.Location = new Point(218, 128);
-            label9.Name = "label9";
-            label9.Size = new Size(60, 15);
-            label9.TabIndex = 56;
-            label9.Text = "Properties";
-            // 
             // btnNewRelation
             // 
             btnNewRelation.Location = new Point(9, 401);
             btnNewRelation.Name = "btnNewRelation";
-            btnNewRelation.Size = new Size(99, 47);
+            btnNewRelation.Size = new Size(90, 25);
             btnNewRelation.TabIndex = 57;
             btnNewRelation.Text = "New Relation";
             btnNewRelation.UseVisualStyleBackColor = true;
@@ -274,22 +254,11 @@
             // label3
             // 
             label3.AutoSize = true;
-            label3.Location = new Point(218, 365);
+            label3.Location = new Point(139, 383);
             label3.Name = "label3";
             label3.Size = new Size(55, 15);
             label3.TabIndex = 58;
             label3.Text = "Relations";
-            // 
-            // richtxtRelations
-            // 
-            richtxtRelations.BackColor = Color.WhiteSmoke;
-            richtxtRelations.BorderStyle = BorderStyle.FixedSingle;
-            richtxtRelations.Location = new Point(218, 383);
-            richtxtRelations.Name = "richtxtRelations";
-            richtxtRelations.ReadOnly = true;
-            richtxtRelations.Size = new Size(478, 190);
-            richtxtRelations.TabIndex = 59;
-            richtxtRelations.Text = "";
             // 
             // label4
             // 
@@ -300,18 +269,45 @@
             label4.TabIndex = 60;
             label4.Text = "Add new relation";
             // 
+            // pnlScrollable
+            // 
+            pnlScrollable.AutoScroll = true;
+            pnlScrollable.BorderStyle = BorderStyle.FixedSingle;
+            pnlScrollable.Location = new Point(139, 146);
+            pnlScrollable.Name = "pnlScrollable";
+            pnlScrollable.Size = new Size(621, 210);
+            pnlScrollable.TabIndex = 0;
+            // 
+            // label5
+            // 
+            label5.AutoSize = true;
+            label5.Location = new Point(139, 128);
+            label5.Name = "label5";
+            label5.Size = new Size(60, 15);
+            label5.TabIndex = 61;
+            label5.Text = "Properties";
+            // 
+            // pnlRelations
+            // 
+            pnlRelations.AutoScroll = true;
+            pnlRelations.BorderStyle = BorderStyle.FixedSingle;
+            pnlRelations.Location = new Point(139, 401);
+            pnlRelations.Name = "pnlRelations";
+            pnlRelations.Size = new Size(621, 221);
+            pnlRelations.TabIndex = 62;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             AutoScroll = true;
             ClientSize = new Size(772, 634);
+            Controls.Add(pnlRelations);
+            Controls.Add(label5);
+            Controls.Add(pnlScrollable);
             Controls.Add(label4);
-            Controls.Add(richtxtRelations);
             Controls.Add(label3);
             Controls.Add(btnNewRelation);
-            Controls.Add(label9);
-            Controls.Add(richtxtProps);
             Controls.Add(btnSave);
             Controls.Add(label8);
             Controls.Add(btnProperty);
@@ -349,11 +345,11 @@
         private Button btnProperty;
         private Label label8;
         private Button btnSave;
-        private RichTextBox richtxtProps;
-        private Label label9;
         private Button btnNewRelation;
         private Label label3;
-        private RichTextBox richtxtRelations;
         private Label label4;
+        private Panel pnlScrollable;
+        private Label label5;
+        private Panel pnlRelations;
     }
 }

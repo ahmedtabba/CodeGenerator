@@ -38,8 +38,8 @@ namespace CodeGeneratorForm
 
         private void btnProperty_Click(object sender, EventArgs e)
         {
-            var isLocalizaed = this.checkBoxLocalization.Checked;
-            PropertyForm propertyForm = new PropertyForm(isLocalizaed);
+            var isLocalized = this.checkBoxLocalization.Checked;
+            PropertyForm propertyForm = new PropertyForm(isLocalized);
             propertyForm.ShowDialog();
             var propertyInfo = propertyForm.PropertyInfo;
 
@@ -52,7 +52,8 @@ namespace CodeGeneratorForm
                 if (propertyInfo.EnumValues.enumValues != null && propertyInfo.EnumValues.enumValues.Any())
                     Properties.EnumProps.Add(propertyInfo.EnumValues);
 
-                richtxtProps.AppendText($"Property {propertyInfo.GeneralInfo.Name} has been added." + Environment.NewLine);
+                UpdatePropertiesDisplay();
+                //richtxtProps.AppendText($"Property {propertyInfo.GeneralInfo.Name} has been added." + Environment.NewLine);
             }
         }
 
@@ -227,9 +228,114 @@ namespace CodeGeneratorForm
             if (relationForm.IsSaved)
             {
                 Relations.Add(relation);
-                richtxtRelations.AppendText($"Relation with {relation.RelatedEntity}, Type {relation.Type.ToString()} has bee added." + Environment.NewLine);
+            }
+            UpdateRelationDisplay();
+        }
+
+        private void UpdateRelationDisplay()
+        {
+            pnlRelations.Controls.Clear();
+            int yPosition = 18; // Starting position inside panel
+            foreach (var relation in Relations)
+            {
+                // Create container panel for each property
+                Panel relPanel = new Panel
+                {
+                    Location = new Point(10, yPosition),
+                    Size = new Size(pnlScrollable.ClientSize.Width - 30, 40),
+                    BorderStyle = BorderStyle.FixedSingle,
+                    BackColor = Color.White,
+                };
+                Label lblRel = new Label
+                {
+                    AutoSize = true,
+                    Location = new Point(5, 5),
+                    Text = $"{relation.Type} with {relation.RelatedEntity}"
+                };
+
+                // Edit button
+                Button btnRelEdit = new Button
+                {
+                    Text = "Edit",
+                    Tag = relation.RelatedEntity,
+                    Location = new Point(relPanel.Width - 140, 5),
+                    Size = new Size(60, 25)
+                };
+                btnRelEdit.Click += BtnRelEdit_Click;
+
+                // Delete button
+                Button btnRelDelete = new Button
+                {
+                    Text = "Delete",
+                    Tag = relation.RelatedEntity,
+                    Location = new Point(relPanel.Width - 75, 5),
+                    Size = new Size(60, 25)
+                };
+                btnRelDelete.Click += BtnRelDelete_Click;
+
+                // Add controls to panel
+                relPanel.Controls.AddRange(new Control[] { lblRel, btnRelEdit, btnRelDelete });
+                pnlRelations.Controls.Add(relPanel);
+
+                yPosition += relPanel.Height + 10;
             }
         }
+        private void BtnRelEdit_Click(object sender, EventArgs e)
+        {
+            string relationEntityRelated = ((Button)sender).Tag.ToString();
+            var oldRelationInfo = GetRelationInfo(relationEntityRelated);
+            RelationForm editForm = new RelationForm();
+            editForm.Relation.RelatedEntity = oldRelationInfo.RelatedEntity;
+            editForm.Relation.Type = oldRelationInfo.Type;
+            editForm.ShowDialog();
+
+            if (editForm.IsSaved)
+            {
+                UpdateRelations(editForm.Relation, oldRelationInfo);
+                UpdateRelationDisplay();
+            }
+        }
+
+        private void BtnRelDelete_Click(object sender, EventArgs e)
+        {
+            string relationEntityRelated = ((Button)sender).Tag.ToString();
+            if (MessageBox.Show($"Are you sure you want to delete relation with '{relationEntityRelated}'?",
+                                "Confirm Delete", MessageBoxButtons.YesNo) == DialogResult.Yes)
+            {
+                RemoveRelation(relationEntityRelated);
+                UpdateRelationDisplay();
+            }
+        }
+        private Relation GetRelationInfo(string relationEntityRelated)
+        {
+            return new Relation
+            {
+                RelatedEntity = Relations.FirstOrDefault(r => r.RelatedEntity == relationEntityRelated).RelatedEntity,
+                Type = Relations.FirstOrDefault(r => r.RelatedEntity == relationEntityRelated).Type
+            };
+        }
+
+        private void UpdateRelations(Relation updatedInfo,Relation oldRelation)
+        {
+            // Update relations list here based on your needs
+            RemoveRelation(oldRelation.RelatedEntity);
+            Relations.Add(updatedInfo);
+            //var index = Relations.FindIndex(r => r.RelatedEntity == updatedInfo.RelatedEntity);
+            //if (index != -1)
+            //{
+            //    Relations[index] = new Relation
+            //    {
+            //        RelatedEntity = updatedInfo.RelatedEntity,
+            //        Type = updatedInfo.Type
+            //    };
+            //}
+        }
+        private void RemoveRelation(string relationEntityRelated)
+        {
+            Relations.RemoveAll(r => r.RelatedEntity == relationEntityRelated);
+        }
+
+
 
         private void ClearForm()
         {
@@ -239,8 +345,8 @@ namespace CodeGeneratorForm
             checkBoxUserActions.Checked = false;
             checkBoxVersioning.Checked = false;
             txtEntityName.Clear();
-            richtxtProps.Clear();
-            richtxtRelations.Clear();
+            pnlScrollable.Controls.Clear();
+            pnlRelations.Controls.Clear();
             Properties = null!;
             Properties = new SharedClasses.Properties();
             Relations.Clear();
@@ -520,6 +626,151 @@ namespace CodeGeneratorForm
             }
 
             return true;
+        }
+
+        private void UpdatePropertiesDisplay()
+        {
+            pnlScrollable.Controls.Clear();
+            int yPosition = 18; // Starting position inside panel
+            foreach (var prop in Properties.PropertiesList)
+            {
+                // Create container panel for each property
+                Panel propPanel = new Panel
+                {
+                    Location = new Point(10, yPosition),
+                    Size = new Size(pnlScrollable.ClientSize.Width - 30, 40),
+                    BorderStyle = BorderStyle.FixedSingle,
+                    BackColor = Color.White,
+                };
+                string type = null!;
+                // Property label
+                switch (prop.Type)
+                {
+                    case "PNGs":
+                        type = (prop.Validation != null && prop.Validation.Required) ? "List<string>" : "List<string>?";
+                        break;
+                    case "GPG":
+                        type = (prop.Validation != null && prop.Validation.Required) ? "string" : "string?";
+                        break;
+                    case "VD":
+                        type = (prop.Validation != null && prop.Validation.Required) ? "string" : "string?";
+                        break;
+                    default:
+                        type = prop.Type;
+                        break;
+                }
+                Label lblProperty = new Label
+                {
+                    AutoSize = true,
+                    Location = new Point(5, 5),
+                    Text = $"{type} {prop.Name}"
+                };
+
+                // Edit button
+                Button btnEdit = new Button
+                {
+                    Text = "Edit",
+                    Tag = prop.Name,
+                    Location = new Point(propPanel.Width - 140, 5),
+                    Size = new Size(60, 25)
+                };
+                btnEdit.Click += BtnEdit_Click;
+
+                // Delete button
+                Button btnDelete = new Button
+                {
+                    Text = "Delete",
+                    Tag = prop.Name,
+                    Location = new Point(propPanel.Width - 75, 5),
+                    Size = new Size(60, 25)
+                };
+                btnDelete.Click += BtnDelete_Click;
+
+                // Add controls to panel
+                propPanel.Controls.AddRange(new Control[] { lblProperty, btnEdit, btnDelete });
+                pnlScrollable.Controls.Add(propPanel);
+
+                yPosition += propPanel.Height + 10;
+            }
+
+            // Adjust panel height
+            //pnlScrollable.Height = Math.Max(yPosition + 20, 100); // Minimum height of 100 pixels
+        }
+
+        private void BtnEdit_Click(object sender, EventArgs e)
+        {
+            string propertyName = ((Button)sender).Tag.ToString();
+            var oldPropertyInfo = GetPropertyInfo(propertyName);
+
+            PropertyForm editForm = new PropertyForm(this.checkBoxLocalization.Checked); 
+            editForm.PropertyInfo.Localized = oldPropertyInfo.Localized;
+            editForm.PropertyInfo.EnumValues = oldPropertyInfo.EnumValues;
+            editForm.PropertyInfo.GeneralInfo = oldPropertyInfo.GeneralInfo;
+            editForm.ShowDialog();
+
+            if (editForm.PropertyInfo.IsSaved)
+            {
+                UpdatePropertiesList(editForm.PropertyInfo,oldPropertyInfo);
+                UpdatePropertiesDisplay();
+            }
+        }
+
+        private void BtnDelete_Click(object sender, EventArgs e)
+        {
+            string propertyName = ((Button)sender).Tag.ToString();
+            if (MessageBox.Show($"Are you sure you want to delete property '{propertyName}'?",
+                                "Confirm Delete", MessageBoxButtons.YesNo) == DialogResult.Yes)
+            {
+                RemoveProperty(propertyName);
+                UpdatePropertiesDisplay();
+            }
+        }
+
+        private PropertyInfo GetPropertyInfo(string propertyName)
+        {
+            var res = new PropertyInfo
+            {
+                GeneralInfo = Properties.PropertiesList.FirstOrDefault(p => p.Name == propertyName),
+                Localized = Properties.LocalizedProp.Contains(propertyName),
+                EnumValues = Properties.EnumProps.FirstOrDefault(e => e.prop == propertyName)
+            };
+
+            return res;
+            
+        }
+
+        private void UpdatePropertiesList(PropertyInfo updatedInfo, PropertyInfo oldInfo)
+        {
+            // Update properties lists here based on your needs
+            RemoveProperty(oldInfo.GeneralInfo.Name);
+            var index = Properties.PropertiesList.Count - 1;
+
+            (string, string, PropertyValidation) x = (updatedInfo.GeneralInfo.Type, updatedInfo.GeneralInfo.Name, updatedInfo.GeneralInfo.Validation);
+            Properties.PropertiesList.Add(x);
+            //if (index > -1)
+            //{
+            //    Properties.PropertiesList[index] = (
+            //        updatedInfo.GeneralInfo.Type,
+            //        updatedInfo.GeneralInfo.Name,
+            //        updatedInfo.GeneralInfo.Validation
+            //    );
+            //}
+
+            if (updatedInfo.Localized && !Properties.LocalizedProp.Contains(updatedInfo.GeneralInfo.Name))
+            {
+                Properties.LocalizedProp.Add(updatedInfo.GeneralInfo.Name);
+            }
+            if (updatedInfo.EnumValues.enumValues != null && updatedInfo.EnumValues.enumValues.Any())
+            {
+                Properties.EnumProps.Add(updatedInfo.EnumValues);
+            }
+        }
+
+        private void RemoveProperty(string propertyName)
+        {
+            Properties.PropertiesList.RemoveAll(p => p.Name == propertyName);
+            Properties.LocalizedProp.Remove(propertyName);
+            Properties.EnumProps.RemoveAll(e => e.prop.Contains(propertyName));
         }
     }
 }
