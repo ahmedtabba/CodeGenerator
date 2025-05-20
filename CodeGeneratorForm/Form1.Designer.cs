@@ -34,6 +34,8 @@
             label2 = new Label();
             txtEntityName = new TextBox();
             groupBoxOption = new GroupBox();
+            checkBoxBulk = new CheckBox();
+            lblBulk = new Label();
             checkBoxNotifications = new CheckBox();
             checkBoxVersioning = new CheckBox();
             checkBoxUserActions = new CheckBox();
@@ -104,6 +106,8 @@
             // groupBoxOption
             // 
             groupBoxOption.BackColor = SystemColors.ButtonHighlight;
+            groupBoxOption.Controls.Add(checkBoxBulk);
+            groupBoxOption.Controls.Add(lblBulk);
             groupBoxOption.Controls.Add(checkBoxNotifications);
             groupBoxOption.Controls.Add(checkBoxVersioning);
             groupBoxOption.Controls.Add(checkBoxUserActions);
@@ -114,12 +118,32 @@
             groupBoxOption.Controls.Add(lblPermissions);
             groupBoxOption.Controls.Add(lblLocalization);
             groupBoxOption.Controls.Add(checkBoxLocalization);
-            groupBoxOption.Location = new Point(179, 67);
+            groupBoxOption.Location = new Point(151, 67);
             groupBoxOption.Name = "groupBoxOption";
-            groupBoxOption.Size = new Size(529, 55);
+            groupBoxOption.Size = new Size(609, 55);
             groupBoxOption.TabIndex = 5;
             groupBoxOption.TabStop = false;
             groupBoxOption.Text = "Options";
+            // 
+            // checkBoxBulk
+            // 
+            checkBoxBulk.AutoSize = true;
+            checkBoxBulk.Location = new Point(553, 24);
+            checkBoxBulk.Name = "checkBoxBulk";
+            checkBoxBulk.Size = new Size(15, 14);
+            checkBoxBulk.TabIndex = 11;
+            checkBoxBulk.UseVisualStyleBackColor = true;
+            checkBoxBulk.CheckedChanged += checkBoxBulk_CheckedChanged;
+            // 
+            // lblBulk
+            // 
+            lblBulk.AutoSize = true;
+            lblBulk.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblBulk.Location = new Point(515, 24);
+            lblBulk.Name = "lblBulk";
+            lblBulk.Size = new Size(32, 15);
+            lblBulk.TabIndex = 10;
+            lblBulk.Text = "Bulk";
             // 
             // checkBoxNotifications
             // 
@@ -351,5 +375,7 @@
         private Panel pnlScrollable;
         private Label label5;
         private Panel pnlRelations;
+        private CheckBox checkBoxBulk;
+        private Label lblBulk;
     }
 }

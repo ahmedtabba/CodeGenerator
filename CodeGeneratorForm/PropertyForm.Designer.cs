@@ -187,6 +187,7 @@
             chkLocalized.TabIndex = 14;
             chkLocalized.Text = "Localized";
             chkLocalized.UseVisualStyleBackColor = true;
+            chkLocalized.Visible = this.HasLocalization;
             // 
             // lblEnum
             // 
