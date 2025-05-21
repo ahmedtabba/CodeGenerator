@@ -45,7 +45,11 @@ class Program
         answer = Console.ReadLine();
         if (answer?.ToLower() == "y")
             hasUserAction = true;
-
+        bool bulk = false;
+        Console.WriteLine("Is entity has Bulk? (y/n): ");
+        answer = Console.ReadLine();
+        if (answer?.ToLower() == "y")
+            bulk = true;
 
         string solutionDir = "F:\\Boulevard\\DamascusLandRegistry\\DamascusLandRegistry";
         //Directory.GetParent(Directory.GetCurrentDirectory()).Parent.Parent.Parent.FullName;
@@ -122,8 +126,8 @@ class Program
             Infrastructure.UpdateLocalizationService(entityName, domainPath,properties.localizedProp);
         if (hasNotification || hasVersioning || hasUserAction)
         {
-            ApplicationAssistant.GenerateEvents(entityName, domainPath, hasVersioning);
-            ApplicationAssistant.GenerateHandlers(entityName, domainPath,properties.Item1,relations,hasVersioning,hasUserAction,hasNotification);
+            ApplicationAssistant.GenerateEvents(entityName, domainPath, hasVersioning,bulk);
+            ApplicationAssistant.GenerateHandlers(entityName, domainPath,properties.Item1,relations,hasVersioning,hasUserAction,hasNotification,bulk);
         }
         Application.GenerateCreateCommand(entityName, entityPlural, createCommandPath, properties.Item1, properties.propEnums, hasLocalization,relations,hasVersioning,hasNotification,hasUserAction);
         Application.GenerateCreateCommandValidator(entityName, entityPlural, createCommandPath, properties.Item1, relations);
@@ -144,11 +148,11 @@ class Program
         if(hasLocalization)
             Application.GenerateGetWithLocalizationQuery(entityName,entityPlural,queryPath, properties.Item1, properties.propEnums, relations);
 
-        Api.GenerateNeededDtos(entityName, entityPlural, properties.Item1, properties.propEnums, solutionDir,hasLocalization,relations);
+        //Api.GenerateNeededDtos(entityName, entityPlural, properties.Item1, properties.propEnums, solutionDir,hasLocalization,relations);
 
-        Api.AddRoutesToApiRoutes(entityName, entityPlural, solutionDir,hasLocalization);
+        //Api.AddRoutesToApiRoutes(entityName, entityPlural, solutionDir,hasLocalization);
       
-        Api.GenerateController(entityName, entityPlural, properties.Item1,properties.propEnums, solutionDir,hasLocalization,hasPermissions);
+        //Api.GenerateController(entityName, entityPlural, properties.Item1,properties.propEnums, solutionDir,hasLocalization,hasPermissions);
 
 
 
