@@ -12,6 +12,7 @@
     <ProjectReference Include="..\ApiGenerator\ApiGenerator.csproj" />
     <ProjectReference Include="..\ApplicationGenerator\ApplicationGenerator.csproj" />
     <ProjectReference Include="..\DomainGenerator\DomainGenerator.csproj" />
+    <ProjectReference Include="..\Frontend.VueJsHelper\Frontend.VueJsHelper.csproj" />
     <ProjectReference Include="..\InfrastructureGenerator\InfrastructureGenerator.csproj" />
     <ProjectReference Include="..\SharedClasses\SharedClasses.csproj" />
   </ItemGroup>

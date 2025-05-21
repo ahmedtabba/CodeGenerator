@@ -17,6 +17,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharedClasses", "SharedClas
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeGeneratorForm", "CodeGeneratorForm\CodeGeneratorForm.csproj", "{4AB1F61E-8759-443E-8A5D-96DD10E4A6A1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Frontend.VueJsHelper", "Frontend.VueJsHelper\Frontend.VueJsHelper.csproj", "{506D94CC-0787-4927-B2C3-C539BFCAF570}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -51,6 +53,10 @@ Global
 		{4AB1F61E-8759-443E-8A5D-96DD10E4A6A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4AB1F61E-8759-443E-8A5D-96DD10E4A6A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4AB1F61E-8759-443E-8A5D-96DD10E4A6A1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{506D94CC-0787-4927-B2C3-C539BFCAF570}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{506D94CC-0787-4927-B2C3-C539BFCAF570}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{506D94CC-0787-4927-B2C3-C539BFCAF570}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{506D94CC-0787-4927-B2C3-C539BFCAF570}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

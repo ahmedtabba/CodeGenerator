@@ -5,6 +5,7 @@ using SharedClasses;
 using Application = ApplicationGenerator.Application;
 using ApplicationGenerator;
 using System.Text.RegularExpressions;
+using Frontend.VueJsHelper;
 
 namespace CodeGeneratorForm
 {
@@ -15,7 +16,7 @@ namespace CodeGeneratorForm
     RegexOptions.Multiline | RegexOptions.IgnoreCase);
 
         public List<Relation> Relations { get; set; } = new List<Relation>();
-        public SharedClasses.Properties Properties { get; set; } = new SharedClasses.Properties();
+        public SharedClasses.Properties properties { get; set; } = new SharedClasses.Properties();
         public Form1()
         {
             InitializeComponent();
@@ -46,11 +47,11 @@ namespace CodeGeneratorForm
             if (propertyInfo.IsSaved)
             {
 
-                Properties.PropertiesList.Add((propertyInfo.GeneralInfo.Type, propertyInfo.GeneralInfo.Name, propertyInfo.GeneralInfo.Validation));
+                properties.PropertiesList.Add((propertyInfo.GeneralInfo.Type, propertyInfo.GeneralInfo.Name, propertyInfo.GeneralInfo.Validation));
                 if (propertyInfo.Localized)
-                    Properties.LocalizedProp.Add(propertyInfo.GeneralInfo.Name);
+                    properties.LocalizedProp.Add(propertyInfo.GeneralInfo.Name);
                 if (propertyInfo.EnumValues.enumValues != null && propertyInfo.EnumValues.enumValues.Any())
-                    Properties.EnumProps.Add(propertyInfo.EnumValues);
+                    properties.EnumProps.Add(propertyInfo.EnumValues);
 
                 UpdatePropertiesDisplay();
                 //richtxtProps.AppendText($"Property {propertyInfo.GeneralInfo.Name} has been added." + Environment.NewLine);
@@ -68,7 +69,8 @@ namespace CodeGeneratorForm
             var hasNotification = checkBoxNotifications.Checked;
             var entityName = txtEntityName.Text;
             var solutionDir = $"{txtDir.Text}";
-
+           // VueJsHelper.VueJsSolutionPath = "C:\\Ahmed\\Work\\VueJsTemplate\\EvaVehicles.Admin\\src";
+           
             if (!ValidateSolution()) 
             {
                 ClearForm();
@@ -98,7 +100,7 @@ namespace CodeGeneratorForm
                 {
                     Infrastructure.GeneratePermission(entityName, domainPath, hasLocalization);
                 }
-                Domain.GenerateEntityClass(entityName, domainPath, (Properties.PropertiesList, Properties.LocalizedProp, Properties.EnumProps), hasLocalization, Relations);
+                Domain.GenerateEntityClass(entityName, domainPath, (properties.PropertiesList, properties.LocalizedProp, properties.EnumProps), hasLocalization, Relations);
                 //GenerateEntityLocalizationClass(entityName, domainPath);
                 Infrastructure.UpdateAppDbContext(entityName, domainPath);
                 if (hasLocalization)
@@ -133,42 +135,47 @@ namespace CodeGeneratorForm
                 if (hasLocalization)
                     Infrastructure.UpdateDependencyInjection($@"{entityName}Localization", domainPath);
                 if (hasVersioning)
-                    ApplicationAssistant.GenerateVersionNeeds(entityName, domainPath, Properties.PropertiesList, Relations);
+                    ApplicationAssistant.GenerateVersionNeeds(entityName, domainPath, properties.PropertiesList, Relations);
                 if (hasNotification)
                     ApplicationAssistant.GenerateNotificationNeeds(entityName, domainPath);
                 if (hasUserAction)
                     ApplicationAssistant.GenerateUserActionNeeds(entityName, domainPath);
                 if (hasLocalization)
-                    Infrastructure.UpdateLocalizationService(entityName, domainPath, Properties.LocalizedProp);
+                    Infrastructure.UpdateLocalizationService(entityName, domainPath, properties.LocalizedProp);
                 if (hasNotification || hasVersioning || hasUserAction)
                 {
                     ApplicationAssistant.GenerateEvents(entityName, domainPath, hasVersioning);
-                    ApplicationAssistant.GenerateHandlers(entityName, domainPath, Properties.PropertiesList, Relations, hasVersioning, hasUserAction, hasNotification);
+                    ApplicationAssistant.GenerateHandlers(entityName, domainPath, properties.PropertiesList, Relations, hasVersioning, hasUserAction, hasNotification);
                 }
-                Application.GenerateCreateCommand(entityName, entityPlural, createCommandPath, Properties.PropertiesList, Properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction);
-                Application.GenerateCreateCommandValidator(entityName, entityPlural, createCommandPath, Properties.PropertiesList, Relations);
+                Application.GenerateCreateCommand(entityName, entityPlural, createCommandPath, properties.PropertiesList, properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction);
+                Application.GenerateCreateCommandValidator(entityName, entityPlural, createCommandPath, properties.PropertiesList, Relations);
 
-                Application.GenerateUpdateCommand(entityName, entityPlural, updateCommandPath, Properties.PropertiesList, Properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction);
-                Application.GenerateUpdateCommandValidator(entityName, entityPlural, updateCommandPath, Properties.PropertiesList, Relations);
-
-
-                Application.GenerateDeleteCommand(entityName, entityPlural, deleteCommandPath, Properties.PropertiesList, hasVersioning, hasNotification, hasUserAction);
-                Application.GenerateDeleteCommandValidator(entityName, entityPlural, deleteCommandPath, Properties.PropertiesList);
+                Application.GenerateUpdateCommand(entityName, entityPlural, updateCommandPath, properties.PropertiesList, properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction);
+                Application.GenerateUpdateCommandValidator(entityName, entityPlural, updateCommandPath, properties.PropertiesList, Relations);
 
 
-                Application.GenerateGetByIdQuery(entityName, entityPlural, queryPath, hasLocalization, Properties.PropertiesList, Properties.EnumProps, Relations);
+                Application.GenerateDeleteCommand(entityName, entityPlural, deleteCommandPath, properties.PropertiesList, hasVersioning, hasNotification, hasUserAction);
+                Application.GenerateDeleteCommandValidator(entityName, entityPlural, deleteCommandPath, properties.PropertiesList);
+
+
+                Application.GenerateGetByIdQuery(entityName, entityPlural, queryPath, hasLocalization, properties.PropertiesList, properties.EnumProps, Relations);
 
                 Application.GenerateGetWithPaginationQuery(entityName, entityPlural, queryPath, hasLocalization, Relations);
-                Application.GenerateBaseDto(entityName, entityPlural, Properties.PropertiesList, Properties.EnumProps, solutionDir, Relations, hasLocalization);
+                Application.GenerateBaseDto(entityName, entityPlural, properties.PropertiesList, properties.EnumProps, solutionDir, Relations, hasLocalization);
 
                 if (hasLocalization)
-                    Application.GenerateGetWithLocalizationQuery(entityName, entityPlural, queryPath, Properties.PropertiesList, Properties.EnumProps, Relations);
+                    Application.GenerateGetWithLocalizationQuery(entityName, entityPlural, queryPath, properties.PropertiesList, properties.EnumProps, Relations);
 
-                Api.GenerateNeededDtos(entityName, entityPlural, Properties.PropertiesList, Properties.EnumProps, solutionDir, hasLocalization, Relations);
+                Api.GenerateNeededDtos(entityName, entityPlural, properties.PropertiesList, properties.EnumProps, solutionDir, hasLocalization, Relations);
 
                 Api.AddRoutesToApiRoutes(entityName, entityPlural, solutionDir, hasLocalization);
 
-                Api.GenerateController(entityName, entityPlural, Properties.PropertiesList, Properties.EnumProps, solutionDir, hasLocalization, hasPermissions);
+                Api.GenerateController(entityName, entityPlural, properties.PropertiesList, properties.EnumProps, solutionDir, hasLocalization, hasPermissions);
+
+
+
+
+               // VueJsHelper.GenerateStoreFile(entityName, properties);
             }
             catch( Exception ex )
             {
@@ -347,8 +354,8 @@ namespace CodeGeneratorForm
             txtEntityName.Clear();
             pnlScrollable.Controls.Clear();
             pnlRelations.Controls.Clear();
-            Properties = null!;
-            Properties = new SharedClasses.Properties();
+            properties = null!;
+            properties = new SharedClasses.Properties();
             Relations.Clear();
         }
         private bool ValidateSolution()
@@ -632,7 +639,7 @@ namespace CodeGeneratorForm
         {
             pnlScrollable.Controls.Clear();
             int yPosition = 18; // Starting position inside panel
-            foreach (var prop in Properties.PropertiesList)
+            foreach (var prop in properties.PropertiesList)
             {
                 // Create container panel for each property
                 Panel propPanel = new Panel
@@ -730,9 +737,9 @@ namespace CodeGeneratorForm
         {
             var res = new PropertyInfo
             {
-                GeneralInfo = Properties.PropertiesList.FirstOrDefault(p => p.Name == propertyName),
-                Localized = Properties.LocalizedProp.Contains(propertyName),
-                EnumValues = Properties.EnumProps.FirstOrDefault(e => e.prop == propertyName)
+                GeneralInfo = properties.PropertiesList.FirstOrDefault(p => p.Name == propertyName),
+                Localized = properties.LocalizedProp.Contains(propertyName),
+                EnumValues = properties.EnumProps.FirstOrDefault(e => e.prop == propertyName)
             };
 
             return res;
@@ -743,34 +750,34 @@ namespace CodeGeneratorForm
         {
             // Update properties lists here based on your needs
             RemoveProperty(oldInfo.GeneralInfo.Name);
-            var index = Properties.PropertiesList.Count - 1;
+            var index = properties.PropertiesList.Count - 1;
 
             (string, string, PropertyValidation) x = (updatedInfo.GeneralInfo.Type, updatedInfo.GeneralInfo.Name, updatedInfo.GeneralInfo.Validation);
-            Properties.PropertiesList.Add(x);
+            properties.PropertiesList.Add(x);
             //if (index > -1)
             //{
-            //    Properties.PropertiesList[index] = (
+            //    properties.PropertiesList[index] = (
             //        updatedInfo.GeneralInfo.Type,
             //        updatedInfo.GeneralInfo.Name,
             //        updatedInfo.GeneralInfo.Validation
             //    );
             //}
 
-            if (updatedInfo.Localized && !Properties.LocalizedProp.Contains(updatedInfo.GeneralInfo.Name))
+            if (updatedInfo.Localized && !properties.LocalizedProp.Contains(updatedInfo.GeneralInfo.Name))
             {
-                Properties.LocalizedProp.Add(updatedInfo.GeneralInfo.Name);
+                properties.LocalizedProp.Add(updatedInfo.GeneralInfo.Name);
             }
             if (updatedInfo.EnumValues.enumValues != null && updatedInfo.EnumValues.enumValues.Any())
             {
-                Properties.EnumProps.Add(updatedInfo.EnumValues);
+                properties.EnumProps.Add(updatedInfo.EnumValues);
             }
         }
 
         private void RemoveProperty(string propertyName)
         {
-            Properties.PropertiesList.RemoveAll(p => p.Name == propertyName);
-            Properties.LocalizedProp.Remove(propertyName);
-            Properties.EnumProps.RemoveAll(e => e.prop.Contains(propertyName));
+            properties.PropertiesList.RemoveAll(p => p.Name == propertyName);
+            properties.LocalizedProp.Remove(propertyName);
+            properties.EnumProps.RemoveAll(e => e.prop.Contains(propertyName));
         }
     }
 }
