@@ -171,26 +171,26 @@ namespace CodeGeneratorForm
                 if (hasNotification || hasVersioning || hasUserAction)
                 {
                     ApplicationAssistant.GenerateEvents(entityName, domainPath, hasVersioning,bulk);
-                    ApplicationAssistant.GenerateHandlers(entityName, domainPath, Properties.PropertiesList, Relations, hasVersioning, hasUserAction, hasNotification, bulk);
+                    ApplicationAssistant.GenerateHandlers(entityName, domainPath, properties.PropertiesList, Relations, hasVersioning, hasUserAction, hasNotification, bulk);
                 }
-                Application.GenerateCreateCommand(entityName, entityPlural, createCommandPath, Properties.PropertiesList, Properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction);
-                Application.GenerateCreateCommandValidator(entityName, entityPlural, createCommandPath, Properties.PropertiesList, Relations);
+                Application.GenerateCreateCommand(entityName, entityPlural, createCommandPath, properties.PropertiesList, properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction);
+                Application.GenerateCreateCommandValidator(entityName, entityPlural, createCommandPath, properties.PropertiesList, Relations);
                 if (bulk)
                 {
-                    Application.GenerateSingleEntity(entityName, entityPlural, createBulkCommandPath, Properties.PropertiesList, Properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction);
-                    Application.GenerateCreateBulkCommand(entityName, entityPlural, createBulkCommandPath, Properties.PropertiesList, Properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction);
-                    Application.GenerateCreateBulkCommandValidator(entityName, entityPlural, createBulkCommandPath, Properties.PropertiesList, Relations);
+                    Application.GenerateSingleEntity(entityName, entityPlural, createBulkCommandPath, properties.PropertiesList, properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction);
+                    Application.GenerateCreateBulkCommand(entityName, entityPlural, createBulkCommandPath, properties.PropertiesList, properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction);
+                    Application.GenerateCreateBulkCommandValidator(entityName, entityPlural, createBulkCommandPath, properties.PropertiesList, Relations);
 
-                    Application.GenerateSingleUpdateEntity(entityName, entityPlural, updateBulkCommandPath, Properties.PropertiesList, Properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction);
-                    Application.GenerateUpdateBulkCommand(entityName, entityPlural, updateBulkCommandPath, Properties.PropertiesList, Properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction);
-                    Application.GenerateUpdateBulkCommandValidator(entityName, entityPlural, updateBulkCommandPath, Properties.PropertiesList, Relations);
+                    Application.GenerateSingleUpdateEntity(entityName, entityPlural, updateBulkCommandPath, properties.PropertiesList, properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction);
+                    Application.GenerateUpdateBulkCommand(entityName, entityPlural, updateBulkCommandPath, properties.PropertiesList, properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction);
+                    Application.GenerateUpdateBulkCommandValidator(entityName, entityPlural, updateBulkCommandPath, properties.PropertiesList, Relations);
 
-                    Application.GenerateDeleteBulkCommand(entityName, entityPlural, deleteBulkCommandPath, Properties.PropertiesList, Properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction);
-                    Application.GenerateDeleteBulkCommandValidator(entityName, entityPlural, deleteBulkCommandPath, Properties.PropertiesList);
+                    Application.GenerateDeleteBulkCommand(entityName, entityPlural, deleteBulkCommandPath, properties.PropertiesList, properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction);
+                    Application.GenerateDeleteBulkCommandValidator(entityName, entityPlural, deleteBulkCommandPath, properties.PropertiesList);
 
                 }
-                Application.GenerateUpdateCommand(entityName, entityPlural, updateCommandPath, Properties.PropertiesList, Properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction);
-                Application.GenerateUpdateCommandValidator(entityName, entityPlural, updateCommandPath, Properties.PropertiesList, Relations);
+                Application.GenerateUpdateCommand(entityName, entityPlural, updateCommandPath, properties.PropertiesList, properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction);
+                Application.GenerateUpdateCommandValidator(entityName, entityPlural, updateCommandPath, properties.PropertiesList, Relations);
 
 
                 Application.GenerateDeleteCommand(entityName, entityPlural, deleteCommandPath, properties.PropertiesList, hasVersioning, hasNotification, hasUserAction);
@@ -205,11 +205,11 @@ namespace CodeGeneratorForm
                 if (hasLocalization)
                     Application.GenerateGetWithLocalizationQuery(entityName, entityPlural, queryPath, properties.PropertiesList, properties.EnumProps, Relations);
 
-                Api.GenerateNeededDtos(entityName, entityPlural, Properties.PropertiesList, Properties.EnumProps, solutionDir, hasLocalization, Relations, bulk);
+                Api.GenerateNeededDtos(entityName, entityPlural, properties.PropertiesList, properties.EnumProps, solutionDir, hasLocalization, Relations, bulk);
 
                 Api.AddRoutesToApiRoutes(entityName, entityPlural, solutionDir, hasLocalization,bulk);
 
-                Api.GenerateController(entityName, entityPlural, Properties.PropertiesList, Properties.EnumProps, solutionDir, hasLocalization, hasPermissions, bulk);
+                Api.GenerateController(entityName, entityPlural, properties.PropertiesList, properties.EnumProps, solutionDir, hasLocalization, hasPermissions, bulk);
                 // VueJsHelper.GenerateStoreFile(entityName, properties);
             }
             catch (Exception ex)
