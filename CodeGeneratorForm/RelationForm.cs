@@ -16,30 +16,55 @@ namespace CodeGeneratorForm
     {
         public Relation Relation { get; set; } = new Relation();
         public bool IsSaved { get; set; } = false;
-        public RelationForm()
+        private string _projectPath;
+
+        public RelationForm(string projectPath)
         {
             InitializeComponent();
+            _projectPath = projectPath;
+        }
+
+        private void LoadExistingEntities()
+        {
+            try
+            {
+                var metadata = MetadataManager.LoadMetadata(_projectPath);
+                if (metadata != null && metadata.Entities != null)
+                {
+                    cmboRelEnt.Items.Clear();
+                    foreach (var entity in metadata.Entities)
+                    {
+                        cmboRelEnt.Items.Add(entity.Name);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading entities: {ex.Message}");
+            }
         }
 
         private void btnAddRelation_Click(object sender, EventArgs e)
         {
-            if (cmboRel.SelectedItem != null && !string.IsNullOrWhiteSpace(txtRelEnt.Text))
+            if (cmboRel.SelectedItem != null && cmboRelEnt.SelectedItem != null)
             {
                 Relation.Type = (RelationType)(cmboRel.SelectedIndex);
-                Relation.RelatedEntity = txtRelEnt.Text;
+                Relation.RelatedEntity = cmboRelEnt.SelectedItem.ToString();
                 IsSaved = true;
                 this.Close();
             }
             else
-                MessageBox.Show("You do not add relation yet");
+                MessageBox.Show("Please select both relation type and entity");
         }
 
         private void RelationForm_Load(object sender, EventArgs e)
         {
+            LoadExistingEntities();
+            
             if(Relation != null)
             {
-                if(Relation.RelatedEntity!= null)
-                    txtRelEnt.Text = Relation.RelatedEntity.ToString();
+                if(Relation.RelatedEntity != null)
+                    cmboRelEnt.SelectedItem = Relation.RelatedEntity;
                 switch (Relation.Type)
                 {
                     case RelationType.OneToOneSelfJoin:
