@@ -1,5 +1,7 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Frontend.VueJsHelper
 {
@@ -7,39 +9,42 @@ namespace Frontend.VueJsHelper
     {
         public static string VueJsSolutionPath = ""; // ضع المسار الجذري لمشروع Vue هنا
 
-        public static void GenerateStoreFile(string entityName, SharedClasses.Properties properties)
+        public static void GenerateStoreFile(string entityName, SharedClasses.Properties properties,string srcDir)
         {
-            if(VueJsSolutionPath.Length==0)
+            if(srcDir.Length == 0)
                 throw new Exception("من فضلك ادخل المسار الجذري لمشروع Vue");
-            
-            var entityLower = char.ToLowerInvariant(entityName[0]) + entityName.Substring(1);
-            var storeName = $"use{entityName}Store";
-            var fileName = Path.Combine(VueJsSolutionPath, "store", $"{entityName}Store.js");
+            string fileName = $"{entityName}Store";
+            string filePath = Path.Combine(srcDir,"store",$"{fileName}.js");
 
-            var restEndpoint = entityName.ToLower() + "s";
+            var entityLower = char.ToLower(entityName[0]) + entityName.Substring(1);
+            string entityPlural = entityName.EndsWith("y") ? entityName[..^1] + "ies" : entityName + "s";
+            string entityPluralLower = char.ToLower(entityPlural[0]) + entityPlural.Substring(1);
+            string capitalEntityPlural = entityPlural.ToUpper();
+
+            var storeName = $"use{entityName}Store";
+
+            var restEndpoint = entityPluralLower;
             var initialStateBuilder = new StringBuilder();
             var propertyObjectBuilder = new StringBuilder();
             var requiredChecksBuilder = new StringBuilder();
 
             foreach (var prop in properties.PropertiesList)
             {
-                initialStateBuilder.AppendLine($"        {prop.Name.ToLower()}: {GetDefaultValue(prop.Type)},");
-                propertyObjectBuilder.AppendLine($"                {prop.Name.ToLower()}: this.{prop.Name.ToLower()},");
+                string camelCasePropName = char.ToLower(prop.Name[0]) + prop.Name.Substring(1);
+                initialStateBuilder.AppendLine($"        {camelCasePropName}: {GetDefaultValue(prop.Type)},");
+                propertyObjectBuilder.AppendLine($"                data.append('{camelCasePropName}', this.{camelCasePropName});");
                 if (prop.Validation!=null&& prop.Validation.Required)
                 {
                     requiredChecksBuilder.AppendLine($@"
-            if (!item.{prop.Name.ToLower()}) {{
+            if (!this.{camelCasePropName}) {{
                 this[SAVE_FAIL]();
-                this.sendErrorMessage(I18n.global.t('message.{prop.Name.ToLower()}Required'));
+                this.sendErrorMessage(I18n.global.t('message.{camelCasePropName}Required'));
                 return;
             }}");
                 }
             }
 
             var content = $@"
-import {{ generalState, generalActions }} from '../store/GeneralStore';
-import {{ defineStore }} from 'pinia';
-import {{ AREA_ROUTE as PAGE_ROUTE }} from '@/utils/Constants';
 import {{
     EDIT_PAGE_STATE,
     LOAD_SUCCESS,
@@ -49,8 +54,12 @@ import {{
     VIEW_ITEM,
     VIEW_PAGE_STATE
 }} from '@/utils/StoreConstant';
-import I18n from '@/config/i18n';
+import {{generalActions,generalState}} from './GeneralStore';
+import I18n from '../config/i18n/index';
+import {{defineStore}} from 'pinia';
 import * as generalBackend from '@/backend/Backend';
+import {{{capitalEntityPlural}_ROUTE as PAGE_ROUTE}} from '@/utils/Constants';
+import {{groupBy}} from '@/utils/utils';
 
 const REST_ENDPOINT = (id) => `{restEndpoint}${{id ? '/' + id : ''}}`;
 
@@ -65,24 +74,21 @@ export const {storeName} = defineStore('{entityLower}', {{
         ...generalActions(INITIAL_STATE, REST_ENDPOINT, PAGE_ROUTE),
         async [SAVE_ITEM]() {{
             this[SAVE]();
-            const item = {{
-                id: this.id,
-{propertyObjectBuilder.ToString().TrimEnd()}
-            }};
 {requiredChecksBuilder.ToString().TrimEnd()}
-
-            if (item.id === null) {{
-                generalBackend.save(this, REST_ENDPOINT(), PAGE_ROUTE(), item);
+            let data = new FormData();
+{propertyObjectBuilder}
+            if (this.id === null) {{
+                generalBackend.saveFormData(this, REST_ENDPOINT(), PAGE_ROUTE(), item);
             }} else {{
-                generalBackend.update(this, REST_ENDPOINT(item.id), PAGE_ROUTE(), item);
+                generalBackend.updateFormData(this, REST_ENDPOINT(this.id), PAGE_ROUTE(), data);
             }}
         }},
     }}
 }});
 ";
 
-            Directory.CreateDirectory(Path.Combine(VueJsSolutionPath, "store"));
-            File.WriteAllText(fileName, content);
+            Directory.CreateDirectory(Path.Combine(srcDir, "store"));
+            File.WriteAllText(filePath, content);
         }
 
         private static object GetDefaultValue(string type)
@@ -117,6 +123,20 @@ export const {storeName} = defineStore('{entityLower}', {{
                     return "\'\'";
                 case "Guid":
                     return "new Guid()";
+                case "List of":
+                    return "[]";
+                case "GPG":
+                    return "null";
+                case "VD":
+                    return "\'\'";
+                case "PNGs":
+                    return "[]";
+                case "enum":
+                    return "0";
+                case "DateOnly":
+                    return "new Date()";
+                case "TimeOnly":
+                    return "new time()";
                 default:
                     return "null";
             }
@@ -127,7 +147,7 @@ export const {storeName} = defineStore('{entityLower}', {{
             if (VueJsSolutionPath.Length == 0)
                 throw new Exception("من فضلك ادخل المسار الجذري لمشروع Vue");
 
-            var entityLower = char.ToLowerInvariant(entityName[0]) + entityName.Substring(1);
+            var entityLower = char.ToLower(entityName[0]) + entityName.Substring(1);
             var storeName = $"use{entityName}Store";
             var fileName = Path.Combine(VueJsSolutionPath, "store", $"{entityName}Store.js");
 
@@ -200,7 +220,96 @@ export const {storeName} = defineStore('{entityLower}', {{
             Directory.CreateDirectory(Path.Combine(VueJsSolutionPath, "store"));
             File.WriteAllText(fileName, content);
         }
+        public static void UpdateConstantsJs(string entityName, string srcDir)
+        {
+            string entityPlural = entityName.EndsWith("y") ? entityName[..^1] + "ies" : entityName + "s";
+            string capitalEntityPlural = entityPlural.ToUpper();
+            string entityPluralLower = char.ToLower(entityPlural[0]) + entityPlural.Substring(1);
+            string constantsPath = Path.Combine(srcDir, "utils", "Constants.js");
+            if (!File.Exists(constantsPath))
+            {
+                return;
+            }
 
+            string _ROUTE = $"export const {capitalEntityPlural}_ROUTE = (id) => `/{entityPluralLower}${{id ? '/' + id : ''}}`;" +
+                $"\n//Add ROUTES Here";
+
+            var lines = File.ReadAllLines(constantsPath).ToList();
+            var index = lines.FindIndex(line => line.Contains("//Add ROUTES Here"));
+
+            if (index >= 0)
+            {
+                lines[index] = _ROUTE;
+                File.WriteAllLines(constantsPath, lines);
+            }
+        }
+
+        public static void UpdateRouterIndexJs(string entityName, string srcDir)
+        {
+            var entityLower = char.ToLower(entityName[0]) + entityName.Substring(1);
+            string entityPlural = entityName.EndsWith("y") ? entityName[..^1] + "ies" : entityName + "s";
+            string capitalEntityPlural = entityPlural.ToUpper();
+            string entityPluralLower = char.ToLower(entityPlural[0]) + entityPlural.Substring(1);
+            string routerIndexPath = Path.Combine(srcDir, "router", "index.js");
+            if (!File.Exists(routerIndexPath))
+            {
+                return;
+            }
+
+            string router = $@"
+                {{
+                    path: '/{entityPluralLower}',
+                    name: '{entityPlural}',
+                    component: {{
+                        render() {{
+                            return h(resolveComponent('router-view'));
+                        }}
+                    }},
+                    children: [
+                        {{
+                            path: '',
+                            meta: {{
+                                label: '{entityPlural}'
+                            }},
+                            component: () => import('@/views/{entityLower}/{entityPlural}.vue')
+                        }},
+                        {{
+                            path: ':id',
+                            name: '{entityName} Details',
+                            component: () => import('@/views/{entityLower}/{entityName}.vue')
+                        }}
+                    ]
+                }},
+" +
+                $"\n                //Add router Here";
+
+            var lines = File.ReadAllLines(routerIndexPath).ToList();
+            var index = lines.FindIndex(line => line.Contains("//Add router Here"));
+
+            if (index >= 0)
+            {
+                lines[index] = router;
+                File.WriteAllLines(routerIndexPath, lines);
+            }
+        }
+
+        public static void GenerateViews(string entityName, string srcDir)
+        {
+            var entityLower = char.ToLower(entityName[0]) + entityName.Substring(1);
+            string entityPlural = entityName.EndsWith("y") ? entityName[..^1] + "ies" : entityName + "s";
+            string capitalEntityPlural = entityPlural.ToUpper();
+            string entityPluralLower = char.ToLower(entityPlural[0]) + entityPlural.Substring(1);
+            string viewDirectory = Path.Combine(srcDir, "views", $"{entityLower}");
+            Directory.CreateDirectory(viewDirectory);
+            string fileTableName = entityPlural;
+            string viewTablePath = Path.Combine(viewDirectory, $"{entityPlural}.vue");
+
+            string content = $@"
+
+";
+
+            File.WriteAllText(viewTablePath, content);
+        }
 
     }
 }

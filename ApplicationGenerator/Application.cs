@@ -48,6 +48,7 @@ namespace Application.Common.Interfaces.IRepositories
             var propList = new List<string>();
             StringBuilder mapperEnum = new StringBuilder();
             StringBuilder imageCode = new StringBuilder();
+            StringBuilder videoCode = new StringBuilder();
             foreach (var prop in properties)
             {
                 if (prop.Type == "GPG")
@@ -83,7 +84,23 @@ namespace Application.Common.Interfaces.IRepositories
                 }
                 else if (prop.Type == "VD")
                 {
-                    propList.Add($"\t\tpublic string? {prop.Name} {{ get; set; }}");
+                    if (prop.Validation != null && prop.Validation.Required)
+                    {
+                        propList.Add($"\t\tpublic FileDto {prop.Name}File {{ get; set; }} = new FileDto();");
+                        videoCode.Append($@"
+                {entityName.ToLower()}.{prop.Name} =  await _fileService.UploadFileAsync(request.{prop.Name}File);
+
+");
+                    }
+                    else
+                    {
+                        propList.Add($"\t\tpublic FileDto? {prop.Name}File {{ get; set; }}");
+                        videoCode.Append($@"
+                {entityName.ToLower()}.{prop.Name} = request.{prop.Name}File != null ? await _fileService.UploadFileAsync(request.{prop.Name}File) : null;
+
+");
+
+                    }
                 }
                 else
                 {
@@ -235,6 +252,7 @@ namespace Application.{entityPlural}.Commands.Create{entityName}
                 await _unitOfWork.BeginTransactionAsync();
                 var {entityName.ToLower()} = _mapper.Map<{entityName}>(request);
                 {imageCode}
+                {videoCode}
                 await {entityRepoName}Repository.AddAsync({entityName.ToLower()});
                 {eventCode}
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -285,6 +303,7 @@ namespace Application.{entityPlural}.Commands.Create{entityName}
 
 
             StringBuilder imageCode = new StringBuilder();
+            StringBuilder videoCode = new StringBuilder();
             foreach (var prop in properties)
             {
                 if (prop.Type == "GPG")
@@ -320,6 +339,27 @@ namespace Application.{entityPlural}.Commands.Create{entityName}
                     }}
                 }}
 ");
+                }
+                else if(prop.Type == "VD")
+                {
+                    if (prop.Validation != null && prop.Validation.Required)
+                    {
+                        videoCode.Append($@"
+                for (int i = 0; i < {lowerEntityPlural}.Count; i++)
+                {{
+                    {lowerEntityPlural}[i].{prop.Name} = await _fileService.UploadFileAsync(request.Bulk{entityPlural}[i].{prop.Name}File);
+                }}
+");
+                    }
+                    else
+                    {
+                        videoCode.Append($@"
+                for (int i = 0; i < {lowerEntityPlural}.Count; i++)
+                {{
+                    {lowerEntityPlural}[i].{prop.Name} = request.Bulk{entityPlural}[i].{prop.Name}File != null ? await _fileService.UploadFileAsync(request.Bulk{entityPlural}[i].{prop.Name}File) : null;
+                }}
+");
+                    }
                 }
 
             }
@@ -399,6 +439,7 @@ namespace Application.{entityPlural}.Commands.CreateBulk{entityName}
                 await _unitOfWork.BeginTransactionAsync();
                 var {lowerEntityPlural} = _mapper.Map<List<{entityName}>>(request.Bulk{entityPlural});
                 {imageCode}
+                {videoCode}
                 await {entityRepoName}Repository.AddBulk({lowerEntityPlural});
                 {eventCode}
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -616,8 +657,11 @@ namespace Application.{entityPlural}.Commands.CreateBulk{entityName}
 
             var propList = new List<string>();
             StringBuilder imageCode = new StringBuilder();
+            StringBuilder videoCode = new StringBuilder();
             string? oldImageUrl = string.Empty;
+            string? oldVideoUrl = string.Empty;
             StringBuilder oldImageToDeleteCode = new StringBuilder();
+            StringBuilder oldVideoToDeleteCode = new StringBuilder();
             StringBuilder oldImagesToDeleteCode = new StringBuilder();
             StringBuilder mapperEnum = new StringBuilder();
             foreach (var prop in properties)
@@ -725,7 +769,43 @@ namespace Application.{entityPlural}.Commands.CreateBulk{entityName}
                 }
                 else if (prop.Type == "VD")
                 {
-                    propList.Add($"\t\tpublic string? {prop.Name} {{ get; set; }}");
+                    if (prop.Validation != null && prop.Validation.Required)
+                    {
+                        propList.Add($"\t\tpublic FileDto? {prop.Name}File {{ get; set; }}");
+                        propList.Add($"\t\tpublic string? Old{prop.Name}Url {{ get; set; }}");
+                        oldVideoUrl = $"var oldVideoUrl = existingObj.{prop.Name};";
+                        videoCode.Append($@"
+                if (request.{prop.Name}File != null)
+                    existingObj.{prop.Name} = await _fileService.UploadFileAsync(request.{prop.Name}File);
+                else
+                    existingObj.{prop.Name} = request.Old{prop.Name}Url!;
+
+");
+                        oldVideoToDeleteCode.Append($@"
+                if (request.{prop.Name}File != null)
+                    await _fileService.DeleteFileAsync(oldVideoUrl);
+
+");
+                    }
+                    else
+                    {
+                        propList.Add($"\t\tpublic FileDto? {prop.Name}File {{ get; set; }}");
+                        propList.Add($"\t\tpublic bool? DeleteOld{prop.Name} {{ get; set; }}");
+                        oldVideoUrl = $"var oldVideoUrl = existingObj.{prop.Name};";
+                        videoCode.Append($@"
+                if (request.{prop.Name}File != null)
+                    existingObj.{prop.Name} = await _fileService.UploadFileAsync(request.{prop.Name}File);
+                if (request.DeleteOld{prop.Name} != null && request.DeleteOld{prop.Name}.Value)
+                    existingObj.{prop.Name} = null;
+
+");
+                        oldVideoToDeleteCode.Append($@"
+                if (request.{prop.Name}File != null || (request.DeleteOld{prop.Name} != null && request.DeleteOld{prop.Name}.Value))
+                    if(oldVideoUrl != null )
+                    await _fileService.DeleteFileAsync(oldVideoUrl);
+
+");
+                    }
                 }
                 else
                 {
@@ -824,6 +904,11 @@ namespace Application.{entityPlural}.Commands.CreateBulk{entityName}
                     await _unitOfWork.SaveChangesAsync(cancellationToken);
                 }}
 ";
+            string? oldImageUrlLine = hasVersioning ? null : oldImageUrl;
+            string? oldVideoUrlLine = hasVersioning ? null : oldVideoUrl;
+            string? oldImageToDeleteCodeLine = hasVersioning ? null : oldImageToDeleteCode.ToString();
+            string? oldVideoToDeleteCodeLine = hasVersioning ? null : oldVideoToDeleteCode.ToString();
+            string? oldImagesToDeleteCodeLine = hasVersioning ? null : oldImagesToDeleteCode.ToString();
 
             string content = $@"
 using Microsoft.Extensions.Logging;
@@ -891,11 +976,13 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                 await _unitOfWork.BeginTransactionAsync();
                 var existingObj = await {entityRepoName}Repository.GetByIdAsync(request.{entityName}Id);
                 {deepCopyCode}
-                {oldImageUrl}
+                {oldImageUrlLine}
+                {oldVideoUrlLine}
                 _mapper.Map(request, existingObj);
                 {localizationCode}
 
                 {imageCode}
+                {videoCode}
 
                 {eventCode}
 
@@ -904,9 +991,10 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
 
                 await _unitOfWork.CommitAsync();
 
-                {oldImageToDeleteCode}
+                {oldImageToDeleteCodeLine}
+                {oldVideoToDeleteCodeLine}
                 
-                {oldImagesToDeleteCode}
+                {oldImagesToDeleteCodeLine}
             }}
             catch (Exception)
             {{
@@ -950,11 +1038,17 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
             string aggregatorField = relations.First(r => r.Type == RelationType.ManyToOne || r.Type == RelationType.ManyToOneNullable).Type == RelationType.ManyToOne ? $"public Guid {aggregator}Id {{ get; set; }}" : $"public Guid? {aggregator}Id {{ get; set; }}";
 
             string? imageDeleteLine = null;
+            string? imageDeleteUpdateLine = null;
+            string? videoDeleteUpdateLine = null;
             string? imageListDeleteLine = null;
             string? imageUpdateCode = null;
             string? imageListUpdateCode = null;
-            string? deletedImagesDeclaration = !properties.Any(p => p.Type == "GPG" || p.Type == "PNGs") ? null : "List<string> deletedImages = new List<string>();";
-            string? deleteOldImageCode = !properties.Any(p => p.Type == "GPG" || p.Type == "PNGs") ? null : $@"
+            string? deletedImagesDeclaration = hasVersioning ? null : !properties.Any(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD") ? null : "List<string> deletedImages = new List<string>();";
+            string? videoDeleteLine = null;
+            string? videoUpdateCode = null;
+
+
+            string? deleteOldImageCode = hasVersioning? null : !properties.Any(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD") ? null : $@"
                 foreach (var item in deletedImages)
                 {{
                     if(item != null)
@@ -962,6 +1056,8 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                 }}
 ";
             StringBuilder imageCode = new StringBuilder();
+            StringBuilder videoCode = new StringBuilder();
+
             foreach (var prop in properties)
             {
                 if (prop.Type == "GPG")
@@ -970,11 +1066,12 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                     {
                         imageCode.Append($@"{lowerEntityName}ToAdd.{prop.Name} = await _fileService.UploadFileAsync({lowerEntityName}.{prop.Name}File);
 ");
-                        imageDeleteLine = $"deletedImages.Add({lowerEntityName}.{prop.Name});";
+                        imageDeleteLine = hasVersioning?null : $"deletedImages.Add({lowerEntityName}.{prop.Name});";
+                        imageDeleteUpdateLine = hasVersioning ? null : $"deletedImages.Add({lowerEntityName}ToUpdate.{prop.Name});";
                         imageUpdateCode = $@"
                         if ({lowerEntityName}.{prop.Name}File != null)
                         {{
-                            deletedImages.Add({lowerEntityName}ToUpdate.{prop.Name});
+                            {imageDeleteUpdateLine}
                             {lowerEntityName}ToUpdate.{prop.Name} = await _fileService.UploadFileAsync({lowerEntityName}.{prop.Name}File);
                         }}
                         else
@@ -986,15 +1083,55 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                         imageCode.Append($@"{lowerEntityName}ToAdd.{prop.Name} = {lowerEntityName}.{prop.Name}File != null ? await _fileService.UploadFileAsync({lowerEntityName}.{prop.Name}File) : null;
 ");
                         imageDeleteLine = $"deletedImages.Add({lowerEntityName}.{prop.Name});";
+                        imageDeleteUpdateLine = hasVersioning ? null : $"deletedImages.Add({lowerEntityName}ToUpdate.{prop.Name});";
                         imageUpdateCode = $@"
                         if ({lowerEntityName}.{prop.Name}File != null)
                         {{
-                            deletedImages.Add({lowerEntityName}ToUpdate.{prop.Name});
+                            {imageDeleteUpdateLine}
                             {lowerEntityName}ToUpdate.{prop.Name} = await _fileService.UploadFileAsync({lowerEntityName}.{prop.Name}File);
                         }}
                         if ({lowerEntityName}.DeleteOld{prop.Name} != null)
                         {{
-                            deletedImages.Add({lowerEntityName}ToUpdate.{prop.Name});
+                            {imageDeleteUpdateLine}
+                            {lowerEntityName}ToUpdate.{prop.Name} = null;
+                        }}
+
+";
+                    }
+                }
+                else if (prop.Type == "VD")
+                {
+                    if (prop.Validation != null && prop.Validation.Required)
+                    {
+                        videoCode.Append($@"{lowerEntityName}ToAdd.{prop.Name} = await _fileService.UploadFileAsync({lowerEntityName}.{prop.Name}File);
+");
+                        videoDeleteLine = hasVersioning ? null : $"deletedImages.Add({lowerEntityName}.{prop.Name});";
+                        videoDeleteUpdateLine = hasVersioning ? null : $"deletedImages.Add({lowerEntityName}ToUpdate.{prop.Name});";
+                        videoUpdateCode = $@"
+                        if ({lowerEntityName}.{prop.Name}File != null)
+                        {{
+                            {videoDeleteUpdateLine}
+                            {lowerEntityName}ToUpdate.{prop.Name} = await _fileService.UploadFileAsync({lowerEntityName}.{prop.Name}File);
+                        }}
+                        else
+                            {lowerEntityName}ToUpdate.{prop.Name} = {lowerEntityName}.Old{prop.Name}Url!;
+";
+                    }
+                    else
+                    {
+                        videoCode.Append($@"{lowerEntityName}ToAdd.{prop.Name} = {lowerEntityName}.{prop.Name}File != null ? await _fileService.UploadFileAsync({lowerEntityName}.{prop.Name}File) : null;
+");
+                        videoDeleteLine = $"deletedImages.Add({lowerEntityName}.{prop.Name});";
+                        videoDeleteUpdateLine = hasVersioning ? null : $"deletedImages.Add({lowerEntityName}ToUpdate.{prop.Name});";
+                        videoUpdateCode = $@"
+                        if ({lowerEntityName}.{prop.Name}File != null)
+                        {{
+                            {videoDeleteUpdateLine}
+                            {lowerEntityName}ToUpdate.{prop.Name} = await _fileService.UploadFileAsync({lowerEntityName}.{prop.Name}File);
+                        }}
+                        if ({lowerEntityName}.DeleteOld{prop.Name} != null)
+                        {{
+                            {videoDeleteUpdateLine}
                             {lowerEntityName}ToUpdate.{prop.Name} = null;
                         }}
 
@@ -1010,7 +1147,11 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                             {lowerEntityName}ToAdd.{prop.Name}.Add(path);
                         }}
 ");
-                    imageListDeleteLine = $"{lowerEntityName}.{prop.Name}.ForEach(deletedImages.Add);";
+                    string? imagesDeleteRange = hasVersioning ? null : $@"
+                        if ({lowerEntityName}.Deleted{prop.Name}URLs != null)
+                            deletedImages.AddRange({lowerEntityName}.Deleted{prop.Name}URLs);
+";
+                    imageListDeleteLine = hasVersioning ? null :  $"{lowerEntityName}.{prop.Name}.ForEach(deletedImages.Add);";
                     imageListUpdateCode = $@"
                         if ({lowerEntityName}.{prop.Name}Files != null && {lowerEntityName}.{prop.Name}Files.Any())
                         {{
@@ -1057,8 +1198,7 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                                 {lowerEntityName}ToUpdate.{prop.Name} = remainingPhotosURLs;
                             }}
                         }}
-                        if ({lowerEntityName}.Deleted{prop.Name}URLs != null)
-                            deletedImages.AddRange({lowerEntityName}.Deleted{prop.Name}URLs);
+                        {imagesDeleteRange}
 ";
                 }
 
@@ -1181,6 +1321,7 @@ namespace Application.{entityPlural}.Commands.UpdateBulk{entityName}
                     {{
                         {entityName} {lowerEntityName}ToAdd = _mapper.Map<{entityName}>({lowerEntityName});
                         {imageCode}
+                        {videoCode}
                         await _{lowerEntityName}Repository.AddAsync({lowerEntityName}ToAdd);
                         {localizationAddCode}
                         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -1193,6 +1334,7 @@ namespace Application.{entityPlural}.Commands.UpdateBulk{entityName}
                     if (!request.Bulk{entityPlural}.Any(x => x.{entityName}Id == {lowerEntityName}.Id))
                     {{
                         {imageDeleteLine}
+                        {videoDeleteLine}
                         {imageListDeleteLine}
                         await _{lowerEntityName}Repository.DeleteAsync({lowerEntityName});
                         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -1207,6 +1349,7 @@ namespace Application.{entityPlural}.Commands.UpdateBulk{entityName}
                         var {lowerEntityName}ToUpdate = existingObjects.First(x => x.Id == {lowerEntityName}.{entityName}Id);
                         _mapper.Map({lowerEntityName}, {lowerEntityName}ToUpdate);
                         {imageUpdateCode}
+                        {videoUpdateCode}
                         {imageListUpdateCode}
                         await _{lowerEntityName}Repository.UpdateAsync({lowerEntityName}ToUpdate);
                         {localizationUpdateCode}
@@ -1459,9 +1602,9 @@ namespace Application.{entityPlural}.Commands.UpdateBulk{entityName}
                 {entityName.ToLower()}.AddDomainEvent({lowerEntityName}Event);
 ";
 
-            string? deletedImagesVar = properties.Any(p => (p.Type == "GPG" || p.Type == "PNGs")) ? $"var deletedImagesPaths = new List<string>();" : null;
+            string? deletedImagesVar = hasVersioning ? null : properties.Any(p => (p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD")) ? $"var deletedImagesPaths = new List<string>();" : null;
             StringBuilder ImageSaveCode = new StringBuilder();
-            string? DeleteImagesCode = properties.Any(p => (p.Type == "GPG" || p.Type == "PNGs")) ? $@"
+            string? DeleteImagesCode = hasVersioning ? null : properties.Any(p => (p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD")) ? $@"
                 foreach (var path in deletedImagesPaths)
                     {{
                         if (path != null)
@@ -1476,6 +1619,11 @@ namespace Application.{entityPlural}.Commands.UpdateBulk{entityName}
                 deletedImagesPaths.Add({entityName.ToLower()}.{prop.Name});
 
 ");
+                if (prop.Type == "VD")
+                    ImageSaveCode.Append($@"
+                deletedImagesPaths.Add({entityName.ToLower()}.{prop.Name});
+
+");
                 if (prop.Type == "PNGs")
                     ImageSaveCode.Append($@"
                 foreach(var path in {entityName.ToLower()}.{prop.Name})
@@ -1483,6 +1631,8 @@ namespace Application.{entityPlural}.Commands.UpdateBulk{entityName}
 
 ");
             }
+
+            string? ImageSaveCodeLine = hasVersioning ? null : ImageSaveCode.ToString();
             string content = $@"
 using Microsoft.Extensions.Logging;
 using System;
@@ -1528,7 +1678,7 @@ namespace Application.{entityPlural}.Commands.Delete{entityName}
                 await _unitOfWork.BeginTransactionAsync();
                 var {entityName.ToLower()} = await {entityRepoName}Repository.GetByIdAsync(request.{entityName}Id);
                 {deletedImagesVar}
-                {ImageSaveCode}
+                {ImageSaveCodeLine}
                 {eventCode1}
 
                 await {entityRepoName}Repository.DeleteAsync({entityName.ToLower()});
@@ -1553,6 +1703,7 @@ namespace Application.{entityPlural}.Commands.Delete{entityName}
             File.WriteAllText(filePath, content);
         }
         public static void GenerateDeleteBulkCommand(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, bool hasLocalization, List<Relation> relations, bool hasVersioning, bool hasNotification, bool hasUserAction)
+
         {
             string className = $"DeleteBulk{entityName}Command";
             string filePath = Path.Combine(path, $"{className}.cs");
@@ -1561,8 +1712,8 @@ namespace Application.{entityPlural}.Commands.Delete{entityName}
             string lowerEntityPlural = char.ToLower(entityPlural[0]) + entityPlural.Substring(1);
             string entityRepoName = $"_{lowerEntityName}";
 
-            string? deletedImagesDeclaration = !properties.Any(p => p.Type == "GPG" || p.Type == "PNGs") ? null : "List<string> deletedImages = new List<string>();";
-            string? deleteOldImageCode = !properties.Any(p => p.Type == "GPG" || p.Type == "PNGs") ? null : $@"
+            string? deletedImagesDeclaration = hasVersioning? null : !properties.Any(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD") ? null : "List<string> deletedImages = new List<string>();";
+            string? deleteOldImageCode = hasVersioning? null : !properties.Any(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD") ? null : $@"
                 foreach (var item in deletedImages)
                 {{
                     if(item != null)
@@ -1596,12 +1747,16 @@ namespace Application.{entityPlural}.Commands.Delete{entityName}
                 {
                     imageCode1.Append($"deletedImages.Add(item.{prop.Name});\n");
                 }
+                else if (prop.Type == "VD")
+                {
+                    imageCode1.Append($"deletedImages.Add(item.{prop.Name});\n");
+                }
                 else if (prop.Type == "PNGs")
                 {
                     imageCode1.Append($"item.{prop.Name}.ForEach(deletedImages.Add);\n");
                 }
             }
-            string? imageCode = !properties.Any(p => p.Type == "GPG" || p.Type == "PNGs") ? null : $@"
+            string? imageCode = hasVersioning? null : !properties.Any(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD") ? null : $@"
                 foreach (var item in {lowerEntityPlural})
                 {{
                     {imageCode1}
@@ -2303,7 +2458,14 @@ namespace Application.{entityPlural}.Queries.Get{entityPlural}WithPagination
                 }
                 else if (prop.Type == "VD")
                 {
-                    propList.Add($"\t\tpublic string? {prop.Name} {{ get; set; }}");
+                    if (prop.Validation != null && prop.Validation.Required)
+                    {
+                        propList.Add($"\t\tpublic string {prop.Name} {{ get; set; }}");
+                    }
+                    else
+                    {
+                        propList.Add($"\t\tpublic string? {prop.Name} {{ get; set; }}");
+                    }
                 }
                 else
                 {
@@ -2391,6 +2553,10 @@ namespace Application.{entityPlural}.Queries
             {
                 rules.AppendLine($"            RuleFor(x => x.{property.Name}Files)");
             }
+            else if (property.Type == "VD")
+            {
+                rules.AppendLine($"            RuleFor(x => x.{property.Name}File)");
+            }
             else
                 rules.AppendLine($"            RuleFor(x => x.{property.Name})");
 
@@ -2400,7 +2566,7 @@ namespace Application.{entityPlural}.Queries
                 //rules.Append(".");
 
                 // Use NotNull() for numeric types, NotEmpty() for strings
-                if (property.Type == "int" || property.Type == "decimal" || property.Type == "float" || property.Type == "double" || property.Type == "GPG")
+                if (property.Type == "int" || property.Type == "decimal" || property.Type == "float" || property.Type == "double" || property.Type == "GPG" || property.Type == "VD")
                 {
                     rules.AppendLine($"\t\t\t\t.NotNull().WithMessage(\"{property.Name} is required.\")");
                 }
@@ -2475,6 +2641,18 @@ namespace Application.{entityPlural}.Queries
 
                     // numeric types or DateTime don't need validation, string / Images / Lists need
                     if (property.Type == "GPG")
+                    {
+                        rules.AppendLine($@"
+                .CustomAsync(async (name, context, cancellationToken) =>
+                {{
+                    if (!await Is{property.Name}Valid(context.InstanceToValidate))
+                    {{
+                        context.AddFailure(""some entries have invalid {property.Name} required value"");
+                    }}
+                }})
+");
+                    }
+                    else if (property.Type == "VD")
                     {
                         rules.AppendLine($@"
                 .CustomAsync(async (name, context, cancellationToken) =>
@@ -2648,6 +2826,37 @@ namespace Application.{entityPlural}.Queries
 ");
                     }
                     else if (property.Type == "GPG" && command == "Update")
+                    {
+                        methods.AppendLine($@"
+        public async Task<bool> Is{property.Name}Valid({command}Bulk{entityName}Command command)
+        {{
+            foreach (var item in command.Bulk{entityPlural})
+            {{
+                if (item.{property.Name}File is null && item.Old{property.Name}Url == null)
+                    return false;
+
+                if (item.{property.Name}File != null && item.Old{property.Name}Url != null)
+                    return false;
+            }}
+            return await Task.FromResult(true);
+        }}
+");
+                    }
+                    else if (property.Type == "VD" && command == "Create")
+                    {
+                        methods.AppendLine($@"
+        public async Task<bool> Is{property.Name}Valid({command}Bulk{entityName}Command command)
+        {{
+            foreach (var item in command.Bulk{entityPlural})
+            {{
+                if (item.{property.Name}File is null)
+                    return false;
+            }}
+            return await Task.FromResult(true);
+        }}
+");
+                    }
+                    else if (property.Type == "VD" && command == "Update")
                     {
                         methods.AppendLine($@"
         public async Task<bool> Is{property.Name}Valid({command}Bulk{entityName}Command command)
@@ -2986,10 +3195,7 @@ namespace Application.{entityPlural}.Queries
                     if (prop.Validation != null && prop.Validation.Required)
                     {
                         propList.Add($"\t\tpublic FileDto {prop.Name}File {{ get; set; }} = new FileDto();");
-                        imageCode.Append($@"
-                {entityName.ToLower()}.{prop.Name} =  await _fileService.UploadFileAsync(request.{prop.Name}File);
-
-");
+                        
                     }
                     else
                     {
@@ -3000,21 +3206,23 @@ namespace Application.{entityPlural}.Queries
 ");
                     }
                 }
+                else if (prop.Type == "VD")
+                {
+                    if (prop.Validation != null && prop.Validation.Required)
+                    {
+                        propList.Add($"\t\tpublic FileDto {prop.Name}File {{ get; set; }} = new FileDto();");
+                       
+                    }
+                    else
+                    {
+                        propList.Add($"\t\tpublic FileDto? {prop.Name}File {{ get; set; }}");
+                        
+                    }
+                }
                 else if (prop.Type == "PNGs")
                 {
                     propList.Add($"\t\tpublic List<FileDto> {prop.Name}Files {{ get; set; }} = new List<FileDto>();");
-                    imageCode.Append($@"
-                foreach (var item in request.{prop.Name}Files)
-                    {{
-                        var path = await _fileService.UploadFileAsync(item);
-                        {entityName.ToLower()}.{prop.Name}.Add(path);
-                    }}
-
-");
-                }
-                else if (prop.Type == "VD")
-                {
-                    propList.Add($"\t\tpublic string? {prop.Name} {{ get; set; }}");
+                    
                 }
                 else
                 {
@@ -3138,14 +3346,23 @@ namespace Application.{entityPlural}.Commands.CreateBulk{entityName}
                         propList.Add($"\t\tpublic bool? DeleteOld{prop.Name} {{ get; set; }}");
                     }
                 }
+                else if (prop.Type == "VD")
+                {
+                    if (prop.Validation != null && prop.Validation.Required)
+                    {
+                        propList.Add($"\t\tpublic FileDto? {prop.Name}File {{ get; set; }}");
+                        propList.Add($"\t\tpublic string? Old{prop.Name}Url {{ get; set; }}");
+                    }
+                    else
+                    {
+                        propList.Add($"\t\tpublic FileDto? {prop.Name}File {{ get; set; }}");
+                        propList.Add($"\t\tpublic bool? DeleteOld{prop.Name} {{ get; set; }}");
+                    }
+                }
                 else if (prop.Type == "PNGs")
                 {
                     propList.Add($"\t\tpublic List<FileDto>? {prop.Name}Files {{ get; set; }} = new List<FileDto>();");
                     propList.Add($"\t\tpublic List<string>? Deleted{prop.Name}URLs {{ get; set; }}");
-                }
-                else if (prop.Type == "VD")
-                {
-                    propList.Add($"\t\tpublic string? {prop.Name} {{ get; set; }}");
                 }
                 else
                 {

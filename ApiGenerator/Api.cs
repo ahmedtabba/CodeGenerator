@@ -25,7 +25,7 @@ namespace ApiGenerator
         {
             var dtoPath = Path.Combine(solutionDir, "Api", "NeededDto", entityName);
             Directory.CreateDirectory(dtoPath);
-            var hasImages = properties.Any(p => p.Type == "GPG" || p.Type == "PNGs");
+            var hasImages = properties.Any(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD");
             if (hasLocalization)
                 GenerateLocalizationDto(entityName, dtoPath);
             if (hasLocalization || hasImages || enumProps.Any())
@@ -57,6 +57,16 @@ namespace ApiGenerator
                 : $".ForMember(dest => dest.{properties.First(t => t.Type == "GPG").Name}File, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "GPG").Name}FormFile != null ? src.{properties.First(t => t.Type == "GPG").Name}FormFile.ToFileDto(): null))"
                 : null;
 
+            string? videoProp = properties.Any(p => p.Type == "VD") ?
+                properties.First(t => t.Type == "VD").Validation != null ? $"\t\tpublic IFormFile {properties.First(t => t.Type == "VD").Name}FormFile {{ get; set;}}" : $"\t\tpublic IFormFile? {properties.First(t => t.Type == "VD").Name}FormFile {{ get; set;}}"
+                : null;
+
+            string? videoMapp = properties.Any(p => p.Type == "VD") ?
+                properties.First(t => t.Type == "VD").Validation != null
+                ? $".ForMember(dest => dest.{properties.First(t => t.Type == "VD").Name}File, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "VD").Name}FormFile.ToFileDto()))"
+                : $".ForMember(dest => dest.{properties.First(t => t.Type == "VD").Name}File, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "VD").Name}FormFile != null ? src.{properties.First(t => t.Type == "VD").Name}FormFile.ToFileDto(): null))"
+                : null;
+
             string? ListImageProp = properties.Any(p => p.Type == "PNGs") ?
                 $"\t\tpublic List<IFormFile> {properties.First(t => t.Type == "PNGs").Name}FormFiles {{ get; set;}} = new List<IFormFile>();"
                 : null;
@@ -65,7 +75,6 @@ namespace ApiGenerator
                 $".ForMember(dest => dest.{properties.First(t => t.Type == "PNGs").Name}Files, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "PNGs").Name}FormFiles.ToFileDtoList()))"
                 : null;
 
-            string? VideoProp = properties.Any(p => p.Type == "VD") ? $"\t\tpublic string? {properties.First(t => t.Type == "VD").Name} {{ get; set;}}" : null;
 
             StringBuilder mapperEnum = new StringBuilder();
             foreach (var prop in properties)
@@ -118,6 +127,7 @@ namespace ApiGenerator
                 CreateMap<Create{entityName}CommandDto, Create{entityName}Command>()
                     {localizationMapp}
                     {ImageMapp}
+                    {videoMapp}
                     {ListImageMapp}
                     {mapperEnum}
                     ;
@@ -139,7 +149,7 @@ namespace Api.NeededDto.{entityName}
 {props}
 {ImageProp}
 {ListImageProp}
-{VideoProp}
+{videoProp}
 {localizationProp}
 {filtersPropsList}
 {mapper}
@@ -166,6 +176,17 @@ namespace Api.NeededDto.{entityName}
                 $".ForMember(dest => dest.{properties.First(t => t.Type == "GPG").Name}File, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "GPG").Name}FormFile != null ? src.{properties.First(t => t.Type == "GPG").Name}FormFile.ToFileDto(): null))"
                 : null;
 
+            string? videoProp = properties.Any(p => p.Type == "VD") ?
+                 $"\t\tpublic IFormFile? {properties.First(t => t.Type == "VD").Name}FormFile {{ get; set;}}"
+                : null;
+            string? deleteVideoOrOldUrlProp = properties.Any(p => p.Type == "VD") ?
+                properties.First(t => t.Type == "VD").Validation == null ? $"\t\tpublic bool? DeleteOld{properties.First(t => t.Type == "VD").Name} {{ get; set; }}"
+                : $"\t\tpublic string? Old{properties.First(t => t.Type == "VD").Name}Url {{ get; set; }}"
+                : null;
+            string? videoMapp = properties.Any(p => p.Type == "VD") ?
+                $".ForMember(dest => dest.{properties.First(t => t.Type == "VD").Name}File, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "VD").Name}FormFile != null ? src.{properties.First(t => t.Type == "VD").Name}FormFile.ToFileDto(): null))"
+                : null;
+
             string? ListImageProp = properties.Any(p => p.Type == "PNGs") ?
                 $"\t\tpublic List<IFormFile> {properties.First(t => t.Type == "PNGs").Name}FormFiles {{ get; set;}} = new List<IFormFile>();"
                 : null;
@@ -178,7 +199,6 @@ namespace Api.NeededDto.{entityName}
                 $"\t\tpublic List<string>? Deleted{properties.First(t => t.Type == "PNGs").Name}URLs {{ get; set; }}"
                 : null;
 
-            string? VideoProp = properties.Any(p => p.Type == "VD") ? $"\t\tpublic string? {properties.First(t => t.Type == "VD").Name} {{ get; set;}}" : null;
             StringBuilder mapperEnum = new StringBuilder();
             foreach (var prop in properties)
             {
@@ -231,6 +251,7 @@ namespace Api.NeededDto.{entityName}
                 CreateMap<Update{entityName}CommandDto, Update{entityName}Command>()
                     {localizationMapp}
                     {ImageMapp}
+                    {videoMapp}
                     {ListImageMapp}
                     {mapperEnum}
                     ;
@@ -256,7 +277,8 @@ namespace Api.NeededDto.{entityName}
 {DeleteImageOrOldUrlProp}
 {ListImageProp}
 {DeletedOldImagesListProp}
-{VideoProp}
+{videoProp}
+{deleteVideoOrOldUrlProp}
 {filtersPropsList}
 {mapper}
     }}
@@ -429,7 +451,8 @@ namespace Api.NeededDto.{entityName}
             string? GetPermission = null!;
             string? GetWithLocalizationPermission = null!;
             string? DeletePermission = null!;
-            var hasImages = properties.Any(p => p.Type == "GPG" || p.Type == "PNGs");
+            string fromType = "[FromBody]";
+            var hasImages = properties.Any(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD");
             if (hasPermissions)
             {
                 createPermission = $"[Permission(RoleConsistent.{entityName}.Add)]";
@@ -451,6 +474,8 @@ namespace Api.NeededDto.{entityName}
                 var command = _mapper.Map<Create{entityName}Command>(dto);
                 var result = await _sender.Send(command);
                 return Ok(result);";
+                if (hasImages)
+                    fromType = "[FromForm]";
             }
             
             string? localizationCode1 = !hasLocalization ? null : $@"
@@ -503,7 +528,7 @@ namespace Api.NeededDto.{entityName}
         [Route(ApiRoutes.{entityName}.CreateBulk)]
         [HttpPost]
         {createPermission}
-        public async Task<IActionResult> CreateBulk([FromForm] CreateBulk{entityName}CommandDto dto)
+        public async Task<IActionResult> CreateBulk({fromType} CreateBulk{entityName}CommandDto dto)
         {{
             try
             {{
@@ -521,7 +546,7 @@ namespace Api.NeededDto.{entityName}
         [Route(ApiRoutes.{entityName}.UpdateBulk)]
         [HttpPut]
         {UpdatePermission}
-        public async Task<IActionResult> UpdateBulk([FromForm] UpdateBulk{entityName}CommandDto dto)
+        public async Task<IActionResult> UpdateBulk({fromType} UpdateBulk{entityName}CommandDto dto)
         {{
             try
             {{
@@ -539,7 +564,7 @@ namespace Api.NeededDto.{entityName}
         [Route(ApiRoutes.{entityName}.DeleteBulk)]
         [HttpDelete]
         {DeletePermission}
-        public async Task<IActionResult> DeleteBulk([FromForm] DeleteBulk{entityName}Command command)
+        public async Task<IActionResult> DeleteBulk([FromBody] DeleteBulk{entityName}Command command)
         {{
             try
             {{
@@ -597,7 +622,7 @@ namespace Api.Controllers
         [Route(ApiRoutes.{entityName}.Create)]
         [HttpPost]
         {createPermission}
-        public async Task<IActionResult> Create([FromForm] {createParam})
+        public async Task<IActionResult> Create({fromType} {createParam})
         {{
             try
             {{
@@ -682,7 +707,7 @@ namespace Api.Controllers
         [Route(ApiRoutes.{entityName}.Update)]
         [HttpPut]
         {UpdatePermission}
-        public async Task<IActionResult> Update([FromForm] Update{entityName}CommandDto dto, Guid {lowerEntity}Id)
+        public async Task<IActionResult> Update({fromType} Update{entityName}CommandDto dto, Guid {lowerEntity}Id)
         {{
             try
             {{
@@ -705,30 +730,23 @@ namespace Api.Controllers
             File.WriteAllText(filePath, content);
             //Console.WriteLine($"✅ {controllerName} created.");
         }
-        public static void GenerateSingleEntityDto(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, string entityPlural, List<Relation> relations, bool hasLocalization, bool hasImages)
+        static void GenerateSingleEntityDto(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, string entityPlural, List<Relation> relations, bool hasLocalization, bool hasImages)
         {
             string fileName = $"Single{entityName}Dto.cs";
             string filePath = Path.Combine(path, fileName);
             string? localizationProp = hasLocalization ? $"\t\tpublic {entityName}LocalizationDto[] {entityName}LocalizationDtos {{ get; set; }} = [];" : null;
-            //string? localizationMapp = hasLocalization ? $".ForMember(dest => dest.{entityName}LocalizationApps, opt => opt.MapFrom(src => src.{entityName}LocalizationDtos.To{entityName}LocalizationAppList()))" : null;
             string? ImageProp = properties.Any(p => p.Type == "GPG") ?
                 properties.First(t => t.Type == "GPG").Validation != null ? $"\t\tpublic IFormFile {properties.First(t => t.Type == "GPG").Name}FormFile {{ get; set;}}" : $"\t\tpublic IFormFile? {properties.First(t => t.Type == "GPG").Name}FormFile {{ get; set;}}"
                 : null;
 
-            //string? ImageMapp = properties.Any(p => p.Type == "GPG") ?
-            //    properties.First(t => t.Type == "GPG").Validation != null ? $".ForMember(dest => dest.{properties.First(t => t.Type == "GPG").Name}File, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "GPG").Name}FormFile.ToFileDto()))" : $".ForMember(dest => dest.{properties.First(t => t.Type == "GPG").Name}File, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "GPG").Name}FormFile != null ? src.{properties.First(t => t.Type == "GPG").Name}FormFile.ToFileDto(): null))"
-            //    : null;
 
             string? ListImageProp = properties.Any(p => p.Type == "PNGs") ?
                 $"\t\tpublic List<IFormFile> {properties.First(t => t.Type == "PNGs").Name}FormFiles {{ get; set;}} = new List<IFormFile>();"
                 : null;
 
-            //string? ListImageMapp = properties.Any(p => p.Type == "PNGs") ?
-            //    $".ForMember(dest => dest.{properties.First(t => t.Type == "PNGs").Name}Files, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "PNGs").Name}FormFiles.ToFileDtoList()))"
-            //    : null;
 
             string? VideoProp = properties.Any(p => p.Type == "VD") ?
-                (properties.Any(p => p.Type == "VD" && p.Validation.Required)) ? $"\t\tpublic string {properties.First(t => t.Type == "VD").Name} {{ get; set;}}" : $"\t\tpublic string? {properties.First(t => t.Type == "VD").Name} {{ get; set;}}"
+                properties.First(t => t.Type == "VD").Validation != null ? $"\t\tpublic IFormFile {properties.First(t => t.Type == "VD").Name}FormFile {{ get; set;}}" : $"\t\tpublic IFormFile? {properties.First(t => t.Type == "VD").Name}FormFile {{ get; set;}}"
                 : null;
 
             StringBuilder mapperEnum = new StringBuilder();
@@ -809,7 +827,7 @@ namespace Api.NeededDto.{entityName}
 }}";
             File.WriteAllText(filePath, content);
         }
-        public static void GenerateCreateBulkCommandDto(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, string entityPlural, List<Relation> relations, bool hasLocalization, bool hasImages)
+        static void GenerateCreateBulkCommandDto(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, string entityPlural, List<Relation> relations, bool hasLocalization, bool hasImages)
         {
             string fileName = $"CreateBulk{entityName}CommandDto.cs";
             string filePath = Path.Combine(path, fileName);
@@ -818,7 +836,7 @@ namespace Api.NeededDto.{entityName}
 
             List<(string Type, string Name, PropertyValidation Validation)> tempProps = new List<(string Type, string Name, PropertyValidation Validation)>();
             properties.ForEach(tempProps.Add);
-            tempProps.RemoveAll(p => p.Type == "GPG" || p.Type == "PNGs" || enumProps.Any(t => t.prop == p.Name));
+            tempProps.RemoveAll(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD" || enumProps.Any(t => t.prop == p.Name));
 
             string? localizationMapp = hasLocalization ? $"{entityName}LocalizationApps = obj.{entityName}LocalizationDtos.To{entityName}LocalizationAppList()," : null;
             
@@ -827,7 +845,13 @@ namespace Api.NeededDto.{entityName}
                 ? $"{properties.First(t => t.Type == "GPG").Name}File = obj.{properties.First(t => t.Type == "GPG").Name}FormFile.ToFileDto(),"
                 : $"{properties.First(t => t.Type == "GPG").Name}File = obj.{properties.First(t => t.Type == "GPG").Name}FormFile != null ? obj.{properties.First(t => t.Type == "GPG").Name}FormFile.ToFileDto() : null,"
                 : null;
-            
+
+            string? videoMapp = properties.Any(p => p.Type == "VD") ?
+                properties.First(t => t.Type == "VD").Validation != null
+                ? $"{properties.First(t => t.Type == "VD").Name}File = obj.{properties.First(t => t.Type == "VD").Name}FormFile.ToFileDto(),"
+                : $"{properties.First(t => t.Type == "VD").Name}File = obj.{properties.First(t => t.Type == "VD").Name}FormFile != null ? obj.{properties.First(t => t.Type == "VD").Name}FormFile.ToFileDto() : null,"
+                : null;
+
             string? ListImageMapp = properties.Any(p => p.Type == "PNGs") ?
                 $"{properties.First(t => t.Type == "PNGs").Name}Files = obj.{properties.First(t => t.Type == "PNGs").Name}FormFiles.ToFileDtoList(),"
                 : null;
@@ -895,6 +919,7 @@ namespace Api.NeededDto.{entityName}
                 {{
                     {aggregator}Id = src.{aggregator}Id,
                     {ImageMapp}
+                    {videoMapp}
                     {ListImageMapp}
                     {mapperEnum}
                     {otherProps}
@@ -909,7 +934,7 @@ namespace Api.NeededDto.{entityName}
             File.WriteAllText(filePath, content);
         }
 
-        public static void GenerateSingleUpdatedEntityDto(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, bool hasLocalization, bool hasImages, string entityPlural, List<Relation> relations)
+        static void GenerateSingleUpdatedEntityDto(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, bool hasLocalization, bool hasImages, string entityPlural, List<Relation> relations)
         {
             string fileName = $"SingleUpdated{entityName}Dto.cs";
             string filePath = Path.Combine(path, fileName);
@@ -922,6 +947,14 @@ namespace Api.NeededDto.{entityName}
                 : $"\t\tpublic string? Old{properties.First(t => t.Type == "GPG").Name}Url {{ get; set; }}"
                 : null;
 
+            string? videoProp = properties.Any(p => p.Type == "VD") ?
+                 $"\t\tpublic IFormFile? {properties.First(t => t.Type == "VD").Name}FormFile {{ get; set;}}"
+                : null;
+            string? deleteVideoOrOldUrlProp = properties.Any(p => p.Type == "VD") ?
+                properties.First(t => t.Type == "VD").Validation == null ? $"\t\tpublic bool? DeleteOld{properties.First(t => t.Type == "VD").Name} {{ get; set; }}"
+                : $"\t\tpublic string? Old{properties.First(t => t.Type == "VD").Name}Url {{ get; set; }}"
+                : null;
+
             string? ListImageProp = properties.Any(p => p.Type == "PNGs") ?
                 $"\t\tpublic List<IFormFile> {properties.First(t => t.Type == "PNGs").Name}FormFiles {{ get; set;}} = new List<IFormFile>();"
                 : null;
@@ -930,7 +963,6 @@ namespace Api.NeededDto.{entityName}
                 $"\t\tpublic List<string>? Deleted{properties.First(t => t.Type == "PNGs").Name}URLs {{ get; set; }}"
                 : null;
 
-            string? VideoProp = properties.Any(p => p.Type == "VD") ? $"\t\tpublic string? {properties.First(t => t.Type == "VD").Name} {{ get; set;}}" : null;
             StringBuilder mapperEnum = new StringBuilder();
             foreach (var prop in properties)
             {
@@ -1004,9 +1036,10 @@ namespace Api.NeededDto.{entityName}
 {localizationProp}
 {ImageProp}
 {DeleteImageOrOldUrlProp}
+{videoProp}
+{deleteVideoOrOldUrlProp}
 {ListImageProp}
 {DeletedOldImagesListProp}
-{VideoProp}
 {relationsPropsList}
 {mapper}
 
@@ -1021,7 +1054,7 @@ namespace Api.NeededDto.{entityName}
             File.WriteAllText(filePath, content);
         }
 
-        public static void GenerateUpdateBulkCommandDto(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, string entityPlural, List<Relation> relations, bool hasLocalization, bool hasImages)
+        static void GenerateUpdateBulkCommandDto(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, string entityPlural, List<Relation> relations, bool hasLocalization, bool hasImages)
         {
             string fileName = $"UpdateBulk{entityName}CommandDto.cs";
             string filePath = Path.Combine(path, fileName);
@@ -1030,7 +1063,7 @@ namespace Api.NeededDto.{entityName}
 
             List<(string Type, string Name, PropertyValidation Validation)> tempProps = new List<(string Type, string Name, PropertyValidation Validation)>();
             properties.ForEach(tempProps.Add);
-            tempProps.RemoveAll(p => p.Type == "GPG" || p.Type == "PNGs" || enumProps.Any(t => t.prop == p.Name));
+            tempProps.RemoveAll(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD" || enumProps.Any(t => t.prop == p.Name));
 
             string? localizationMapp = hasLocalization ? $"{entityName}LocalizationApps = obj.{entityName}LocalizationDtos.To{entityName}LocalizationAppList()," : null;
 
@@ -1042,6 +1075,16 @@ namespace Api.NeededDto.{entityName}
                 properties.First(t => t.Type == "GPG").Validation != null
                 ? $"Old{properties.First(t => t.Type == "GPG").Name}Url = obj.Old{properties.First(t => t.Type == "GPG").Name}Url,"
                 : $"DeleteOld{properties.First(t => t.Type == "GPG").Name} = obj.DeleteOld{properties.First(t => t.Type == "GPG").Name},"
+                : null;
+
+            string? videoMapp1 = properties.Any(p => p.Type == "VD")
+                ? $"{properties.First(t => t.Type == "VD").Name}File = obj.{properties.First(t => t.Type == "VD").Name}FormFile != null ? obj.{properties.First(t => t.Type == "VD").Name}FormFile.ToFileDto() : null,"
+                : null;
+
+            string? videoMapp2 = properties.Any(p => p.Type == "VD") ?
+                properties.First(t => t.Type == "VD").Validation != null
+                ? $"Old{properties.First(t => t.Type == "VD").Name}Url = obj.Old{properties.First(t => t.Type == "VD").Name}Url,"
+                : $"DeleteOld{properties.First(t => t.Type == "VD").Name} = obj.DeleteOld{properties.First(t => t.Type == "VD").Name},"
                 : null;
 
             string? ListImageMapp1 = properties.Any(p => p.Type == "PNGs") ?
@@ -1117,6 +1160,8 @@ namespace Api.NeededDto.{entityName}
                     {entityName}Id = obj.{entityName}Id,
                     {ImageMapp1}
                     {ImageMapp2}
+                    {videoMapp1}
+                    {videoMapp2}
                     {ListImageMapp1}
                     {ListImageMapp2}
                     {mapperEnum}

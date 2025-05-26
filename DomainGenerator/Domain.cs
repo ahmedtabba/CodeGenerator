@@ -21,7 +21,8 @@ namespace DomainGenerator
          : $"        public {p.Type} {p.Name} {{ get; set; }}"
     ));
 
-            var props = tempProps.Replace("GPG", "string").Replace("PNGs", "List<string>").Replace("VD", "string?");
+            var props = tempProps.Replace("GPG", "string").Replace("PNGs", "List<string>");
+            var propsList = properties.Item1.Any(p => p.Type == "VD") ? properties.Item1.Any(p => p.Type == "VD" && p.Validation != null) ? props.Replace("VD", "string") : props.Replace("VD", "string?") : props;
             string content = null!;
             if (!hasLocalization) 
             {
@@ -37,7 +38,7 @@ namespace Domain.Entities
         {{
 
         }}
-{props}
+{propsList}
     }}
 }}";
 
@@ -57,7 +58,7 @@ namespace Domain.Entities
         {{
 
         }}
-{props}
+{propsList}
         public virtual ICollection<{entityName}Localization> {entityName}Localizations {{ get; set; }} = new List<{entityName}Localization>();
     }}
 }}";
