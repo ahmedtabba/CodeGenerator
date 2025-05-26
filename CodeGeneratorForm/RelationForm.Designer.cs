@@ -28,19 +28,20 @@
         /// </summary>
         private void InitializeComponent()
         {
-            txtRelEnt = new TextBox();
+            cmboRelEnt = new ComboBox();
             cmboRel = new ComboBox();
             lblRelation = new Label();
             lblRelEnt = new Label();
             btnAddRelation = new Button();
             SuspendLayout();
             // 
-            // txtRelEnt
+            // cmboRelEnt
             // 
-            txtRelEnt.Location = new Point(106, 75);
-            txtRelEnt.Name = "txtRelEnt";
-            txtRelEnt.Size = new Size(151, 23);
-            txtRelEnt.TabIndex = 49;
+            cmboRelEnt.FormattingEnabled = true;
+            cmboRelEnt.Location = new Point(106, 75);
+            cmboRelEnt.Name = "cmboRelEnt";
+            cmboRelEnt.Size = new Size(151, 23);
+            cmboRelEnt.TabIndex = 49;
             // 
             // cmboRel
             // 
@@ -86,7 +87,7 @@
             ClientSize = new Size(438, 275);
             Controls.Add(btnAddRelation);
             Controls.Add(lblRelEnt);
-            Controls.Add(txtRelEnt);
+            Controls.Add(cmboRelEnt);
             Controls.Add(cmboRel);
             Controls.Add(lblRelation);
             Name = "RelationForm";
@@ -98,7 +99,7 @@
 
         #endregion
 
-        private TextBox txtRelEnt;
+        private ComboBox cmboRelEnt;
         private ComboBox cmboRel;
         private Label lblRelation;
         private Label lblRelEnt;

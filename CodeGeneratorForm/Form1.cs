@@ -61,7 +61,6 @@ namespace CodeGeneratorForm
 
         private void btnSave_Click(object sender, EventArgs e)
         {
-
             var hasLocalization = checkBoxLocalization.Checked;
             var hasPermissions = checkBoxPermissions.Checked;
             var hasVersioning = checkBoxVersioning.Checked;
@@ -85,16 +84,30 @@ namespace CodeGeneratorForm
                 }
             }
 
-           // VueJsHelper.VueJsSolutionPath = "C:\\Ahmed\\Work\\VueJsTemplate\\EvaVehicles.Admin\\src";
-           
             if (!ValidateSolution()) 
             {
                 ClearForm();
                 return;
             }
-            #region Generate Code
 
             string entityPlural = entityName.EndsWith("y") ? entityName[..^1] + "ies" : entityName + "s";
+
+            // Save metadata before generating code
+            try
+            {
+                MetadataManager.SaveEntityMetadata(solutionDir, entityName, entityPlural,
+                    hasLocalization, hasPermissions, hasVersioning, hasNotification,
+                    hasUserAction, bulk, 
+                    (properties.PropertiesList, 
+                    properties.LocalizedProp,
+                    properties.EnumProps),
+                    Relations);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Warning: Failed to save metadata: {ex.Message}");
+                // Continue with code generation even if metadata saving fails
+            }
 
             var domainPath = Path.Combine(solutionDir, "Domain", "Entities");
             var repoInterfacePath = Path.Combine(solutionDir, "Application", "Common", "Interfaces", "IRepositories");
@@ -106,7 +119,6 @@ namespace CodeGeneratorForm
             var updateBulkCommandPath = Path.Combine(solutionDir, "Application", entityPlural, "Commands", $"UpdateBulk{entityName}");
             var deleteBulkCommandPath = Path.Combine(solutionDir, "Application", entityPlural, "Commands", $"DeleteBulk{entityName}");
             var queryPath = Path.Combine(solutionDir, "Application", entityPlural, "Queries");
-
 
             Directory.CreateDirectory(domainPath);
             Directory.CreateDirectory(repoInterfacePath);
@@ -217,7 +229,6 @@ namespace CodeGeneratorForm
                 throw;
             }
 
-            #endregion
             MessageBox.Show($"Entity : {entityName} has been added.");
             ClearForm();
         }
@@ -264,7 +275,14 @@ namespace CodeGeneratorForm
 
         private void btnNewRelation_Click(object sender, EventArgs e)
         {
-            RelationForm relationForm = new RelationForm();
+            var solutionDir = txtDir.Text;
+            if (string.IsNullOrWhiteSpace(solutionDir))
+            {
+                MessageBox.Show("Please enter the solution directory first");
+                return;
+            }
+
+            RelationForm relationForm = new RelationForm(solutionDir);
             relationForm.ShowDialog();
             var relation = relationForm.Relation;
             if (relationForm.IsSaved)
@@ -324,9 +342,16 @@ namespace CodeGeneratorForm
         }
         private void BtnRelEdit_Click(object sender, EventArgs e)
         {
+            var solutionDir = txtDir.Text;
+            if (string.IsNullOrWhiteSpace(solutionDir))
+            {
+                MessageBox.Show("Please enter the solution directory first");
+                return;
+            }
+
             string relationEntityRelated = ((Button)sender).Tag.ToString();
             var oldRelationInfo = GetRelationInfo(relationEntityRelated);
-            RelationForm editForm = new RelationForm();
+            RelationForm editForm = new RelationForm(solutionDir);
             editForm.Relation.RelatedEntity = oldRelationInfo.RelatedEntity;
             editForm.Relation.Type = oldRelationInfo.Type;
             editForm.ShowDialog();

@@ -65,7 +65,6 @@ class Program
         var deleteCommandPath = Path.Combine(solutionDir, "Application", entityPlural, "Commands", $"Delete{entityName}");
         var queryPath = Path.Combine(solutionDir, "Application", entityPlural, "Queries");
 
-
         Directory.CreateDirectory(domainPath);
         Directory.CreateDirectory(repoInterfacePath);
         Directory.CreateDirectory(createCommandPath);
@@ -73,16 +72,19 @@ class Program
         Directory.CreateDirectory(deleteCommandPath);
 
         // Get properties
-        var properties = GetPropertiesFromUser(entityName,hasLocalization);
-       
+        var properties = GetPropertiesFromUser(entityName, hasLocalization);
         var relations = GetRelationsFromUser();
+
+        // Save metadata before generating code
+        MetadataManager.SaveEntityMetadata(solutionDir, entityName, entityPlural,
+            hasLocalization, hasPermissions, hasVersioning, hasNotification,
+            hasUserAction, bulk, properties, relations);
+
         if (hasPermissions)
         {
             Infrastructure.GeneratePermission(entityName, domainPath, hasLocalization);
         }
         Domain.GenerateEntityClass(entityName, domainPath, properties, hasLocalization, relations);
-
-        
 
         //GenerateEntityLocalizationClass(entityName, domainPath);
         Infrastructure.UpdateAppDbContext(entityName, domainPath);
