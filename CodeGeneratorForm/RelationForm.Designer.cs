@@ -33,6 +33,7 @@
             lblRelation = new Label();
             lblRelEnt = new Label();
             btnAddRelation = new Button();
+            textBox1 = new TextBox();
             SuspendLayout();
             // 
             // cmboRelEnt
@@ -80,11 +81,19 @@
             btnAddRelation.UseVisualStyleBackColor = true;
             btnAddRelation.Click += btnAddRelation_Click;
             // 
+            // textBox1
+            // 
+            textBox1.Location = new Point(157, 158);
+            textBox1.Name = "textBox1";
+            textBox1.Size = new Size(150, 23);
+            textBox1.TabIndex = 52;
+            // 
             // RelationForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(438, 275);
+            Controls.Add(textBox1);
             Controls.Add(btnAddRelation);
             Controls.Add(lblRelEnt);
             Controls.Add(cmboRelEnt);
@@ -104,5 +113,6 @@
         private Label lblRelation;
         private Label lblRelEnt;
         private Button btnAddRelation;
+        private TextBox textBox1;
     }
 }

@@ -91,7 +91,11 @@ namespace CodeGeneratorForm
             }
 
             string entityPlural = entityName.EndsWith("y") ? entityName[..^1] + "ies" : entityName + "s";
-
+            VueJsHelper.GenerateStoreFile(entityName, properties,Relations, VueJsHelper.VueJsSolutionPath);
+            VueJsHelper.UpdateConstantsJs(entityName, VueJsHelper.VueJsSolutionPath);
+            VueJsHelper.UpdateRouterIndexJs(entityName, VueJsHelper.VueJsSolutionPath);
+            VueJsHelper.GenerateTableView(entityName, VueJsHelper.VueJsSolutionPath, properties.PropertiesList, properties.EnumProps, Relations);
+            VueJsHelper.GenerateSingleView(entityName, VueJsHelper.VueJsSolutionPath, properties.PropertiesList, properties.EnumProps, Relations);
             // Save metadata before generating code
             try
             {
@@ -212,7 +216,7 @@ namespace CodeGeneratorForm
 
                 Application.GenerateGetByIdQuery(entityName, entityPlural, queryPath, hasLocalization, properties.PropertiesList, properties.EnumProps, Relations);
 
-                Application.GenerateGetWithPaginationQuery(entityName, entityPlural, queryPath, hasLocalization, Relations);
+                Application.GenerateGetWithPaginationQuery(entityName, entityPlural, queryPath, hasLocalization,properties.PropertiesList,properties.EnumProps, Relations);
                 Application.GenerateBaseDto(entityName, entityPlural, properties.PropertiesList, properties.EnumProps, solutionDir, Relations, hasLocalization);
 
                 if (hasLocalization)

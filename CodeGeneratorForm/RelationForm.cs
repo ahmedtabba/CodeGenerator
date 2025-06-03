@@ -55,6 +55,11 @@ namespace CodeGeneratorForm
             }
             else
                 MessageBox.Show("Please select both relation type and entity");
+
+            //Relation.Type = (RelationType)(cmboRel.SelectedIndex);
+            //Relation.RelatedEntity = textBox1.Text;
+            //IsSaved = true;
+            //this.Close();
         }
 
         private void RelationForm_Load(object sender, EventArgs e)

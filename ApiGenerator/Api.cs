@@ -41,7 +41,7 @@ namespace ApiGenerator
             GenerateGetWithPaginationQueryDto(entityName, entityPlural, dtoPath,hasLocalization);
         }
 
-        public static void GenerateCreateCommandDto(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, string entityPlural,List<Relation> relations,bool hasLocalization,bool hasImages)
+        static void GenerateCreateCommandDto(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, string entityPlural,List<Relation> relations,bool hasLocalization,bool hasImages)
         {
             string fileName = $"Create{entityName}CommandDto.cs";
             string filePath = Path.Combine(path, fileName);
@@ -114,6 +114,9 @@ namespace ApiGenerator
                     case RelationType.ManyToOneNullable:
                         filtersProps.Add($"\t\tpublic Guid? {relation.RelatedEntity}Id {{  get; set; }}\n");
                         break;
+                    case RelationType.ManyToMany:
+                        filtersProps.Add($"\t\tpublic List<Guid> {relation.RelatedEntity}Ids {{  get; set; }}\n");
+                        break;
                     default:
                         break;
                 }
@@ -159,7 +162,7 @@ namespace Api.NeededDto.{entityName}
             File.WriteAllText(filePath, content);
         }
 
-        public static void GenerateUpdateCommandDto(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, bool hasLocalization,bool hasImages,string entityPlural,List<Relation> relations)
+        static void GenerateUpdateCommandDto(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, bool hasLocalization,bool hasImages,string entityPlural,List<Relation> relations)
         {
             string fileName = $"Update{entityName}CommandDto.cs";
             string filePath = Path.Combine(path, fileName);
@@ -237,6 +240,9 @@ namespace Api.NeededDto.{entityName}
                     case RelationType.ManyToOneNullable:
                         filtersProps.Add($"\t\tpublic Guid? {relation.RelatedEntity}Id {{  get; set; }}\n");
                         break;
+                    case RelationType.ManyToMany:
+                        filtersProps.Add($"\t\tpublic List<Guid> {relation.RelatedEntity}Ids {{  get; set; }}\n");
+                        break;
                     default:
                         break;
                 }
@@ -286,7 +292,7 @@ namespace Api.NeededDto.{entityName}
             File.WriteAllText(filePath, content);
         }
 
-        public static void GenerateLocalizationDto(string entityName, string path)
+        static void GenerateLocalizationDto(string entityName, string path)
         {
             string fileName = $"{entityName}LocalizationDto.cs";
             string filePath = Path.Combine(path, fileName);
@@ -343,7 +349,7 @@ namespace Api.NeededDto.{entityName}
                 //Console.WriteLine("✅ Api Extensions updated.");
             }
         }
-        public static void GenerateGetWithPaginationQueryDto(string entityName, string entityPlural, string path, bool hasLocalization)
+        static void GenerateGetWithPaginationQueryDto(string entityName, string entityPlural, string path, bool hasLocalization)
         {
             string fileName = $"Get{entityPlural}WithPaginationQueryDto.cs";
             string filePath = Path.Combine(path, fileName);
@@ -787,6 +793,9 @@ namespace Api.Controllers
                     case RelationType.ManyToOneNullable:
                         filtersProps.Add($"\t\tpublic Guid? {relation.RelatedEntity}Id {{  get; set; }}\n");
                         break;
+                    case RelationType.ManyToMany:
+                        filtersProps.Add($"\t\tpublic List<Guid> {relation.RelatedEntity}Ids {{  get; set; }}\n");
+                        break;
                     default:
                         break;
                 }
@@ -889,12 +898,13 @@ namespace Api.NeededDto.{entityName}
                     if(relation.Type ==  RelationType.OneToOne || relation.Type ==  RelationType.OneToOneNullable
                         || relation.Type == RelationType.ManyToOne || relation.Type == RelationType.ManyToOneNullable)
 
-                        relationsProps.Add($"\t\t\t\t\t{relation.RelatedEntity}Id = obj.{relation.RelatedEntity}Id {{  get; set; }}");
+                        relationsProps.Add($"{relation.RelatedEntity}Id = obj.{relation.RelatedEntity}Id,");
 
                     if (relation.Type == RelationType.OneToOneSelfJoin)
-                        relationsProps.Add($"\t\t\t\t\t{relation.RelatedEntity}ParentId = obj.{relation.RelatedEntity}ParentId {{  get; set; }}");
+                        relationsProps.Add($"{relation.RelatedEntity}ParentId = obj.{relation.RelatedEntity}ParentId,");
 
-
+                    if (relation.Type == RelationType.ManyToMany)
+                        relationsProps.Add($"{relation.RelatedEntity}Ids = obj.{relation.RelatedEntity}Ids,");
                 }
             }
             string relPropMapper = string.Join(Environment.NewLine, relationsProps);
@@ -1000,6 +1010,9 @@ namespace Api.NeededDto.{entityName}
                         break;
                     case RelationType.ManyToOneNullable:
                         relationsProps.Add($"\t\tpublic Guid? {relation.RelatedEntity}Id {{  get; set; }}");
+                        break;
+                    case RelationType.ManyToMany:
+                        relationsProps.Add($"\t\tpublic List<Guid> {relation.RelatedEntity}Ids {{  get; set; }}");
                         break;
                     default:
                         break;
@@ -1128,12 +1141,14 @@ namespace Api.NeededDto.{entityName}
                     if (relation.Type == RelationType.OneToOne || relation.Type == RelationType.OneToOneNullable
                         || relation.Type == RelationType.ManyToOne || relation.Type == RelationType.ManyToOneNullable)
 
-                        relationsProps.Add($"\t\t\t\t\t{relation.RelatedEntity}Id = obj.{relation.RelatedEntity}Id {{  get; set; }}");
+                        relationsProps.Add($"{relation.RelatedEntity}Id = obj.{relation.RelatedEntity}Id,");
 
                     if (relation.Type == RelationType.OneToOneSelfJoin)
-                        relationsProps.Add($"\t\t\t\t\t{relation.RelatedEntity}ParentId = obj.{relation.RelatedEntity}ParentId {{  get; set; }}");
+                        relationsProps.Add($"{relation.RelatedEntity}ParentId = obj.{relation.RelatedEntity}ParentId,");
 
 
+                    if (relation.Type == RelationType.ManyToMany)
+                        relationsProps.Add($"{relation.RelatedEntity}Ids = obj.{relation.RelatedEntity}Ids,");
                 }
             }
             string relPropMapper = string.Join(Environment.NewLine, relationsProps);

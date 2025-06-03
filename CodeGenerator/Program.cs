@@ -144,7 +144,7 @@ class Program
          
         Application.GenerateGetByIdQuery(entityName, entityPlural, queryPath, hasLocalization, properties.Item1,properties.propEnums, relations);
 
-        Application.GenerateGetWithPaginationQuery(entityName, entityPlural, queryPath,hasLocalization,relations);
+        Application.GenerateGetWithPaginationQuery(entityName, entityPlural, queryPath,hasLocalization,properties.Item1,properties.propEnums,relations);
         Application.GenerateBaseDto(entityName, entityPlural,properties.Item1, properties.propEnums, solutionDir,relations,hasLocalization);
 
         if(hasLocalization)

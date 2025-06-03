@@ -66,6 +66,9 @@ namespace ApplicationGenerator
                     case RelationType.ManyToOneNullable:
                         tempList.Add($"\t\tpublic Guid? {relation.RelatedEntity}Id {{ get; set; }}");
                         break;
+                    case RelationType.ManyToMany:
+                        tempList.Add($"\t\tpublic List<Guid> {relation.RelatedEntity}Ids {{ get; set; }}");
+                        break;
                     default:
                         break;
                 }
@@ -402,7 +405,15 @@ namespace Domain.Events.{entityName}Events
             StringBuilder versioningDTOBuilder = new StringBuilder();
             foreach (var item in propList)
             {
-                versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{item},");
+                if (item.EndsWith("Ids"))
+                {
+                    var temp = item.Remove(item.Length - 3);
+                    string? relatedEntityManyPlural = relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.EndsWith("y") ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[..^1] + "ies" : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity + "s";
+                    var tempPlural = temp.EndsWith("y") ? temp[..^1] + "ies" : temp + "s";
+                    versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{tempPlural}.Select(x => x.Id).ToList(),");
+                }
+                else
+                    versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{item},");
             }
 
             string? HandleVersioningMethod = !versioning ? null : $@"
@@ -545,7 +556,15 @@ namespace Application.{entityPlural}.EventHandlers
             StringBuilder versioningDTOBuilder = new StringBuilder();
             foreach (var item in propList)
             {
-                versioningDTOBuilder.AppendLine($"\t\t\t\t\t{item} = item.{item},");
+                if (item.EndsWith("Ids"))
+                {
+                    var temp = item.Remove(item.Length - 3);
+                    string? relatedEntityManyPlural = relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.EndsWith("y") ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[..^1] + "ies" : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity + "s";
+                    var tempPlural = temp.EndsWith("y") ? temp[..^1] + "ies" : temp + "s";
+                    versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{tempPlural}.Select(x => x.Id).ToList(),");
+                }
+                else
+                    versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{item},");
             }
 
             string? HandleVersioningMethod = !versioning ? null : $@"
@@ -689,13 +708,29 @@ namespace Application.{entityPlural}.EventHandlers
             StringBuilder oldVersioningDTOBuilder = new StringBuilder();
             foreach (var item in propList)
             {
-                oldVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = oldObj.{item},");
+                if (item.EndsWith("Ids"))
+                {
+                    var temp = item.Remove(item.Length - 3);
+                    string? relatedEntityManyPlural = relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.EndsWith("y") ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[..^1] + "ies" : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity + "s";
+                    var tempPlural = temp.EndsWith("y") ? temp[..^1] + "ies" : temp + "s";
+                    oldVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = oldObj.{tempPlural}.Select(x => x.Id).ToList(),");
+                }
+                else
+                    oldVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = oldObj.{item},");
             }
 
             StringBuilder newVersioningDTOBuilder = new StringBuilder();
             foreach (var item in propList)
             {
-                newVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = newObj.{item},");
+                if (item.EndsWith("Ids"))
+                {
+                    var temp = item.Remove(item.Length - 3);
+                    string? relatedEntityManyPlural = relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.EndsWith("y") ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[..^1] + "ies" : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity + "s";
+                    var tempPlural = temp.EndsWith("y") ? temp[..^1] + "ies" : temp + "s";
+                    newVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = newObj.{tempPlural}.Select(x => x.Id).ToList(),");
+                }
+                else
+                    newVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = newObj.{item},");
             }
 
             string? HandleVersioningMethod = !versioning ? null : $@"
@@ -847,7 +882,15 @@ namespace Application.{entityPlural}.EventHandlers
             StringBuilder versioningDTOBuilder = new StringBuilder();
             foreach (var item in propList)
             {
-                versioningDTOBuilder.AppendLine($"\t\t\t\t\t{item} = item.{item},");
+                if (item.EndsWith("Ids"))
+                {
+                    var temp = item.Remove(item.Length - 3);
+                    string? relatedEntityManyPlural = relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.EndsWith("y") ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[..^1] + "ies" : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity + "s";
+                    var tempPlural = temp.EndsWith("y") ? temp[..^1] + "ies" : temp + "s";
+                    versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{tempPlural}.Select(x => x.Id).ToList(),");
+                }
+                else
+                    versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{item},");
             }
 
             string? HandleVersioningMethod = !versioning ? null : $@"
@@ -1003,7 +1046,15 @@ namespace Application.{entityPlural}.EventHandlers
             StringBuilder versioningDTOBuilder = new StringBuilder();
             foreach (var item in propList)
             {
-                versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{item},");
+                if (item.EndsWith("Ids"))
+                {
+                    var temp = item.Remove(item.Length - 3);
+                    string? relatedEntityManyPlural = relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.EndsWith("y") ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[..^1] + "ies" : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity + "s";
+                    var tempPlural = temp.EndsWith("y") ? temp[..^1] + "ies" : temp + "s";
+                    versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{tempPlural}.Select(x => x.Id).ToList(),");
+                }
+                else
+                    versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{item},");
             }
 
             string? HandleVersioningMethod = !versioning ? null : $@"
@@ -1147,7 +1198,15 @@ namespace Application.{entityPlural}.EventHandlers
             StringBuilder versioningDTOBuilder = new StringBuilder();
             foreach (var item in propList)
             {
-                versioningDTOBuilder.AppendLine($"\t\t\t\t\t{item} = item.{item},");
+                if (item.EndsWith("Ids"))
+                {
+                    var temp = item.Remove(item.Length - 3);
+                    string? relatedEntityManyPlural = relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.EndsWith("y") ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[..^1] + "ies" : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity + "s";
+                    var tempPlural = temp.EndsWith("y") ? temp[..^1] + "ies" : temp + "s";
+                    versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{tempPlural}.Select(x => x.Id).ToList(),");
+                }
+                else
+                    versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{item},");
             }
 
             string? HandleVersioningMethod = !versioning ? null : $@"
@@ -1300,6 +1359,9 @@ namespace Application.{entityPlural}.EventHandlers
                         break;
                     case RelationType.ManyToOneNullable:
                         propList.Add($"{relation.RelatedEntity}Id");
+                        break;
+                    case RelationType.ManyToMany:
+                        propList.Add($"{relation.RelatedEntity}Ids");
                         break;
                     default:
                         break;

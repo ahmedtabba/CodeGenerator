@@ -79,7 +79,7 @@
             // cmboType
             // 
             cmboType.FormattingEnabled = true;
-            cmboType.Items.AddRange(new object[] { "string", "int", "double", "decimal", "float", "bool", "enum", "List of", "Image (single file)", "List of images (multi files)", "Video", "DateTime", "DateOnly", "TimeOnly" });
+            cmboType.Items.AddRange(new object[] { "string", "int", "double", "decimal", "float", "bool", "enum", "List of", "Image (single file)", "List of images (multi files)", "Video", "DateTime", "DateOnly", "TimeOnly", "Guid" });
             cmboType.Location = new Point(62, 41);
             cmboType.Name = "cmboType";
             cmboType.Size = new Size(128, 23);

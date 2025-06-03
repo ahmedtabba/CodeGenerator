@@ -163,12 +163,31 @@ namespace Application.Common.Interfaces.IRepositories
                         prop = $"\t\tpublic Guid? {relation.RelatedEntity}Id {{ get; set; }}";
                         relationPropsList.Add(prop);
                         break;
+                    case RelationType.ManyToMany:
+                        prop = $"\t\tpublic List<Guid> {relation.RelatedEntity}Ids {{ get; set; }}";
+                        relationPropsList.Add(prop);
+                        break;
                     default:
                         break;
                 }
             }
 
             string relationProps = string.Join(Environment.NewLine, relationPropsList);
+            string? injectCTORMany1 = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $",I{relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity}Repository {char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository";
+            string? injectCTORMany2 = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $"_{char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository = {char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository;";
+            string? injectCTORMany3 = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $"private readonly I{relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity}Repository _{char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository;";
+            string? relatedEntityManyPlural = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.EndsWith("y") ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[..^1] + "ies" : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity + "s";
+            string? relatedEntityManyRepo = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $"_{char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository";
+            string ? relationManyToManyCode = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $@"
+                var objs = await {relatedEntityManyRepo}.GetAllAsTracking()
+                        .Where(x => request.{relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity}Ids.Contains(x.Id))
+                        .ToListAsync();                
+
+                foreach (var obj in objs)
+                {{
+                    {entityName.ToLower()}.{relatedEntityManyPlural}.Add(obj);
+                }}";
+
             string? localizationIRepo = hasLocalization ? $",I{entityName}LocalizationRepository {lowerEntityName}LocalizationRepository" : null;
             string? localizationInjectIRepo = hasLocalization ? $"_{lowerEntityName}LocalizationRepository = {lowerEntityName}LocalizationRepository;" : null;
             string? localizationFieldIRepo = hasLocalization ? $"private readonly I{entityName}LocalizationRepository _{lowerEntityName}LocalizationRepository;" : null;
@@ -230,12 +249,13 @@ namespace Application.{entityPlural}.Commands.Create{entityName}
         private readonly IFileService _fileService;
         private readonly I{entityName}Repository {entityRepoName}Repository;
         {localizationFieldIRepo}
+        {injectCTORMany3}
 
         public {className}Handler(ILogger<{className}Handler> logger,
                                         IMapper mapper,
                                         IUnitOfWorkAsync unitOfWork,
                                         IFileService fileService,
-                                        I{entityName}Repository repository{localizationIRepo})
+                                        I{entityName}Repository repository{localizationIRepo}{injectCTORMany1})
         {{
             {entityRepoName}Repository = repository;
             _mapper=mapper;
@@ -243,6 +263,7 @@ namespace Application.{entityPlural}.Commands.Create{entityName}
             _logger=logger;
             _fileService = fileService;
             {localizationInjectIRepo}
+            {injectCTORMany2}
         }}
     
         public async Task<string> Handle({className} request, CancellationToken cancellationToken)
@@ -253,6 +274,7 @@ namespace Application.{entityPlural}.Commands.Create{entityName}
                 var {entityName.ToLower()} = _mapper.Map<{entityName}>(request);
                 {imageCode}
                 {videoCode}
+                {relationManyToManyCode}
                 await {entityRepoName}Repository.AddAsync({entityName.ToLower()});
                 {eventCode}
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -363,6 +385,22 @@ namespace Application.{entityPlural}.Commands.Create{entityName}
                 }
 
             }
+            string? injectCTORMany1 = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $",I{relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity}Repository {char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository";
+            string? injectCTORMany2 = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $"_{char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository = {char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository;";
+            string? injectCTORMany3 = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $"private readonly I{relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity}Repository _{char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository;";
+            string? relatedEntityManyPlural = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.EndsWith("y") ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[..^1] + "ies" : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity + "s";
+            string? relatedEntityManyRepo = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $"_{char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository";
+            string? relationManyToManyCode = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $@"
+                for (int i = 0; i < {lowerEntityPlural}.Count; i++)
+                {{
+                    var objs = await {relatedEntityManyRepo}.GetAllAsTracking()
+                        .Where(x => request.Bulk{entityPlural}[i].{relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity}Ids.Contains(x.Id))
+                        .ToListAsync();
+                    foreach (var obj in objs)
+                    {{
+                        {lowerEntityPlural}[i].{relatedEntityManyPlural}.Add(obj);
+                    }}
+                }}";
 
             string? localizationIRepo = hasLocalization ? $",I{entityName}LocalizationRepository {lowerEntityName}LocalizationRepository" : null;
             string? localizationInjectIRepo = hasLocalization ? $"_{lowerEntityName}LocalizationRepository = {lowerEntityName}LocalizationRepository;" : null;
@@ -417,12 +455,13 @@ namespace Application.{entityPlural}.Commands.CreateBulk{entityName}
         private readonly IFileService _fileService;
         private readonly I{entityName}Repository {entityRepoName}Repository;
         {localizationFieldIRepo}
+        {injectCTORMany3}
 
         public {className}Handler(ILogger<{className}Handler> logger,
                                         IMapper mapper,
                                         IUnitOfWorkAsync unitOfWork,
                                         IFileService fileService,
-                                        I{entityName}Repository repository{localizationIRepo})
+                                        I{entityName}Repository repository{localizationIRepo}{injectCTORMany1})
         {{
             {entityRepoName}Repository = repository;
             _mapper=mapper;
@@ -430,6 +469,7 @@ namespace Application.{entityPlural}.Commands.CreateBulk{entityName}
             _logger=logger;
             _fileService = fileService;
             {localizationInjectIRepo}
+            {injectCTORMany2}
         }}
     
         public async Task Handle({className} request, CancellationToken cancellationToken)
@@ -440,6 +480,7 @@ namespace Application.{entityPlural}.Commands.CreateBulk{entityName}
                 var {lowerEntityPlural} = _mapper.Map<List<{entityName}>>(request.Bulk{entityPlural});
                 {imageCode}
                 {videoCode}
+                {relationManyToManyCode}
                 await {entityRepoName}Repository.AddBulk({lowerEntityPlural});
                 {eventCode}
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -461,27 +502,6 @@ namespace Application.{entityPlural}.Commands.CreateBulk{entityName}
         }
         public static void GenerateCreateCommandValidator(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<Relation> relations)
         {
-            //string className = $"Create{entityName}CommandValidator";
-            //string commandName = $"Create{entityName}Command";
-            //string filePath = Path.Combine(path, $"{className}.cs");
-
-            //string rules = string.Join(Environment.NewLine, properties
-            //    .Where(p => p.Type == "string")
-            //    .Select(p => $"            RuleFor(x => x.{p.Name}).NotEmpty().WithMessage(\"{p.Name} is required.\");"));
-
-            //string content = $@"using FluentValidation;
-
-            //                namespace Application.{entityPlural}.Commands.Create{entityName}
-            //                {{
-            //                    public class {className} : AbstractValidator<{commandName}>
-            //                    {{
-            //                        public {className}()
-            //                        {{
-            //                         {rules}
-            //                        }}
-            //                    }}
-            //                }}";
-            //File.WriteAllText(filePath, content);
             string className = $"Create{entityName}CommandValidator";
             string commandName = $"Create{entityName}Command";
             string filePath = Path.Combine(path, $"{className}.cs");
@@ -489,17 +509,20 @@ namespace Application.{entityPlural}.Commands.CreateBulk{entityName}
             StringBuilder injectCTOR1 = new($"ILogger<{className}> logger");
             foreach (var relation in relations)
             {
-                injectCTOR1.Append($",I{relation.RelatedEntity}Repository {char.ToLower(relation.RelatedEntity[0]) + relation.RelatedEntity.Substring(1)}Repository");
+                if (relation.Type != RelationType.OneToMany || relation.Type != RelationType.OneToManyNullable)
+                    injectCTOR1.Append($",I{relation.RelatedEntity}Repository {char.ToLower(relation.RelatedEntity[0]) + relation.RelatedEntity.Substring(1)}Repository");
             }
             StringBuilder injectCTOR2 = new StringBuilder($"\t\t\t_logger = logger;");
             foreach (var relation in relations)
             {
-                injectCTOR2.AppendLine($"_{char.ToLower(relation.RelatedEntity[0]) + relation.RelatedEntity.Substring(1)}Repository = {char.ToLower(relation.RelatedEntity[0]) + relation.RelatedEntity.Substring(1)}Repository;");
+                if (relation.Type != RelationType.OneToMany || relation.Type != RelationType.OneToManyNullable)
+                    injectCTOR2.AppendLine($"_{char.ToLower(relation.RelatedEntity[0]) + relation.RelatedEntity.Substring(1)}Repository = {char.ToLower(relation.RelatedEntity[0]) + relation.RelatedEntity.Substring(1)}Repository;");
             }
             StringBuilder injectCTOR3 = new($"\t\tprivate readonly ILogger<{className}> _logger;");
             foreach (var relation in relations)
             {
-                injectCTOR3.AppendLine($"private readonly I{relation.RelatedEntity}Repository _{char.ToLower(relation.RelatedEntity[0]) + relation.RelatedEntity.Substring(1)}Repository;");
+                if (relation.Type != RelationType.OneToMany || relation.Type != RelationType.OneToManyNullable)
+                    injectCTOR3.AppendLine($"private readonly I{relation.RelatedEntity}Repository _{char.ToLower(relation.RelatedEntity[0]) + relation.RelatedEntity.Substring(1)}Repository;");
             }
             StringBuilder rulesStore = new StringBuilder();
             foreach (var item in properties)
@@ -870,11 +893,48 @@ namespace Application.{entityPlural}.Commands.CreateBulk{entityName}
                         prop = $"\t\tpublic Guid? {relation.RelatedEntity}Id {{ get; set; }}";
                         relationPropsList.Add(prop);
                         break;
+                    case RelationType.ManyToMany:
+                        prop = $"\t\tpublic List<Guid> {relation.RelatedEntity}Ids {{ get; set; }}";
+                        relationPropsList.Add(prop);
+                        break;
                     default:
                         break;
                 }
             }
             string relationProps = string.Join(Environment.NewLine, relationPropsList);
+            string? injectCTORMany1 = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $",I{relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity}Repository {char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository";
+            string? injectCTORMany2 = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $"_{char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository = {char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository;";
+            string? injectCTORMany3 = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $"private readonly I{relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity}Repository _{char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository;";
+            string? relatedEntityManyName = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity;
+            string? relatedEntityManyPlural = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.EndsWith("y") ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[..^1] + "ies" : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity + "s";
+            string? relatedEntityManyRepo = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $"_{char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository";
+            string? relationManyToManyCode = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $@"
+                // Get the current {relatedEntityManyPlural} and new IDs
+                var current{relatedEntityManyPlural} = existingObj.{relatedEntityManyPlural}.ToList();
+                var new{relatedEntityManyName}Ids = request.{relatedEntityManyName}Ids;
+
+                // Get the new {relatedEntityManyPlural} from the repository
+                var new{relatedEntityManyPlural} = await {relatedEntityManyRepo}.GetAllAsTracking()
+                        .Where(x => new{relatedEntityManyName}Ids.Contains(x.Id))
+                        .ToListAsync();
+
+                // Add new {relatedEntityManyPlural} if not already in the existing collection
+                foreach (var new{relatedEntityManyName} in new{relatedEntityManyPlural})
+                {{
+                    if (!current{relatedEntityManyPlural}.Any(x => x.Id == new{relatedEntityManyName}.Id))
+                    {{
+                        existingObj.{relatedEntityManyPlural}.Add(new{relatedEntityManyName});
+                    }}
+                }}
+
+                // Remove {{relatedEntityManyPlural}} that are no longer in the updated list
+                foreach (var existing{relatedEntityManyName} in current{relatedEntityManyPlural})
+                {{
+                    if (!new{relatedEntityManyName}Ids.Contains(existing{relatedEntityManyName}.Id))
+                    {{
+                        existingObj.{relatedEntityManyPlural}.Remove(existing{relatedEntityManyName});
+                    }}
+                }}";
             string? localizationIRepo = hasLocalization ? $",I{entityName}LocalizationRepository {lowerEntityName}LocalizationRepository" : null;
             string? localizationInjectIRepo = hasLocalization ? $"_{lowerEntityName}LocalizationRepository = {lowerEntityName}LocalizationRepository;" : null;
             string? localizationFieldIRepo = hasLocalization ? $"private readonly I{entityName}LocalizationRepository _{lowerEntityName}LocalizationRepository;" : null;
@@ -954,12 +1014,13 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
         private readonly IUnitOfWorkAsync _unitOfWork;
         private readonly IFileService _fileService;
         {localizationFieldIRepo}
+        {injectCTORMany3}
 
         public {className}Handler(ILogger<{className}Handler> logger,
                                             IMapper mapper,
                                             IUnitOfWorkAsync unitOfWork,
                                             IFileService fileService,
-                                            I{entityName}Repository repository{localizationIRepo})
+                                            I{entityName}Repository repository{localizationIRepo}{injectCTORMany1})
                                             
         {{
             _logger = logger;
@@ -968,6 +1029,7 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
             _fileService = fileService;
             _unitOfWork = unitOfWork;
             {localizationInjectIRepo}
+            {injectCTORMany2}
         }}
         public async Task Handle({className} request, CancellationToken cancellationToken)
         {{
@@ -983,7 +1045,7 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
 
                 {imageCode}
                 {videoCode}
-
+                {relationManyToManyCode}
                 {eventCode}
 
                 await {entityRepoName}Repository.UpdateAsync(existingObj);
@@ -1066,7 +1128,7 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                     {
                         imageCode.Append($@"{lowerEntityName}ToAdd.{prop.Name} = await _fileService.UploadFileAsync({lowerEntityName}.{prop.Name}File);
 ");
-                        imageDeleteLine = hasVersioning?null : $"deletedImages.Add({lowerEntityName}.{prop.Name});";
+                        imageDeleteLine = hasVersioning ? null : $"deletedImages.Add({lowerEntityName}.{prop.Name});";
                         imageDeleteUpdateLine = hasVersioning ? null : $"deletedImages.Add({lowerEntityName}ToUpdate.{prop.Name});";
                         imageUpdateCode = $@"
                         if ({lowerEntityName}.{prop.Name}File != null)
@@ -1082,7 +1144,7 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                     {
                         imageCode.Append($@"{lowerEntityName}ToAdd.{prop.Name} = {lowerEntityName}.{prop.Name}File != null ? await _fileService.UploadFileAsync({lowerEntityName}.{prop.Name}File) : null;
 ");
-                        imageDeleteLine = $"deletedImages.Add({lowerEntityName}.{prop.Name});";
+                        imageDeleteLine = hasVersioning ? null : $"deletedImages.Add({lowerEntityName}.{prop.Name});";
                         imageDeleteUpdateLine = hasVersioning ? null : $"deletedImages.Add({lowerEntityName}ToUpdate.{prop.Name});";
                         imageUpdateCode = $@"
                         if ({lowerEntityName}.{prop.Name}File != null)
@@ -1121,7 +1183,7 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                     {
                         videoCode.Append($@"{lowerEntityName}ToAdd.{prop.Name} = {lowerEntityName}.{prop.Name}File != null ? await _fileService.UploadFileAsync({lowerEntityName}.{prop.Name}File) : null;
 ");
-                        videoDeleteLine = $"deletedImages.Add({lowerEntityName}.{prop.Name});";
+                        videoDeleteLine = hasVersioning ? null : $"deletedImages.Add({lowerEntityName}.{prop.Name});";
                         videoDeleteUpdateLine = hasVersioning ? null : $"deletedImages.Add({lowerEntityName}ToUpdate.{prop.Name});";
                         videoUpdateCode = $@"
                         if ({lowerEntityName}.{prop.Name}File != null)
@@ -1204,6 +1266,53 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
 
             }
 
+            string? injectCTORMany1 = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $",I{relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity}Repository {char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository";
+            string? injectCTORMany2 = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $"_{char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository = {char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository;";
+            string? injectCTORMany3 = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $"private readonly I{relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity}Repository _{char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository;";
+            string? relatedEntityManyPlural = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.EndsWith("y") ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[..^1] + "ies" : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity + "s";
+            string? relatedEntityManyName = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity;
+            string? relatedEntityManyRepo = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $"_{char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository";
+
+            string? relationManyToManyAddCode = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $@"
+                        var objs = await {relatedEntityManyRepo}.GetAllAsTracking()
+                        .Where(x => {lowerEntityName}.{relatedEntityManyName}Ids.Contains(x.Id))
+                        .ToListAsync();                
+
+                        foreach (var obj in objs)
+                        {{
+                            {lowerEntityName}ToAdd.{relatedEntityManyPlural}.Add(obj);
+                        }}";
+
+            string? relationManyToManyUpdateCode = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $@"
+                
+                        // Get the current many objects and new many objects IDs
+                        var currentObjs = {lowerEntityName}ToUpdate.{relatedEntityManyPlural}.ToList();
+                        var newObjIds = {lowerEntityName}.{relatedEntityManyName}Ids;
+
+                        // Get the new many objects from the repository
+                        var newObjs = await {relatedEntityManyRepo}.GetAllAsTracking()
+                            .Where(x => newObjIds.Contains(x.Id))
+                            .ToListAsync();
+
+                        // Add new ones if not already in the existing collection
+                        foreach (var newObj in newObjs)
+                        {{
+                            if (!currentObjs.Any(x => x.Id == newObj.Id))
+                            {{
+                                {lowerEntityName}ToUpdate.{relatedEntityManyPlural}.Add(newObj);
+                            }}
+                        }}
+
+                        // Remove ones that are no longer in the updated list
+                        foreach (var existingObj in currentObjs)
+                        {{
+                            if (!newObjIds.Contains(existingObj.Id))
+                            {{
+                                {lowerEntityName}ToUpdate.{relatedEntityManyPlural}.Remove(existingObj);
+                            }}
+                        }}";
+
+
             string? localizationIRepo = hasLocalization ? $",I{entityName}LocalizationRepository {lowerEntityName}LocalizationRepository" : null;
             string? localizationInjectIRepo = hasLocalization ? $"_{lowerEntityName}LocalizationRepository = {lowerEntityName}LocalizationRepository;" : null;
             string? localizationFieldIRepo = hasLocalization ? $"private readonly I{entityName}LocalizationRepository _{lowerEntityName}LocalizationRepository;" : null;
@@ -1285,12 +1394,13 @@ namespace Application.{entityPlural}.Commands.UpdateBulk{entityName}
         private readonly IFileService _fileService;
         private readonly I{entityName}Repository {entityRepoName}Repository;
         {localizationFieldIRepo}
+        {injectCTORMany3}
 
         public {className}Handler(ILogger<{className}Handler> logger,
                                         IMapper mapper,
                                         IUnitOfWorkAsync unitOfWork,
                                         IFileService fileService,
-                                        I{entityName}Repository repository{localizationIRepo})
+                                        I{entityName}Repository repository{localizationIRepo}{injectCTORMany1})
         {{
             {entityRepoName}Repository = repository;
             _mapper=mapper;
@@ -1298,6 +1408,7 @@ namespace Application.{entityPlural}.Commands.UpdateBulk{entityName}
             _logger=logger;
             _fileService = fileService;
             {localizationInjectIRepo}
+            {injectCTORMany2}
         }}
     
         public async Task Handle({className} request, CancellationToken cancellationToken)
@@ -1322,6 +1433,7 @@ namespace Application.{entityPlural}.Commands.UpdateBulk{entityName}
                         {entityName} {lowerEntityName}ToAdd = _mapper.Map<{entityName}>({lowerEntityName});
                         {imageCode}
                         {videoCode}
+                        {relationManyToManyAddCode}
                         await _{lowerEntityName}Repository.AddAsync({lowerEntityName}ToAdd);
                         {localizationAddCode}
                         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -1351,6 +1463,7 @@ namespace Application.{entityPlural}.Commands.UpdateBulk{entityName}
                         {imageUpdateCode}
                         {videoUpdateCode}
                         {imageListUpdateCode}
+                        {relationManyToManyUpdateCode}
                         await _{lowerEntityName}Repository.UpdateAsync({lowerEntityName}ToUpdate);
                         {localizationUpdateCode}
                         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -1386,23 +1499,20 @@ namespace Application.{entityPlural}.Commands.UpdateBulk{entityName}
             StringBuilder injectCTOR1 = new($"ILogger<{className}> logger,I{entityName}Repository {char.ToLower(entityName[0]) + entityName.Substring(1)}Repository");
             foreach (var relation in relations)
             {
-                if (relation.Type == RelationType.OneToOneSelfJoin)
-                    continue;
-                injectCTOR1.Append($",I{relation.RelatedEntity}Repository {char.ToLower(relation.RelatedEntity[0]) + relation.RelatedEntity.Substring(1)}Repository");
+                if (relation.Type != RelationType.OneToMany || relation.Type != RelationType.OneToManyNullable || relation.Type != RelationType.OneToOneSelfJoin)
+                    injectCTOR1.Append($",I{relation.RelatedEntity}Repository {char.ToLower(relation.RelatedEntity[0]) + relation.RelatedEntity.Substring(1)}Repository");
             }
             StringBuilder injectCTOR2 = new StringBuilder($"\t\t\t_logger = logger;_{char.ToLower(entityName[0]) + entityName.Substring(1)}Repository = {char.ToLower(entityName[0]) + entityName.Substring(1)}Repository;");
             foreach (var relation in relations)
             {
-                if (relation.Type == RelationType.OneToOneSelfJoin)
-                    continue;
-                injectCTOR2.AppendLine($"_{char.ToLower(relation.RelatedEntity[0]) + relation.RelatedEntity.Substring(1)}Repository = {char.ToLower(relation.RelatedEntity[0]) + relation.RelatedEntity.Substring(1)}Repository;");
+                if (relation.Type != RelationType.OneToMany || relation.Type != RelationType.OneToManyNullable || relation.Type != RelationType.OneToOneSelfJoin)
+                    injectCTOR2.AppendLine($"_{char.ToLower(relation.RelatedEntity[0]) + relation.RelatedEntity.Substring(1)}Repository = {char.ToLower(relation.RelatedEntity[0]) + relation.RelatedEntity.Substring(1)}Repository;");
             }
             StringBuilder injectCTOR3 = new($"\t\tprivate readonly ILogger<{className}> _logger; private readonly I{entityName}Repository _{char.ToLower(entityName[0]) + entityName.Substring(1)}Repository;");
             foreach (var relation in relations)
             {
-                if (relation.Type == RelationType.OneToOneSelfJoin)
-                    continue;
-                injectCTOR3.AppendLine($"private readonly I{relation.RelatedEntity}Repository _{char.ToLower(relation.RelatedEntity[0]) + relation.RelatedEntity.Substring(1)}Repository;");
+                if (relation.Type != RelationType.OneToMany || relation.Type != RelationType.OneToManyNullable || relation.Type != RelationType.OneToOneSelfJoin)
+                    injectCTOR3.AppendLine($"private readonly I{relation.RelatedEntity}Repository _{char.ToLower(relation.RelatedEntity[0]) + relation.RelatedEntity.Substring(1)}Repository;");
             }
             StringBuilder rulesStore = new StringBuilder();
             foreach (var item in properties)
@@ -1957,7 +2067,7 @@ namespace Application.{entityPlural}.Commands.DeleteBulk{entityName}
             GenerateGetByIdQueryFile(entityName, entityPlural, folderPath, hasLocalization);
             GenerateGetByIdValidator(entityName, entityPlural, folderPath);
         }
-        public static void GenerateGetByIdDto(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, List<Relation> relations)
+        static void GenerateGetByIdDto(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, List<Relation> relations)
         {
             string fileName = $"Get{entityName}Dto.cs";
             string filePath = Path.Combine(path, fileName);
@@ -1979,6 +2089,16 @@ namespace Application.{entityPlural}.Commands.DeleteBulk{entityName}
 
                 }
             }
+            string? relationManyMapp = null;
+            foreach(var rel in relations)
+            {
+                if(rel.Type == RelationType.ManyToMany)
+                {
+                    var relatedEntityName = relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity;
+                    string? relatedEntityManyPlural = relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.EndsWith("y") ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[..^1] + "ies" : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity + "s";
+                    relationManyMapp = $".ForMember(dest => dest.{relatedEntityName}Ids, opt => opt.MapFrom(src => src.{relatedEntityManyPlural}.Select(x => x.Id)))";
+                }
+            }
 
             string content = $@"using Domain.Entities;
 using Application.Common.Models.AssistantModels;
@@ -1994,6 +2114,7 @@ namespace Application.{entityPlural}.Queries.Get{entityName}Query
             {{
                 CreateMap<{entityName}, Get{entityName}Dto>()
                 {mapperEnum}
+                {relationManyMapp}
                 ;
             }}
         }}
@@ -2001,7 +2122,7 @@ namespace Application.{entityPlural}.Queries.Get{entityName}Query
 }}";
             File.WriteAllText(filePath, content);
         }
-        public static void GenerateGetByIdQueryFile(string entityName, string entityPlural, string path, bool hasLocalization)
+        static void GenerateGetByIdQueryFile(string entityName, string entityPlural, string path, bool hasLocalization)
         {
             string fileName = $"Get{entityName}Query.cs";
             string filePath = Path.Combine(path, fileName);
@@ -2056,7 +2177,7 @@ namespace Application.{entityPlural}.Queries.Get{entityName}Query
 }}";
             File.WriteAllText(filePath, content);
         }
-        public static void GenerateGetByIdValidator(string entityName, string entityPlural, string path)
+        static void GenerateGetByIdValidator(string entityName, string entityPlural, string path)
         {
             string fileName = $"Get{entityName}QueryValidator.cs";
             string filePath = Path.Combine(path, fileName);
@@ -2109,7 +2230,7 @@ namespace Application.{entityPlural}.Queries.Get{entityName}Query
             GenerateGetWithLocalizationQueryFile(entityName, entityPlural, folderPath);
             GenerateGetWithLocalizationValidator(entityName, entityPlural, folderPath);
         }
-        public static void GenerateGetWithLocalizationDto(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, List<Relation> relations)
+        static void GenerateGetWithLocalizationDto(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, List<Relation> relations)
         {
             string fileName = $"Get{entityName}WithLocalizationDto.cs";
             string filePath = Path.Combine(path, fileName);
@@ -2131,6 +2252,16 @@ namespace Application.{entityPlural}.Queries.Get{entityName}Query
 
                 }
             }
+            string? relationManyMapp = null;
+            foreach (var rel in relations)
+            {
+                if (rel.Type == RelationType.ManyToMany)
+                {
+                    var relatedEntityName = relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity;
+                    string? relatedEntityManyPlural = relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.EndsWith("y") ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[..^1] + "ies" : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity + "s";
+                    relationManyMapp = $".ForMember(dest => dest.{relatedEntityName}Ids, opt => opt.MapFrom(src => src.{relatedEntityManyPlural}.Select(x => x.Id)))";
+                }
+            }
             string content = $@"using Domain.Entities;
 using Application.Common.Models.AssistantModels;
 using Domain.Enums;
@@ -2147,6 +2278,7 @@ namespace Application.{entityPlural}.Queries.Get{entityName}WithLocalization
             {{
                 CreateMap<{entityName}, Get{entityName}WithLocalizationDto>()
                 {mapperEnum}
+                {relationManyMapp}
                 ;
             }}
         }}
@@ -2155,7 +2287,7 @@ namespace Application.{entityPlural}.Queries.Get{entityName}WithLocalization
             File.WriteAllText(filePath, content);
 
         }
-        public static void GenerateGetWithLocalizationQueryFile(string entityName, string entityPlural, string path)
+        static void GenerateGetWithLocalizationQueryFile(string entityName, string entityPlural, string path)
         {
             string fileName = $"Get{entityName}WithLocalizationQuery.cs";
             string filePath = Path.Combine(path, fileName);
@@ -2178,7 +2310,7 @@ namespace Application.{entityPlural}.Queries.Get{entityName}WithLocalization
     {{
         private readonly ILogger<Get{entityName}WithLocalizationQueryHandler> _logger;
         private readonly IMapper _mapper;
-        private readonly I{entityName}Repository _{entityRepoName}Repository;
+        private readonly I{entityName}Repository {entityRepoName}Repository;
 
         public Get{entityName}WithLocalizationQueryHandler(ILogger<Get{entityName}WithLocalizationQueryHandler> logger,
                                            IMapper mapper,
@@ -2186,12 +2318,12 @@ namespace Application.{entityPlural}.Queries.Get{entityName}WithLocalization
         {{
             _logger = logger;
             _mapper = mapper;
-            _{entityRepoName}Repository = {lowerEntityName}Repository;
+            {entityRepoName}Repository = {lowerEntityName}Repository;
         }}
 
         public async Task<Get{entityName}WithLocalizationDto> Handle(Get{entityName}WithLocalizationQuery request, CancellationToken cancellationToken)
         {{
-            var {entityName.ToLower()} = await _{entityRepoName}Repository.GetByIdAsync(request.{entityName}Id);//TODO:AfterGenerateCode: add method to repository to get object include Localization
+            var {entityName.ToLower()} = await {entityRepoName}Repository.GetByIdAsync(request.{entityName}Id);//TODO:AfterGenerateCode: add method to repository to get object include Localization
             var result = _mapper.Map<Get{entityName}WithLocalizationDto>({entityName.ToLower()});
 
             return result;
@@ -2201,7 +2333,7 @@ namespace Application.{entityPlural}.Queries.Get{entityName}WithLocalization
             File.WriteAllText(filePath, content);
         }
 
-        public static void GenerateGetWithLocalizationValidator(string entityName, string entityPlural, string path)
+        static void GenerateGetWithLocalizationValidator(string entityName, string entityPlural, string path)
         {
             string fileName = $"Get{entityName}WithLocalizationQueryValidator.cs";
             string filePath = Path.Combine(path, fileName);
@@ -2247,22 +2379,51 @@ namespace Application.{entityPlural}.Queries.Get{entityName}WithLocalization
             File.WriteAllText(filePath, content);
         }
         ////
-        public static void GenerateGetWithPaginationQuery(string entityName, string entityPlural, string path, bool hasLocalization, List<Relation> relations)
+        public static void GenerateGetWithPaginationQuery(string entityName, string entityPlural, string path, bool hasLocalization, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, List<Relation> relations)
         {
             var folderPath = Path.Combine(path, $"Get{entityPlural}WithPagination");
             Directory.CreateDirectory(folderPath);
 
-            GenerateGetWithPaginationDto(entityName, entityPlural, folderPath);
+            GenerateGetWithPaginationDto(entityName, entityPlural, folderPath, properties, enumProps, relations);
             GenerateGetWithPaginationQueryFile(entityName, entityPlural, folderPath, hasLocalization, relations);
             GenerateGetWithPaginationValidator(entityName, entityPlural, folderPath);
         }
-        public static void GenerateGetWithPaginationDto(string entityName, string entityPlural, string path)
+        static void GenerateGetWithPaginationDto(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, List<Relation> relations)
         {
             string fileName = $"Get{entityPlural}WithPaginationDto.cs";
             string filePath = Path.Combine(path, fileName);
 
+            StringBuilder mapperEnum = new StringBuilder();
+            foreach (var prop in properties)
+            {
+                if (enumProps.Any(p => p.prop == prop.Name))
+                {
+                    if (prop.Validation != null && prop.Validation.Required)
+                    {
+                        mapperEnum.Append($".ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => ({entityName}{prop.Name})src.{prop.Name}))");
+                        mapperEnum.AppendLine();
+                    }
+                    else
+                    {
+                        mapperEnum.Append($".ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => ({entityName}{prop.Name}?)src.{prop.Name}))");
+                        mapperEnum.AppendLine();
+                    }
+
+                }
+            }
+            string? relationManyMapp = null;
+            foreach (var rel in relations)
+            {
+                if (rel.Type == RelationType.ManyToMany)
+                {
+                    var relatedEntityName = relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity;
+                    string? relatedEntityManyPlural = relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.EndsWith("y") ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[..^1] + "ies" : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity + "s";
+                    relationManyMapp = $".ForMember(dest => dest.{relatedEntityName}Ids, opt => opt.MapFrom(src => src.{relatedEntityManyPlural}.Select(x => x.Id)))";
+                }
+            }
             string content = $@"
 using Domain.Entities;
+using Domain.Enums;
 
 namespace Application.{entityPlural}.Queries.Get{entityPlural}WithPagination
 {{
@@ -2272,14 +2433,17 @@ namespace Application.{entityPlural}.Queries.Get{entityPlural}WithPagination
         {{ //TODO:AfterGenerateCode: add properties of related entities and update mapper 
             public Mapping()
             {{
-                CreateMap<{entityName}, Get{entityPlural}WithPaginationDto>();
+                CreateMap<{entityName}, Get{entityPlural}WithPaginationDto>()
+                {mapperEnum}
+                {relationManyMapp}
+                ;
             }}
         }}
     }}
 }}";
             File.WriteAllText(filePath, content);
         }
-        public static void GenerateGetWithPaginationQueryFile(string entityName, string entityPlural, string path, bool hasLocalization, List<Relation> relations)
+        static void GenerateGetWithPaginationQueryFile(string entityName, string entityPlural, string path, bool hasLocalization, List<Relation> relations)
         {
             string fileName = $"Get{entityPlural}WithPaginationQuery.cs";
             string filePath = Path.Combine(path, fileName);
@@ -2297,10 +2461,21 @@ namespace Application.{entityPlural}.Queries.Get{entityPlural}WithPagination
             foreach (var relation in relations)
             {
                 if (relation.Type == RelationType.OneToOneSelfJoin || relation.Type == RelationType.OneToOne || relation.Type == RelationType.OneToOneNullable ||
-                    relation.Type == RelationType.ManyToOne || relation.Type == RelationType.ManyToOneNullable)
+                    relation.Type == RelationType.ManyToOne || relation.Type == RelationType.ManyToOneNullable || relation.Type == RelationType.ManyToMany)
                 {
                     filtersProps.Append($"public Guid? {relation.RelatedEntity}Id {{get; set; }}\n");
-                    filtersList.Add($"{relation.RelatedEntity}Id");
+                    if (relation.Type == RelationType.ManyToMany)
+                    {
+                        string? relatedEntityManyPlural = relation.RelatedEntity.EndsWith("y") ? relation.RelatedEntity[..^1] + "ies" : relation.RelatedEntity + "s";
+                        filters.Append($@"
+            if (request.{relation.RelatedEntity}Id != null)
+                query = query
+                    .Where(y => y.{relatedEntityManyPlural}.Any(x => x.Id == request.{relation.RelatedEntity}Id));
+");
+                    }
+                    else
+                        filtersList.Add($"{relation.RelatedEntity}Id");
+
                 }
             }
             foreach (var prop in filtersList)
@@ -2376,7 +2551,7 @@ namespace Application.{entityPlural}.Queries.Get{entityPlural}WithPagination
 }}";
             File.WriteAllText(filePath, content);
         }
-        public static void GenerateGetWithPaginationValidator(string entityName, string entityPlural, string path)
+        static void GenerateGetWithPaginationValidator(string entityName, string entityPlural, string path)
         {
             string fileName = $"Get{entityPlural}WithPaginationQueryValidator.cs";
             string filePath = Path.Combine(path, fileName);
@@ -2431,6 +2606,9 @@ namespace Application.{entityPlural}.Queries.Get{entityPlural}WithPagination
                         break;
                     case RelationType.ManyToOneNullable:
                         relationsProps.Add($"\t\tpublic Guid? {relation.RelatedEntity}Id {{  get; set; }}\n");
+                        break;
+                    case RelationType.ManyToMany:
+                        relationsProps.Add($"\t\tpublic List<Guid> {relation.RelatedEntity}Ids {{  get; set; }}\n");
                         break;
                     default:
                         break;
@@ -2537,7 +2715,7 @@ namespace Application.{entityPlural}.Queries
             }
         }
 
-        private static string? GeneratePropertyRules((string Type, string Name, PropertyValidation? Validation) property)
+        static string? GeneratePropertyRules((string Type, string Name, PropertyValidation? Validation) property)
         {
             var rules = new StringBuilder();
             if (property.Validation == null)
@@ -2624,7 +2802,7 @@ namespace Application.{entityPlural}.Queries
 
             return rules.ToString();
         }
-        private static string? GenerateBulkPropertyRules(List<(string Type, string Name, PropertyValidation Validation)> properties)
+        static string? GenerateBulkPropertyRules(List<(string Type, string Name, PropertyValidation Validation)> properties)
         {
             var rules = new StringBuilder();
             foreach (var property in properties)
@@ -2795,7 +2973,7 @@ namespace Application.{entityPlural}.Queries
 
 
         }
-        private static string? GenerateBulkPropertyMethods(List<(string Type, string Name, PropertyValidation Validation)> properties, string entityName, string entityPlural, string command)
+        static string? GenerateBulkPropertyMethods(List<(string Type, string Name, PropertyValidation Validation)> properties, string entityName, string entityPlural, string command)
         {
             var methods = new StringBuilder();
             foreach (var property in properties)
@@ -3016,7 +3194,7 @@ namespace Application.{entityPlural}.Queries
             return methods.ToString();
         }
 
-        private static string GenerateRelationRules(List<Relation> relations)
+        static string GenerateRelationRules(List<Relation> relations)
         {
             var rules = new StringBuilder();
             foreach (var relation in relations)
@@ -3052,6 +3230,16 @@ namespace Application.{entityPlural}.Queries
                    }}
                 }});";
 
+                string ruleManyToMany = $@" 
+            RuleFor(l => l.{relation.RelatedEntity}Ids)
+                .CustomAsync(async (name, context, cancellationToken) =>
+                {{
+                   if (!await IsMany{relation.RelatedEntity}Existed(context.InstanceToValidate))
+                   {{
+                       context.AddFailure("" Some {relation.RelatedEntity} are not found"");
+                   }}
+                }});";
+
                 switch (relation.Type)
                 {
                     case RelationType.OneToOneSelfJoin:
@@ -3084,6 +3272,10 @@ namespace Application.{entityPlural}.Queries
                         rules.AppendLine(ruleNullable);
                         rules.AppendLine();
                         break;
+                    case RelationType.ManyToMany:
+                        rules.AppendLine(ruleManyToMany);
+                        rules.AppendLine();
+                        break;
                     default:
                         break;
                 }
@@ -3091,7 +3283,7 @@ namespace Application.{entityPlural}.Queries
             return rules.ToString();
         }
 
-        private static string GenerateRelationMethods(List<Relation> relations, string commandName)
+        static string GenerateRelationMethods(List<Relation> relations, string commandName)
         {
             var methods = new StringBuilder();
             foreach (var relation in relations)
@@ -3142,6 +3334,19 @@ namespace Application.{entityPlural}.Queries
             return true;
         }}";
 
+                string methodManyToMany = $@" 
+        public async Task<bool> IsMany{relation.RelatedEntity}Existed({commandName} command)
+        {{
+            foreach (var id in command.{relation.RelatedEntity}Ids)
+            {{
+                var res = await {relatedEntityRepoName}.GetAll().AnyAsync(x => x.Id == id);
+                if(!res)
+                    return false;
+            }}
+            return true;
+        }}";
+
+
                 switch (relation.Type)
                 {
                     case RelationType.OneToOneSelfJoin:
@@ -3172,6 +3377,10 @@ namespace Application.{entityPlural}.Queries
 
                     case RelationType.ManyToOneNullable:
                         methods.AppendLine(methodNullable);
+                        methods.AppendLine();
+                        break;
+                    case RelationType.ManyToMany:
+                        methods.AppendLine(methodManyToMany);
                         methods.AppendLine();
                         break;
                     default:
@@ -3283,6 +3492,10 @@ namespace Application.{entityPlural}.Queries
 
                     case RelationType.ManyToOneNullable:
                         prop = $"\t\tpublic Guid? {relation.RelatedEntity}Id {{ get; set; }}";
+                        relationPropsList.Add(prop);
+                        break;
+                    case RelationType.ManyToMany:
+                        prop = $"\t\tpublic List<Guid> {relation.RelatedEntity}Ids {{ get; set; }}";
                         relationPropsList.Add(prop);
                         break;
                     default:
@@ -3424,6 +3637,10 @@ namespace Application.{entityPlural}.Commands.CreateBulk{entityName}
 
                     case RelationType.ManyToOneNullable:
                         prop = $"\t\tpublic Guid? {relation.RelatedEntity}Id {{ get; set; }}";
+                        relationPropsList.Add(prop);
+                        break;
+                    case RelationType.ManyToMany:
+                        prop = $"\t\tpublic List<Guid> {relation.RelatedEntity}Ids {{ get; set; }}";
                         relationPropsList.Add(prop);
                         break;
                     default:
