@@ -15,7 +15,9 @@ namespace CodeGeneratorForm
     public partial class RelationForm : Form
     {
         public Relation Relation { get; set; } = new Relation();
+
         public bool IsSaved { get; set; } = false;
+
         private string _projectPath;
 
         public RelationForm(string projectPath)
@@ -50,6 +52,8 @@ namespace CodeGeneratorForm
             {
                 Relation.Type = (RelationType)(cmboRel.SelectedIndex);
                 Relation.RelatedEntity = cmboRelEnt.SelectedItem.ToString();
+                Relation.DisplayedProperty = cmboProp.Text;
+                Relation.HiddenInTable = chkHideRelInTable.Checked;
                 IsSaved = true;
                 this.Close();
             }
@@ -65,10 +69,10 @@ namespace CodeGeneratorForm
         private void RelationForm_Load(object sender, EventArgs e)
         {
             LoadExistingEntities();
-            
-            if(Relation != null)
+
+            if (Relation != null)
             {
-                if(Relation.RelatedEntity != null)
+                if (Relation.RelatedEntity != null)
                     cmboRelEnt.SelectedItem = Relation.RelatedEntity;
                 switch (Relation.Type)
                 {
@@ -99,6 +103,37 @@ namespace CodeGeneratorForm
                     default:
                         break;
                 }
+            }
+        }
+
+        private void cmboRelEnt_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            chkHideRelInTable.Checked = false;
+            var metadata = MetadataManager.LoadMetadata(_projectPath);
+            cmboProp.Items.Clear();
+            cmboProp.Text = string.Empty;
+            if (metadata != null && metadata.Entities != null)
+            {
+                var x = metadata.Entities.First(e => e.Name == cmboRelEnt.Text);
+                cmboProp.Items.AddRange(x.Properties.Select(p => p.Name).ToArray());
+            }
+            else
+                cmboProp.Items.Clear();
+        }
+
+        private void cmboRel_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (cmboRel.SelectedIndex == 0)
+            {
+                lblSelfProp.Visible = true;
+                cmboSelfProps.Visible = true;
+                cmboSelfProps.Items.Clear();
+            }
+            else
+            {
+                lblSelfProp.Visible = false;
+                cmboSelfProps.Visible = false;
+                cmboSelfProps.Items.Clear();
             }
         }
     }

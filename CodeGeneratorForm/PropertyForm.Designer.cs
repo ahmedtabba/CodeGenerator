@@ -48,6 +48,8 @@
             btnSave = new Button();
             label3 = new Label();
             groupBox1 = new GroupBox();
+            chkHasColumn = new CheckBox();
+            chkHiddenColumn = new CheckBox();
             groupBox1.SuspendLayout();
             SuspendLayout();
             // 
@@ -245,11 +247,36 @@
             groupBox1.TabStop = false;
             groupBox1.Text = "Length / Rang";
             // 
+            // chkHasColumn
+            // 
+            chkHasColumn.AutoSize = true;
+            chkHasColumn.Checked = true;
+            chkHasColumn.CheckState = CheckState.Checked;
+            chkHasColumn.Location = new Point(346, 12);
+            chkHasColumn.Name = "chkHasColumn";
+            chkHasColumn.Size = new Size(144, 19);
+            chkHasColumn.TabIndex = 38;
+            chkHasColumn.Text = "GenerateTableColumn";
+            chkHasColumn.UseVisualStyleBackColor = true;
+            chkHasColumn.CheckedChanged += chkHasColumn_CheckedChanged;
+            // 
+            // chkHiddenColumn
+            // 
+            chkHiddenColumn.AutoSize = true;
+            chkHiddenColumn.Location = new Point(496, 12);
+            chkHiddenColumn.Name = "chkHiddenColumn";
+            chkHiddenColumn.Size = new Size(95, 19);
+            chkHiddenColumn.TabIndex = 39;
+            chkHiddenColumn.Text = "Hide in Table";
+            chkHiddenColumn.UseVisualStyleBackColor = true;
+            // 
             // PropertyForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(793, 341);
+            Controls.Add(chkHiddenColumn);
+            Controls.Add(chkHasColumn);
             Controls.Add(groupBox1);
             Controls.Add(label3);
             Controls.Add(btnSave);
@@ -293,5 +320,7 @@
         private Button btnSave;
         private Label label3;
         private GroupBox groupBox1;
+        private CheckBox chkHasColumn;
+        private CheckBox chkHiddenColumn;
     }
 }

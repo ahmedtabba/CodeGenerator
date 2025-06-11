@@ -10,7 +10,7 @@ namespace Frontend.VueJsHelper
 {
     public class VueJsHelper
     {
-        public static string VueJsSolutionPath = "C:\\Users\\HP\\source\\repos\\VueJsTemplate\\src"; // ضع المسار الجذري لمشروع Vue هنا
+        public static string VueJsSolutionPath = "F:\\Boulevard\\baseFrontTemplateV0\\baseFrontTemplateV0\\src"; // ضع المسار الجذري لمشروع Vue هنا
 
         public static void GenerateStoreFile(string entityName, SharedClasses.Properties properties,List<Relation> relations,string srcDir)
         {
@@ -89,7 +89,7 @@ namespace Frontend.VueJsHelper
             var content = $@"
 import {{ SAVE, SAVE_FAIL, SAVE_ITEM, VALIDATE_FORM }} from '@/utils/StoreConstant';
 import {{generalActions,generalState}} from './GeneralStore';
-import I18n from '@config/i18n';
+import I18n from '@/config/i18n';
 import {{defineStore}} from 'pinia';
 import * as generalBackend from '@/backend/Backend';
 import {{{capitalEntityPlural}_ROUTE as PAGE_ROUTE}} from '@/utils/Constants';
@@ -119,6 +119,7 @@ export const {storeName} = defineStore('{entityLower}', {{
         async [SAVE_ITEM]() {{
             this[SAVE]();
             const item = {{
+            id: this.id,
 {constItemBuilder}
             }};
             // validation
@@ -294,29 +295,13 @@ export const {storeName} = defineStore('{entityLower}', {{
 
             string router = $@"
                 {{
-                    path: '/{entityPluralLower}',
-                    name: '{entityPlural}',
-                    component: {{
-                        render() {{
-                            return h(resolveComponent('router-view'));
-                        }}
-                    }},
+                    path: '{entityPluralLower}',
+                    component: {{ render: () => h(resolveComponent('router-view')) }},
                     children: [
-                        {{
-                            path: '',
-                            meta: {{
-                                label: '{entityPlural}'
-                            }},
-                            component: () => import('@/views/{entityLower}/{entityPlural}.vue')
-                        }},
-                        {{
-                            path: ':id',
-                            name: '{entityName} Details',
-                            component: () => import('@/views/{entityLower}/{entityName}.vue')
-                        }}
+                        {{ path: '', name: '{entityPlural}', component: () => import('@/views/{entityLower}/{entityPlural}.vue') }},
+                        {{ path: ':id', name: '{entityName} Details', component: () => import('@/views/{entityLower}/{entityName}.vue') }}
                     ]
-                }},
-" +
+                }}," +
                 $"\n                //Add router Here";
 
             var lines = File.ReadAllLines(routerIndexPath).ToList();
@@ -326,6 +311,30 @@ export const {storeName} = defineStore('{entityLower}', {{
             {
                 lines[index] = router;
                 File.WriteAllLines(routerIndexPath, lines);
+            }
+        }
+
+        public static void UpdateAppMenu(string entityName, string srcDir)
+        {
+            var entityLower = char.ToLower(entityName[0]) + entityName.Substring(1);
+            string entityPlural = entityName.EndsWith("y") ? entityName[..^1] + "ies" : entityName + "s";
+            string capitalEntityPlural = entityPlural.ToUpper();
+            string entityPluralLower = char.ToLower(entityPlural[0]) + entityPlural.Substring(1);
+            string appMenuPath = Path.Combine(srcDir, "layout", "AppMenu.vue");
+            if (!File.Exists(appMenuPath))
+            {
+                return;
+            }
+
+            string item = $"\t\t\t{{ label: t('title.{entityPluralLower}'), icon: 'pi pi-fw pi-star-fill', to: '/{entityPluralLower}' }}," + $"\n            //Add Menu Here";
+
+            var lines = File.ReadAllLines(appMenuPath).ToList();
+            var index = lines.FindIndex(line => line.Contains("//Add Menu Here"));
+
+            if (index >= 0)
+            {
+                lines[index] = item;
+                File.WriteAllLines(appMenuPath, lines);
             }
         }
 
@@ -357,7 +366,7 @@ const filter{entityName}{enm.prop}Options = [
             }
 
 
-            List<string> filterSectionSortFields = new List<string>();
+            //List<string> filterSectionSortFields = new List<string>();
             List<string> filterSectionGlobalFields = new List<string>();
             List<string> filterSectionInitFilters = new List<string>();
             foreach (var prop in properties)
@@ -366,48 +375,48 @@ const filter{entityName}{enm.prop}Options = [
                 if (typeWithoutNullable == "string")
                 {
                     var propLower = char.ToLower(prop.Name[0]) + prop.Name.Substring(1);
-                    string st = $"    {{field: '{propLower}', order: 0 }},";
-                    filterSectionSortFields.Add(st);
+                    //string st = $"    {{field: '{propLower}', order: 0 }},";
+                    //filterSectionSortFields.Add(st);
                     filterSectionGlobalFields.Add($"'{propLower}'");
                     filterSectionInitFilters.Add($"    {propLower}: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: FilterMatchMode.STARTS_WITH }}] }},");
                 }
                 if (typeWithoutNullable == "bool")
                 {
                     var propLower = char.ToLower(prop.Name[0]) + prop.Name.Substring(1);
-                    string st = $"    {{field: '{propLower}', order: 0 }},";
-                    filterSectionSortFields.Add(st);
+                    //string st = $"    {{field: '{propLower}', order: 0 }},";
+                    //filterSectionSortFields.Add(st);
                     filterSectionGlobalFields.Add($"'{propLower}'");
                     filterSectionInitFilters.Add($"    {propLower}: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: FilterMatchMode.EQUALS }}] }},");
                 }
                 if (typeWithoutNullable == "double" || typeWithoutNullable == "decimal" || typeWithoutNullable == "float")
                 {
                     var propLower = char.ToLower(prop.Name[0]) + prop.Name.Substring(1);
-                    string st = $"    {{field: '{propLower}', order: 0 }},";
-                    filterSectionSortFields.Add(st);
+                    //string st = $"    {{field: '{propLower}', order: 0 }},";
+                    //filterSectionSortFields.Add(st);
                     filterSectionGlobalFields.Add($"'{propLower}'");
                     filterSectionInitFilters.Add($"    {propLower}: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: FilterMatchMode.EQUALS }}] }},");
                 }
                 if (typeWithoutNullable == "int" && enumProps.Any(ep => ep.prop == prop.Name))//enum case
                 {
                     var propLower = char.ToLower(prop.Name[0]) + prop.Name.Substring(1);
-                    string st = $"    {{field: '{propLower}', order: 0 }},";
-                    filterSectionSortFields.Add(st);
+                    //string st = $"    {{field: '{propLower}', order: 0 }},";
+                    //filterSectionSortFields.Add(st);
                     filterSectionGlobalFields.Add($"'{propLower}'");
                     filterSectionInitFilters.Add($"    {propLower}: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: FilterMatchMode.EQUALS }}] }},");
                 }
                 if (typeWithoutNullable == "int" && !enumProps.Any(ep => ep.prop == prop.Name))//int property case
                 {
                     var propLower = char.ToLower(prop.Name[0]) + prop.Name.Substring(1);
-                    string st = $"    {{field: '{propLower}', order: 0 }},";
-                    filterSectionSortFields.Add(st);
+                    //string st = $"    {{field: '{propLower}', order: 0 }},";
+                    //filterSectionSortFields.Add(st);
                     filterSectionGlobalFields.Add($"'{propLower}'");
                     filterSectionInitFilters.Add($"    {propLower}: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: FilterMatchMode.EQUALS }}] }},");
                 }
                 if (typeWithoutNullable.Contains("Date") || typeWithoutNullable.Contains("Time"))
                 {
                     var propLower = char.ToLower(prop.Name[0]) + prop.Name.Substring(1);
-                    string st = $"    {{field: '{propLower}', order: 0 }},";
-                    filterSectionSortFields.Add(st);
+                    //string st = $"    {{field: '{propLower}', order: 0 }},";
+                    //filterSectionSortFields.Add(st);
                     filterSectionGlobalFields.Add($"'{propLower}'");
                     filterSectionInitFilters.Add($"    {propLower}: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: FilterMatchMode.DATE_IS }}] }},");
                 }
@@ -419,16 +428,16 @@ const filter{entityName}{enm.prop}Options = [
                 if (rel.Type == RelationType.OneToOneSelfJoin || rel.Type == RelationType.ManyToOne || rel.Type == RelationType.ManyToOneNullable
                       || rel.Type == RelationType.OneToOne || rel.Type == RelationType.OneToOneNullable || rel.Type == RelationType.ManyToMany)
                 {
-                    var propLower = rel.Type != RelationType.OneToOneSelfJoin ? char.ToLower(rel.RelatedEntity[0]) + rel.RelatedEntity.Substring(1) + "Id"
-                        : char.ToLower(rel.RelatedEntity[0]) + rel.RelatedEntity.Substring(1) + "ParentId";
-                    string st = $"    {{field: '{propLower}', order: 0 }},";
-                    filterSectionSortFields.Add(st);
+                    var propLower = rel.Type != RelationType.OneToOneSelfJoin ? char.ToLower(rel.RelatedEntity[0]) + rel.RelatedEntity.Substring(1) + $"{rel.DisplayedProperty}"
+                        : char.ToLower(rel.RelatedEntity[0]) + rel.RelatedEntity.Substring(1) + $"Parent{rel.DisplayedProperty}";
+                    //string st = $"    {{field: '{propLower}', order: 0 }},";
+                    //filterSectionSortFields.Add(st);
                     filterSectionGlobalFields.Add($"'{propLower}'");
                     filterSectionInitFilters.Add($"    {propLower}: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: FilterMatchMode.EQUALS }}] }},");
                     string entityRelatedPlural = rel.RelatedEntity.EndsWith("y") ? rel.RelatedEntity[..^1] + "ies" : rel.RelatedEntity + "s";
                     string entityRelatedPluralLower = char.ToLower(entityRelatedPlural[0]) + entityRelatedPlural.Substring(1);
                     relationImports.AppendLine($"import {{ use{rel.RelatedEntity}Store }} from '@/store/{rel.RelatedEntity}Store';");
-                    relationConsts.AppendLine($"const {{ items: {entityRelatedPluralLower}, loading: loading{entityRelatedPlural} }} = useList(use{rel.RelatedEntity}Store(), '', {{}});");
+                    relationConsts.AppendLine($"const {{ items: {entityRelatedPluralLower}, loading: loading{entityRelatedPlural}, search: search{entityRelatedPlural} }} = useList(use{rel.RelatedEntity}Store(), '', {{}});");
                 }
             }
 
@@ -453,9 +462,6 @@ import {{ FilterMatchMode, FilterOperator }} from '@primevue/core/api';
 {relationImports}
 const {{ t, formattedDate, dataTableDateFormatter }} = useList(useStore(), PAGE_ROUTE, {{ autoLoad: false }});
 {enumFilters.ToString().TrimEnd()}
-const sortFields = reactive([
-{string.Join(Environment.NewLine, filterSectionSortFields)}
-]);
 
 const globalFields = ref([{string.Join(",", filterSectionGlobalFields)}]);
 const filters = ref();
@@ -470,7 +476,7 @@ initFilters();
 
 </script>
 <template>
-    <ListTemplate :pageRoute=""PAGE_ROUTE"" :use-store=""useStore"" :sort-fields=""sortFields"" title=""title.{entityPluralLower}"" 
+    <ListTemplate :pageRoute=""PAGE_ROUTE"" :use-store=""useStore""  title=""title.{entityPluralLower}"" 
                 :filters=""filters""
                 :init-filters=""initFilters""
                 :global-filter-fields=""globalFields"">
@@ -505,7 +511,7 @@ initFilters();
             if (typeWithoutNullable == "int" && enumProps.Any(ep => ep.prop == prop.Name))//enum case
             {
                 return $@"
-            <Column field=""{propLower}"" :header=""$t('field.{propLower}')"" :show-add-button=""false"" :show-filter-operator=""false"" :sortable=""true"" >
+            <Column field=""{propLower}"" :header=""$t('field.{propLower}')"" :show-add-button=""false"" :show-filter-match-modes=""false"" :show-filter-operator=""false"" :sortable=""true"" >
                 <template #body=""{{ data }}"">
                     {{{{ data.{propLower} }}}}
                 </template>
@@ -522,7 +528,7 @@ initFilters();
                         <div class=""flex justify-center"">{{{{ formattedDate(data.{propLower}) }}}}</div>
                     </template>
                     <template #filter=""{{ filterModel }}"">
-                        <DatePicker v-model=""filterModel.value"" @update:model-value=""dataTableDateFormatter(filterModel)"" />
+                        <DatePicker v-model=""filterModel.value"" @update:model-value=""dataTableDateFormatter(filterModel)"" dateFormat=""dd/mm/yy"" placeholder=""dd/mm/yyyy""/>
                     </template>
                 </Column>";
             }
@@ -530,7 +536,7 @@ initFilters();
             {
                 return $@"
             <Column field=""{propLower}"" :header=""$t('field.{propLower}')"" :show-add-button=""false""
-                    :showFilterMatchModes=""false"" :sortable=""true"" >
+                    :show-filter-match-modes=""false"" :show-filter-operator=""false"" :sortable=""true"" >
                 <template #body=""{{ data }}"">
                     <i class=""pi""
                        :class=""{{ 'pi-check-circle text-green-500 ': data.{propLower}, 'pi-times-circle text-red-500': !data.{propLower} }}""></i>
@@ -570,15 +576,16 @@ initFilters();
                         string entityRelatedPlural = rel.RelatedEntity.EndsWith("y") ? rel.RelatedEntity[..^1] + "ies" : rel.RelatedEntity + "s";
                         string entityRelatedPluralLower = char.ToLower(entityRelatedPlural[0]) + entityRelatedPlural.Substring(1);
                         var lowerRelatedEntity = char.ToLower(rel.RelatedEntity[0]) + rel.RelatedEntity.Substring(1);
-                        var propLower = rel.Type != RelationType.OneToOneSelfJoin ? lowerRelatedEntity + "Id"
-                            : lowerRelatedEntity + "ParentId";
+                        var displayedProp = char.ToLower(rel.DisplayedProperty[0]) + rel.DisplayedProperty.Substring(1);
+                        var propLower = rel.Type != RelationType.OneToOneSelfJoin ? lowerRelatedEntity + $"{rel.DisplayedProperty}"
+                            : lowerRelatedEntity + $"Parent{rel.DisplayedProperty}";
                         sb.AppendLine($@"
                 <Column field=""{propLower}"" :header=""$t('field.{propLower}')"" :show-add-button=""false"" :show-filter-match-modes=""false"" :show-filter-operator=""false"" :sortable=""true"">
                     <template #body=""{{ data }}"">
                         {{{{ data.{propLower} }}}}
                     </template>
                     <template #filter=""{{ filterModel }}"">
-                        <Select v-model=""filterModel.value"" :options=""{entityRelatedPluralLower}"" :loading=""loading{entityRelatedPlural}"" option-value=""id"" option-label=""id"" :placeholder=""$t('field.select')""></Select>
+                        <Select v-model=""filterModel.value"" filter  @filter=""(e) => search{entityRelatedPlural}(e.value)"" :options=""{entityRelatedPluralLower}"" :loading=""loading{entityRelatedPlural}"" option-value=""{displayedProp}"" option-label=""{displayedProp}"" :placeholder=""$t('field.select')""></Select>
                     </template>
                 </Column>");
                     }
@@ -586,16 +593,18 @@ initFilters();
                     {
                         string entityRelatedPlural = rel.RelatedEntity.EndsWith("y") ? rel.RelatedEntity[..^1] + "ies" : rel.RelatedEntity + "s";
                         string entityRelatedPluralLower = char.ToLower(entityRelatedPlural[0]) + entityRelatedPlural.Substring(1);
-                        var lowerRelatedEntity = char.ToLower(rel.RelatedEntity[0]) + rel.RelatedEntity.Substring(1) + "Ids";
+                        var lowerRelatedEntity = char.ToLower(rel.RelatedEntity[0]) + rel.RelatedEntity.Substring(1) + $"{rel.DisplayedProperty}";
+                        string displayedPropPlural = rel.DisplayedProperty.EndsWith("y") ? rel.DisplayedProperty[..^1] + "ies" : rel.DisplayedProperty + "s";
+                        var displayedProp = char.ToLower(rel.DisplayedProperty[0]) + rel.DisplayedProperty.Substring(1);
                         sb.AppendLine($@"
-                <Column field=""{lowerRelatedEntity}Ids"" :header=""$t('field.{lowerRelatedEntity}Ids')"" :show-add-button=""false"" :show-filter-match-modes=""false"" :show-filter-operator=""false"" :sortable=""true"">
+                <Column field=""{lowerRelatedEntity}"" :header=""$t('field.{lowerRelatedEntity}')"" :show-add-button=""false"" :show-filter-match-modes=""false"" :show-filter-operator=""false"" :sortable=""true"">
                     <template #body=""{{ data }}"">
-                        {{{{ data.{lowerRelatedEntity} }}}}
+                        {{{{ data.{lowerRelatedEntity}{displayedPropPlural} }}}}
                     </template>
                     <template #filter=""{{ filterModel }}"">
-                        <Select v-model=""filterModel.value"" :options=""{entityRelatedPluralLower}"" :loading=""loading{entityRelatedPlural}"" option-value=""id"" option-label=""id"" :placeholder=""$t('field.select')""></Select>
+                        <Select v-model=""filterModel.value"" filter  @filter=""(e) => search{entityRelatedPlural}(e.value)"" :options=""{entityRelatedPluralLower}"" :loading=""loading{entityRelatedPlural}"" option-value=""{displayedProp}"" option-label=""{displayedProp}"" :placeholder=""$t('field.select')""></Select>
                     </template>
-                </Column>");
+                </Column> <!-- this column for many to many relation, needs customization-->");
                     }
 
                 }
@@ -727,11 +736,13 @@ const {{ state, onPropChanged, onSave, onCancel, t }} = useSingle(store, PAGE_RO
             }
             if ((typeWithoutNullable == "int" && !enumProps.Any(ep => ep.prop == prop.Name)) || typeWithoutNullable == "double" || typeWithoutNullable == "decimal" || typeWithoutNullable == "float")
             {
+                string? NumOfDigit = (typeWithoutNullable == "double" || typeWithoutNullable == "decimal" || typeWithoutNullable == "float") ? ":maxFractionDigits=\"10\"" : null;
                 return $@"
                 <div class=""flex flex-col gap-2 w-full"">
                     <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                     <InputNumber
                         :useGrouping=""false""
+                        {NumOfDigit}
                         id=""{propLower}""
                         fluid
                         :placeholder=""$t('field.{propLower}')""
@@ -833,13 +844,14 @@ const {{ state, onPropChanged, onSave, onCancel, t }} = useSingle(store, PAGE_RO
                         var lowerRelatedEntity = char.ToLower(rel.RelatedEntity[0]) + rel.RelatedEntity.Substring(1);
                         var propLower = rel.Type != RelationType.OneToOneSelfJoin ? lowerRelatedEntity
                             : lowerRelatedEntity + "Parent";
+                        var displayedProp = char.ToLower(rel.DisplayedProperty[0]) + rel.DisplayedProperty.Substring(1);
                         sb.AppendLine($@"
                 <div class=""flex flex-col gap-2 w-full"">
                     <label for=""{propLower}Id"">{{{{ $t('field.{propLower}Id') }}}}</label>
                     <Select
                         :emptyMessage=""$t('message.noAvailableOptions')""
                         :options=""{entityRelatedPluralLower}""
-                        optionLabel=""id""
+                        optionLabel=""{displayedProp}""
                         optionValue=""id""
                         v-model=""state.{propLower}Id""
                         :invalid=""state.validationErrors.{propLower}Id""
@@ -853,7 +865,7 @@ const {{ state, onPropChanged, onSave, onCancel, t }} = useSingle(store, PAGE_RO
                     >
                         <template #option=""slotProps"">
                             <div class=""flex items-center"">
-                                <div>{{{{ slotProps.option.id }}}}</div>
+                                <div>{{{{ slotProps.option.{displayedProp} }}}}</div>
                             </div>
                         </template>
                     </Select>
@@ -865,11 +877,12 @@ const {{ state, onPropChanged, onSave, onCancel, t }} = useSingle(store, PAGE_RO
                         string entityRelatedPluralLower = char.ToLower(entityRelatedPlural[0]) + entityRelatedPlural.Substring(1);
                         var lowerRelatedEntity = char.ToLower(rel.RelatedEntity[0]) + rel.RelatedEntity.Substring(1);
                         var propLower =  lowerRelatedEntity + "Ids";
+                        var displayedProp = char.ToLower(rel.DisplayedProperty[0]) + rel.DisplayedProperty.Substring(1);
                         sb.AppendLine($@"
                 <div class=""flex flex-col gap-2 w-full"">
                     <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                     <MultiSelect class=""w-full"" id=""{propLower}"" type=""text"" dataKey=""id""
-                        optionLabel=""id"" optionValue='id'
+                        optionLabel=""{displayedProp}"" optionValue='id'
                         :placeholder=""$t('field.selectFruits')"" 
                         v-model=""state.{propLower}""
                         :options=""{entityRelatedPluralLower}""

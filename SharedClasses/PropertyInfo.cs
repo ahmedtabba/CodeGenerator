@@ -12,5 +12,7 @@ namespace SharedClasses
         public bool Localized { get; set; } = false;
         public (string prop, List<string> enumValues) EnumValues { get; set; } = new(); 
         public bool IsSaved { get; set; } = false;
+        public bool GeneratedColumn { get; set; } = true;
+        public bool HiddenColumn { get; set; } = false;
     }
 }

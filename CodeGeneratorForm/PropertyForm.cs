@@ -176,6 +176,8 @@ namespace CodeGeneratorForm
                 propValidation = null;
 
             this.PropertyInfo.GeneralInfo = property;
+            this.PropertyInfo.GeneratedColumn = chkHasColumn.Checked;
+            this.PropertyInfo.HiddenColumn = chkHiddenColumn.Checked;
             this.PropertyInfo.EnumValues = enumProp;
             this.PropertyInfo.Localized = localizedProp;
             this.PropertyInfo.IsSaved = true;
@@ -288,6 +290,20 @@ namespace CodeGeneratorForm
             }
 
             return string.Empty;
+        }
+
+        private void chkHasColumn_CheckedChanged(object sender, EventArgs e)
+        {
+            if (!chkHasColumn.Checked)
+            {
+                chkHiddenColumn.Checked = false;
+                chkHiddenColumn.Visible = false;
+            }
+            else
+            {
+                chkHiddenColumn.Checked = false;
+                chkHiddenColumn.Visible = true;
+            }
         }
     }
 }

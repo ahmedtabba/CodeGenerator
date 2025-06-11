@@ -17,6 +17,8 @@ namespace CodeGeneratorForm
 
         public List<Relation> Relations { get; set; } = new List<Relation>();
         public SharedClasses.Properties properties { get; set; } = new SharedClasses.Properties();
+        public List<string> NotGeneratedTableColumns { get; set; } = new List<string>();
+        public List<string> HiddenTableColumns { get; set; } = new List<string>();
         public Form1()
         {
             InitializeComponent();
@@ -52,7 +54,13 @@ namespace CodeGeneratorForm
                     properties.LocalizedProp.Add(propertyInfo.GeneralInfo.Name);
                 if (propertyInfo.EnumValues.enumValues != null && propertyInfo.EnumValues.enumValues.Any())
                     properties.EnumProps.Add(propertyInfo.EnumValues);
-
+                if (propertyInfo.GeneratedColumn == false)
+                    NotGeneratedTableColumns.Add(propertyInfo.GeneralInfo.Name);
+                else
+                {
+                    if (propertyInfo.HiddenColumn)
+                        HiddenTableColumns.Add(propertyInfo.GeneralInfo.Name);
+                }
                 UpdatePropertiesDisplay();
                 //richtxtProps.AppendText($"Property {propertyInfo.GeneralInfo.Name} has been added." + Environment.NewLine);
             }
@@ -94,6 +102,7 @@ namespace CodeGeneratorForm
             VueJsHelper.GenerateStoreFile(entityName, properties,Relations, VueJsHelper.VueJsSolutionPath);
             VueJsHelper.UpdateConstantsJs(entityName, VueJsHelper.VueJsSolutionPath);
             VueJsHelper.UpdateRouterIndexJs(entityName, VueJsHelper.VueJsSolutionPath);
+            VueJsHelper.UpdateAppMenu(entityName, VueJsHelper.VueJsSolutionPath);
             VueJsHelper.GenerateTableView(entityName, VueJsHelper.VueJsSolutionPath, properties.PropertiesList, properties.EnumProps, Relations);
             VueJsHelper.GenerateSingleView(entityName, VueJsHelper.VueJsSolutionPath, properties.PropertiesList, properties.EnumProps, Relations);
             // Save metadata before generating code

@@ -2594,21 +2594,33 @@ namespace Application.{entityPlural}.Queries.Get{entityPlural}WithPagination
                 {
                     case RelationType.OneToOneSelfJoin:
                         relationsProps.Add($"\t\tpublic Guid? {relation.RelatedEntity}Id {{  get; set; }}\n");
+                        relationsProps.Add($"\t\tpublic string? {relation.RelatedEntity}{relation.DisplayedProperty} {{  get; set; }}\n");
                         break;
                     case RelationType.OneToOne:
                         relationsProps.Add($"\t\tpublic Guid {relation.RelatedEntity}Id {{  get; set; }}\n");
+                        relationsProps.Add($"\t\tpublic string {relation.RelatedEntity}{relation.DisplayedProperty} {{  get; set; }}\n");
+
                         break;
                     case RelationType.OneToOneNullable:
                         relationsProps.Add($"\t\tpublic Guid? {relation.RelatedEntity}Id {{  get; set; }}\n");
+                        relationsProps.Add($"\t\tpublic string? {relation.RelatedEntity}{relation.DisplayedProperty} {{  get; set; }}\n");
+
                         break;
                     case RelationType.ManyToOne:
                         relationsProps.Add($"\t\tpublic Guid {relation.RelatedEntity}Id {{  get; set; }}\n");
+                        relationsProps.Add($"\t\tpublic string {relation.RelatedEntity}{relation.DisplayedProperty} {{  get; set; }}\n");
+
                         break;
                     case RelationType.ManyToOneNullable:
                         relationsProps.Add($"\t\tpublic Guid? {relation.RelatedEntity}Id {{  get; set; }}\n");
+                        relationsProps.Add($"\t\tpublic string? {relation.RelatedEntity}{relation.DisplayedProperty} {{  get; set; }}\n");
+
                         break;
                     case RelationType.ManyToMany:
+                        string displayedPropertyPlural = relation.DisplayedProperty.EndsWith("y") ? relation.DisplayedProperty[..^1] + "ies" : relation.DisplayedProperty + "s";
                         relationsProps.Add($"\t\tpublic List<Guid> {relation.RelatedEntity}Ids {{  get; set; }}\n");
+                        relationsProps.Add($"\t\tpublic List<string> {relation.RelatedEntity}{displayedPropertyPlural} {{  get; set; }}\n");
+
                         break;
                     default:
                         break;
