@@ -426,7 +426,7 @@ const filter{entityName}{enm.prop}Options = [
             foreach ( var rel in relations )
             {
                 if (rel.Type == RelationType.OneToOneSelfJoin || rel.Type == RelationType.ManyToOne || rel.Type == RelationType.ManyToOneNullable
-                      || rel.Type == RelationType.OneToOne || rel.Type == RelationType.OneToOneNullable || rel.Type == RelationType.ManyToMany)
+                      || rel.Type == RelationType.OneToOne || rel.Type == RelationType.OneToOneNullable)
                 {
                     var propLower = rel.Type != RelationType.OneToOneSelfJoin ? char.ToLower(rel.RelatedEntity[0]) + rel.RelatedEntity.Substring(1) + $"{rel.DisplayedProperty}"
                         : char.ToLower(rel.RelatedEntity[0]) + rel.RelatedEntity.Substring(1) + $"Parent{rel.DisplayedProperty}";
@@ -434,6 +434,17 @@ const filter{entityName}{enm.prop}Options = [
                     //filterSectionSortFields.Add(st);
                     filterSectionGlobalFields.Add($"'{propLower}'");
                     filterSectionInitFilters.Add($"    {propLower}: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: FilterMatchMode.EQUALS }}] }},");
+                    string entityRelatedPlural = rel.RelatedEntity.EndsWith("y") ? rel.RelatedEntity[..^1] + "ies" : rel.RelatedEntity + "s";
+                    string entityRelatedPluralLower = char.ToLower(entityRelatedPlural[0]) + entityRelatedPlural.Substring(1);
+                    relationImports.AppendLine($"import {{ use{rel.RelatedEntity}Store }} from '@/store/{rel.RelatedEntity}Store';");
+                    relationConsts.AppendLine($"const {{ items: {entityRelatedPluralLower}, loading: loading{entityRelatedPlural}, search: search{entityRelatedPlural} }} = useList(use{rel.RelatedEntity}Store(), '', {{}});");
+                }
+                if(rel.Type == RelationType.ManyToMany)
+                {
+                    string displayedPropPlural = rel.DisplayedProperty.EndsWith("y") ? rel.DisplayedProperty[..^1] + "ies" : rel.DisplayedProperty + "s";
+                    var propLower = char.ToLower(rel.RelatedEntity[0]) + rel.RelatedEntity.Substring(1) + $"{displayedPropPlural}";
+                    filterSectionGlobalFields.Add($"'{propLower}'");
+                    filterSectionInitFilters.Add($"    {propLower}: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: FilterMatchMode.CONTAINS }}] }},");
                     string entityRelatedPlural = rel.RelatedEntity.EndsWith("y") ? rel.RelatedEntity[..^1] + "ies" : rel.RelatedEntity + "s";
                     string entityRelatedPluralLower = char.ToLower(entityRelatedPlural[0]) + entityRelatedPlural.Substring(1);
                     relationImports.AppendLine($"import {{ use{rel.RelatedEntity}Store }} from '@/store/{rel.RelatedEntity}Store';");
@@ -593,11 +604,11 @@ initFilters();
                     {
                         string entityRelatedPlural = rel.RelatedEntity.EndsWith("y") ? rel.RelatedEntity[..^1] + "ies" : rel.RelatedEntity + "s";
                         string entityRelatedPluralLower = char.ToLower(entityRelatedPlural[0]) + entityRelatedPlural.Substring(1);
-                        var lowerRelatedEntity = char.ToLower(rel.RelatedEntity[0]) + rel.RelatedEntity.Substring(1) + $"{rel.DisplayedProperty}";
+                        var lowerRelatedEntity = char.ToLower(rel.RelatedEntity[0]) + rel.RelatedEntity.Substring(1);
                         string displayedPropPlural = rel.DisplayedProperty.EndsWith("y") ? rel.DisplayedProperty[..^1] + "ies" : rel.DisplayedProperty + "s";
                         var displayedProp = char.ToLower(rel.DisplayedProperty[0]) + rel.DisplayedProperty.Substring(1);
                         sb.AppendLine($@"
-                <Column field=""{lowerRelatedEntity}"" :header=""$t('field.{lowerRelatedEntity}')"" :show-add-button=""false"" :show-filter-match-modes=""false"" :show-filter-operator=""false"" :sortable=""true"">
+                <Column field=""{lowerRelatedEntity}{displayedPropPlural}"" :header=""$t('field.{lowerRelatedEntity}{displayedPropPlural}')"" :show-add-button=""false"" :show-filter-match-modes=""false"" :show-filter-operator=""false"" :sortable=""true"">
                     <template #body=""{{ data }}"">
                         {{{{ data.{lowerRelatedEntity}{displayedPropPlural} }}}}
                     </template>
@@ -847,7 +858,7 @@ const {{ state, onPropChanged, onSave, onCancel, t }} = useSingle(store, PAGE_RO
                         var displayedProp = char.ToLower(rel.DisplayedProperty[0]) + rel.DisplayedProperty.Substring(1);
                         sb.AppendLine($@"
                 <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}Id"">{{{{ $t('field.{propLower}Id') }}}}</label>
+                    <label for=""{propLower}{rel.DisplayedProperty}"">{{{{ $t('field.{propLower}{rel.DisplayedProperty}') }}}}</label>
                     <Select
                         :emptyMessage=""$t('message.noAvailableOptions')""
                         :options=""{entityRelatedPluralLower}""
@@ -876,14 +887,15 @@ const {{ state, onPropChanged, onSave, onCancel, t }} = useSingle(store, PAGE_RO
                         string entityRelatedPlural = rel.RelatedEntity.EndsWith("y") ? rel.RelatedEntity[..^1] + "ies" : rel.RelatedEntity + "s";
                         string entityRelatedPluralLower = char.ToLower(entityRelatedPlural[0]) + entityRelatedPlural.Substring(1);
                         var lowerRelatedEntity = char.ToLower(rel.RelatedEntity[0]) + rel.RelatedEntity.Substring(1);
-                        var propLower =  lowerRelatedEntity + "Ids";
+                        string displayedPropPlural = rel.DisplayedProperty.EndsWith("y") ? rel.DisplayedProperty[..^1] + "ies" : rel.DisplayedProperty + "s";
+                        var propLower =  lowerRelatedEntity + displayedPropPlural;
                         var displayedProp = char.ToLower(rel.DisplayedProperty[0]) + rel.DisplayedProperty.Substring(1);
                         sb.AppendLine($@"
                 <div class=""flex flex-col gap-2 w-full"">
                     <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                     <MultiSelect class=""w-full"" id=""{propLower}"" type=""text"" dataKey=""id""
                         optionLabel=""{displayedProp}"" optionValue='id'
-                        :placeholder=""$t('field.selectFruits')"" 
+                        :placeholder=""$t('field.select{rel.DisplayedProperty}')"" 
                         v-model=""state.{propLower}""
                         :options=""{entityRelatedPluralLower}""
                         :loading=""loading{entityRelatedPlural}""
