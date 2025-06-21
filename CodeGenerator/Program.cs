@@ -138,8 +138,8 @@ class Program
         Application.GenerateUpdateCommandValidator(entityName, entityPlural, updateCommandPath, properties.Item1, relations);
 
 
-        Application.GenerateDeleteCommand(entityName, entityPlural, deleteCommandPath, properties.Item1, hasVersioning,hasNotification, hasUserAction);
-        Application.GenerateDeleteCommandValidator(entityName, entityPlural, deleteCommandPath, properties.Item1);
+        Application.GenerateDeleteCommand(entityName, entityPlural, deleteCommandPath, properties.Item1, relations,hasVersioning, hasNotification, hasUserAction);
+        Application.GenerateDeleteCommandValidator(entityName, entityPlural, deleteCommandPath, properties.Item1, relations);
 
          
         Application.GenerateGetByIdQuery(entityName, entityPlural, queryPath, hasLocalization, properties.Item1,properties.propEnums, relations);
