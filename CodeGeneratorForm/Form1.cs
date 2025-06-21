@@ -103,7 +103,7 @@ namespace CodeGeneratorForm
             }
 
             string entityPlural = entityName.GetPluralName();
-            bool hasAssets = properties.PropertiesList.Any(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD");
+            bool hasAssets = properties.PropertiesList.Any(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD" || p.Type == "VDs");
             if (!hasAssets)
                 VueJsHelper.GenerateStoreFile(entityName, properties,NotGeneratedTableColumns,HiddenTableColumns,Relations, VueJsHelper.VueJsSolutionPath);
             else
