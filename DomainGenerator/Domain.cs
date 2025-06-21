@@ -12,17 +12,46 @@ namespace DomainGenerator
         {
             string fileName = $"{entityName}.cs";
             string filePath = Path.Combine(path, fileName);
+            var propList = new List<string>();
+            foreach(var prop in properties.Item1)
+            {
+                switch(prop.Type) 
+                {
+                    case "GPG":
+                        if (prop.Validation != null && prop.Validation.Required)
+                            propList.Add($"        public {prop.Type} {prop.Name} {{ get; set; }}");
+                        else
+                            propList.Add($"        public {prop.Type}? {prop.Name} {{ get; set; }}");
+                        break;
+                    case "PNGs":
+                        propList.Add($"        public {prop.Type} {prop.Name} {{ get; set; }} = new {prop.Type}();");
+                        break;
+                    case "VD":
+                        if (prop.Validation != null && prop.Validation.Required)
+                            propList.Add($"        public {prop.Type} {prop.Name} {{ get; set; }}");
+                        else
+                            propList.Add($"        public {prop.Type}? {prop.Name} {{ get; set; }}");
+                        break;
+                    case "VDs":
+                        propList.Add($"        public {prop.Type} {prop.Name} {{ get; set; }} = new {prop.Type}();");
+                        break;
+                    default:
+                        propList.Add($"        public {prop.Type} {prop.Name} {{ get; set; }}");
+                        break;
+                }
+            }
+            var tempProps = string.Join(Environment.NewLine, propList);
 
-            var tempProps = string.Join(Environment.NewLine, properties.Item1.Select(p =>
-        (p.Type == "PNGs")
-         ? $"        public {p.Type} {p.Name} {{ get; set; }} = new {p.Type}();" 
-         : (p.Type == "GPG" && p.Validation == null)
-         ? $"        public {p.Type}? {p.Name} {{ get; set; }}"
-         : $"        public {p.Type} {p.Name} {{ get; set; }}"
-    ));
+    //        var tempProps = string.Join(Environment.NewLine, properties.Item1.Select(p =>
+    //    (p.Type == "PNGs")
+    //     ? $"        public {p.Type} {p.Name} {{ get; set; }} = new {p.Type}();" 
+    //     : (p.Type == "GPG" && p.Validation == null)
+    //     ? $"        public {p.Type}? {p.Name} {{ get; set; }}"
+    //     : $"        public {p.Type} {p.Name} {{ get; set; }}"
+    //));
 
-            var props = tempProps.Replace("GPG", "string").Replace("PNGs", "List<string>");
-            var propsList = properties.Item1.Any(p => p.Type == "VD") ? properties.Item1.Any(p => p.Type == "VD" && p.Validation != null) ? props.Replace("VD", "string") : props.Replace("VD", "string?") : props;
+            var props = tempProps.Replace("GPG", "string").Replace("PNGs", "List<string>").Replace("VDs", "List<string>").Replace("VD", "string");
+            //var propsList = properties.Item1.Any(p => p.Type == "VD") ? properties.Item1.Any(p => p.Type == "VD" && p.Validation != null) ? props.Replace("VD", "string") : props.Replace("VD", "string?") : props;
             string content = null!;
             if (!hasLocalization) 
             {
@@ -38,7 +67,7 @@ namespace Domain.Entities
         {{
 
         }}
-{propsList}
+{props}
     }}
 }}";
 
@@ -58,7 +87,7 @@ namespace Domain.Entities
         {{
 
         }}
-{propsList}
+{props}
         public virtual ICollection<{entityName}Localization> {entityName}Localizations {{ get; set; }} = new List<{entityName}Localization>();
     }}
 }}";

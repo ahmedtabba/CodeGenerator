@@ -38,14 +38,15 @@
             chkHideRelInTable = new CheckBox();
             cmboSelfProps = new ComboBox();
             lblSelfProp = new Label();
+            chkGenerateRelInTable = new CheckBox();
             SuspendLayout();
             // 
             // cmboRelEnt
             // 
             cmboRelEnt.FormattingEnabled = true;
-            cmboRelEnt.Location = new Point(106, 75);
+            cmboRelEnt.Location = new Point(127, 97);
             cmboRelEnt.Name = "cmboRelEnt";
-            cmboRelEnt.Size = new Size(163, 23);
+            cmboRelEnt.Size = new Size(177, 23);
             cmboRelEnt.TabIndex = 49;
             cmboRelEnt.SelectedIndexChanged += cmboRelEnt_SelectedIndexChanged;
             // 
@@ -55,7 +56,7 @@
             cmboRel.Items.AddRange(new object[] { "OneToOneSelfJoin", "OneToOne (entity is child)", "OneToOneNullable (entity is child)", "OneToMany (entity is parent)", "OneToManyNullable (entity is parent)", "ManyToOne (entity is child)", "ManyToOneNullable (entity is child)", "ManyToMany" });
             cmboRel.Location = new Point(106, 33);
             cmboRel.Name = "cmboRel";
-            cmboRel.Size = new Size(163, 23);
+            cmboRel.Size = new Size(220, 23);
             cmboRel.TabIndex = 48;
             cmboRel.SelectedIndexChanged += cmboRel_SelectedIndexChanged;
             // 
@@ -71,7 +72,7 @@
             // lblRelEnt
             // 
             lblRelEnt.AutoSize = true;
-            lblRelEnt.Location = new Point(15, 78);
+            lblRelEnt.Location = new Point(15, 100);
             lblRelEnt.Name = "lblRelEnt";
             lblRelEnt.Size = new Size(72, 15);
             lblRelEnt.TabIndex = 50;
@@ -79,7 +80,7 @@
             // 
             // btnAddRelation
             // 
-            btnAddRelation.Location = new Point(15, 163);
+            btnAddRelation.Location = new Point(15, 187);
             btnAddRelation.Name = "btnAddRelation";
             btnAddRelation.Size = new Size(84, 49);
             btnAddRelation.TabIndex = 51;
@@ -90,7 +91,7 @@
             // lblPropDisplay
             // 
             lblPropDisplay.AutoSize = true;
-            lblPropDisplay.Location = new Point(15, 121);
+            lblPropDisplay.Location = new Point(15, 143);
             lblPropDisplay.Name = "lblPropDisplay";
             lblPropDisplay.Size = new Size(106, 15);
             lblPropDisplay.TabIndex = 53;
@@ -99,15 +100,15 @@
             // cmboProp
             // 
             cmboProp.FormattingEnabled = true;
-            cmboProp.Location = new Point(127, 118);
+            cmboProp.Location = new Point(127, 140);
             cmboProp.Name = "cmboProp";
-            cmboProp.Size = new Size(142, 23);
+            cmboProp.Size = new Size(177, 23);
             cmboProp.TabIndex = 54;
             // 
             // chkHideRelInTable
             // 
             chkHideRelInTable.AutoSize = true;
-            chkHideRelInTable.Location = new Point(275, 77);
+            chkHideRelInTable.Location = new Point(395, 59);
             chkHideRelInTable.Name = "chkHideRelInTable";
             chkHideRelInTable.Size = new Size(141, 19);
             chkHideRelInTable.TabIndex = 55;
@@ -117,25 +118,39 @@
             // cmboSelfProps
             // 
             cmboSelfProps.FormattingEnabled = true;
-            cmboSelfProps.Location = new Point(336, 33);
+            cmboSelfProps.Location = new Point(127, 62);
             cmboSelfProps.Name = "cmboSelfProps";
-            cmboSelfProps.Size = new Size(121, 23);
+            cmboSelfProps.Size = new Size(177, 23);
             cmboSelfProps.TabIndex = 56;
             // 
             // lblSelfProp
             // 
             lblSelfProp.AutoSize = true;
-            lblSelfProp.Location = new Point(278, 36);
+            lblSelfProp.Location = new Point(15, 65);
             lblSelfProp.Name = "lblSelfProp";
-            lblSelfProp.Size = new Size(48, 15);
+            lblSelfProp.Size = new Size(106, 15);
             lblSelfProp.TabIndex = 57;
-            lblSelfProp.Text = "Propety";
+            lblSelfProp.Text = "Displayed Property";
+            // 
+            // chkGenerateRelInTable
+            // 
+            chkGenerateRelInTable.AutoSize = true;
+            chkGenerateRelInTable.Checked = true;
+            chkGenerateRelInTable.CheckState = CheckState.Checked;
+            chkGenerateRelInTable.Location = new Point(395, 35);
+            chkGenerateRelInTable.Name = "chkGenerateRelInTable";
+            chkGenerateRelInTable.Size = new Size(163, 19);
+            chkGenerateRelInTable.TabIndex = 58;
+            chkGenerateRelInTable.Text = "Generate Relation In Table";
+            chkGenerateRelInTable.UseVisualStyleBackColor = true;
+            chkGenerateRelInTable.CheckedChanged += chkGenerateRelInTable_CheckedChanged;
             // 
             // RelationForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(469, 275);
+            ClientSize = new Size(570, 275);
+            Controls.Add(chkGenerateRelInTable);
             Controls.Add(lblSelfProp);
             Controls.Add(cmboSelfProps);
             Controls.Add(chkHideRelInTable);
@@ -165,5 +180,6 @@
         private CheckBox chkHideRelInTable;
         private ComboBox cmboSelfProps;
         private Label lblSelfProp;
+        private CheckBox chkGenerateRelInTable;
     }
 }

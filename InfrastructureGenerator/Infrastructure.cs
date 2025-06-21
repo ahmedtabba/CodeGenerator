@@ -1,5 +1,7 @@
-﻿using System;
+﻿using SharedClasses;
+using System;
 using System.Collections.Generic;
+using System.Data;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -68,12 +70,67 @@ namespace InfrastructureGenerator
             }
         }
 
-        public static void GenerateRepository(string entityName, string path)
+        public static void GenerateRepository(string entityName, string path, List<Relation>? relations = null)
         {
             string fileName = $"{entityName}Repository.cs";
             string filePath = Path.Combine(path, fileName);
+            string entityPlural = entityName.EndsWith("y") ? entityName[..^1] + "ies" : entityName + "s";
+            string? GetOneWithInclude = null;
+            string? GetAllWithInclude = null;
+            if (relations != null && relations.Any())
+            {
+                List<string> includeLines = new List<string>();
+                foreach (Relation rel in relations)
+                {
+                    string entityRelatedPlural = rel.RelatedEntity.EndsWith("y") ? rel.RelatedEntity[..^1] + "ies" : rel.RelatedEntity + "s";
+                    switch (rel.Type)
+                    {
+                        case RelationType.OneToOneSelfJoin:
+                            includeLines.Add($"Include(x => x.{rel.RelatedEntity}Parent)");
+                            break;
+                        case RelationType.OneToOne:
+                            includeLines.Add($"Include(x => x.{rel.RelatedEntity})");
+                            break;
+                        case RelationType.OneToOneNullable:
+                            includeLines.Add($"Include(x => x.{rel.RelatedEntity})");
+                            break;
+                        case RelationType.OneToMany:
+                            includeLines.Add($"Include(x => x.{entityRelatedPlural})");
+                            break;
+                        case RelationType.OneToManyNullable:
+                            includeLines.Add($"Include(x => x.{entityRelatedPlural})");
+                            break;
 
-            string content = $@"
+                        case RelationType.ManyToOne:
+                            includeLines.Add($"Include(x => x.{rel.RelatedEntity})");
+                            break;
+                        case RelationType.ManyToOneNullable:
+                            includeLines.Add($"Include(x => x.{rel.RelatedEntity})");
+                            break;
+                        case RelationType.ManyToMany:
+                            includeLines.Add($"Include(x => x.{entityRelatedPlural})");
+                            break;
+                        default:
+                            break;
+                    }
+                }
+                GetOneWithInclude = $@"
+        public async Task<{entityName}> Get{entityName}(Guid id)
+        {{
+            return await DbContext.{entityPlural}.
+                {string.Join(".",includeLines)}
+                .SingleOrDefaultAsync(x => x.Id == id);
+        }}";
+
+                GetAllWithInclude = $@"
+        public IQueryable<{entityName}> Get{entityPlural}()
+        {{
+            return DbContext.{entityPlural}.
+                {string.Join(".", includeLines)}
+                .AsQueryable();
+        }}";
+            }
+                string content = $@"
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -90,12 +147,14 @@ namespace Infrastructure.Repositories
     {{
         public {entityName}Repository(AppDbContext dbContext) : base(dbContext)
         {{
+
         }}
+{GetOneWithInclude}
+{GetAllWithInclude}
 
        //Add necessary functions here if needed
     }}
 }}
-
 ";
             File.WriteAllText(filePath, content);
         }

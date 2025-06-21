@@ -6,6 +6,8 @@ using Application = ApplicationGenerator.Application;
 using ApplicationGenerator;
 using System.Text.RegularExpressions;
 using Frontend.VueJsHelper;
+using System.Reflection;
+using PropertyInfo = SharedClasses.PropertyInfo;
 
 namespace CodeGeneratorForm
 {
@@ -19,6 +21,8 @@ namespace CodeGeneratorForm
         public SharedClasses.Properties properties { get; set; } = new SharedClasses.Properties();
         public List<string> NotGeneratedTableColumns { get; set; } = new List<string>();
         public List<string> HiddenTableColumns { get; set; } = new List<string>();
+        public List<string> NotGeneratedTableRelations { get; set; } = new List<string>();
+        public List<string> HiddenTableRelations { get; set; } = new List<string>();
         public Form1()
         {
             InitializeComponent();
@@ -98,13 +102,18 @@ namespace CodeGeneratorForm
                 return;
             }
 
-            string entityPlural = entityName.EndsWith("y") ? entityName[..^1] + "ies" : entityName + "s";
-            VueJsHelper.GenerateStoreFile(entityName, properties,Relations, VueJsHelper.VueJsSolutionPath);
+            string entityPlural = entityName.GetPluralName();
+            bool hasAssets = properties.PropertiesList.Any(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD");
+            if (!hasAssets)
+                VueJsHelper.GenerateStoreFile(entityName, properties,NotGeneratedTableColumns,HiddenTableColumns,Relations, VueJsHelper.VueJsSolutionPath);
+            else
+                VueJsHelper.GenerateStoreFileWithAssets(entityName, properties, NotGeneratedTableColumns, HiddenTableColumns, Relations, VueJsHelper.VueJsSolutionPath);
+            
             VueJsHelper.UpdateConstantsJs(entityName, VueJsHelper.VueJsSolutionPath);
             VueJsHelper.UpdateRouterIndexJs(entityName, VueJsHelper.VueJsSolutionPath);
             VueJsHelper.UpdateAppMenu(entityName, VueJsHelper.VueJsSolutionPath);
-            VueJsHelper.GenerateTableView(entityName, VueJsHelper.VueJsSolutionPath, properties.PropertiesList, properties.EnumProps, Relations);
-            VueJsHelper.GenerateSingleView(entityName, VueJsHelper.VueJsSolutionPath, properties.PropertiesList, properties.EnumProps, Relations);
+            VueJsHelper.GenerateTableView(entityName, VueJsHelper.VueJsSolutionPath, properties.PropertiesList, properties.EnumProps, NotGeneratedTableColumns, HiddenTableColumns,Relations);
+            VueJsHelper.GenerateSingleView(entityName, VueJsHelper.VueJsSolutionPath, properties.PropertiesList, properties.EnumProps, Relations,hasAssets);
             // Save metadata before generating code
             try
             {
@@ -176,10 +185,10 @@ namespace CodeGeneratorForm
                 }
 
                 Infrastructure.GenerateConfiguration(entityName, domainPath, relatedEntitiesList);
-                Application.GenerateIRepositoryInterface(entityName, repoInterfacePath);
+                Application.GenerateIRepositoryInterface(entityName, repoInterfacePath, Relations);
                 if (hasLocalization)
                     Application.GenerateIRepositoryInterface($@"{entityName}Localization", repoInterfacePath);
-                Infrastructure.GenerateRepository(entityName, repoPath);
+                Infrastructure.GenerateRepository(entityName, repoPath, Relations);
                 if (hasLocalization)
                     Infrastructure.GenerateRepository($@"{entityName}Localization", repoPath);
                 Infrastructure.UpdateDependencyInjection(entityName, domainPath);
@@ -205,8 +214,8 @@ namespace CodeGeneratorForm
                 Application.GenerateUpdateCommandValidator(entityName, entityPlural, updateCommandPath, properties.PropertiesList, Relations);
 
 
-                Application.GenerateDeleteCommand(entityName, entityPlural, deleteCommandPath, properties.PropertiesList, hasVersioning, hasNotification, hasUserAction);
-                Application.GenerateDeleteCommandValidator(entityName, entityPlural, deleteCommandPath, properties.PropertiesList);
+                Application.GenerateDeleteCommand(entityName, entityPlural, deleteCommandPath, properties.PropertiesList, Relations,hasVersioning, hasNotification, hasUserAction);
+                Application.GenerateDeleteCommandValidator(entityName, entityPlural, deleteCommandPath, properties.PropertiesList,Relations);
 
                 if (bulk)
                 {
@@ -296,12 +305,19 @@ namespace CodeGeneratorForm
                 return;
             }
 
-            RelationForm relationForm = new RelationForm(solutionDir);
+            RelationForm relationForm = new RelationForm(solutionDir,properties, txtEntityName.Text);
             relationForm.ShowDialog();
             var relation = relationForm.Relation;
             if (relationForm.IsSaved)
             {
                 Relations.Add(relation);
+                //if (relation.IsGeneratedInTable == false)
+                //    NotGeneratedTableRelations.Add(relation.RelatedEntity);
+                //else
+                //{
+                //    if (relation.HiddenInTable)
+                //        HiddenTableRelations.Add(relation.RelatedEntity);
+                //}
             }
             UpdateRelationDisplay();
         }
@@ -365,15 +381,20 @@ namespace CodeGeneratorForm
 
             string relationEntityRelated = ((Button)sender).Tag.ToString();
             var oldRelationInfo = GetRelationInfo(relationEntityRelated);
-            RelationForm editForm = new RelationForm(solutionDir);
+            RelationForm editForm = new RelationForm(solutionDir, properties, txtEntityName.Text);
             editForm.Relation.RelatedEntity = oldRelationInfo.RelatedEntity;
             editForm.Relation.Type = oldRelationInfo.Type;
+            editForm.Relation.DisplayedProperty = oldRelationInfo.DisplayedProperty;
+            editForm.Relation.IsGeneratedInTable = oldRelationInfo.IsGeneratedInTable;
+            editForm.Relation.HiddenInTable = oldRelationInfo.HiddenInTable;
+
             editForm.ShowDialog();
 
             if (editForm.IsSaved)
             {
                 UpdateRelations(editForm.Relation, oldRelationInfo);
                 UpdateRelationDisplay();
+
             }
         }
 
@@ -392,7 +413,10 @@ namespace CodeGeneratorForm
             return new Relation
             {
                 RelatedEntity = Relations.FirstOrDefault(r => r.RelatedEntity == relationEntityRelated).RelatedEntity,
-                Type = Relations.FirstOrDefault(r => r.RelatedEntity == relationEntityRelated).Type
+                Type = Relations.FirstOrDefault(r => r.RelatedEntity == relationEntityRelated).Type,
+                DisplayedProperty = Relations.FirstOrDefault(r => r.RelatedEntity == relationEntityRelated).DisplayedProperty,
+                IsGeneratedInTable = Relations.FirstOrDefault(r => r.RelatedEntity == relationEntityRelated).IsGeneratedInTable,
+                HiddenInTable = Relations.FirstOrDefault(r => r.RelatedEntity == relationEntityRelated).HiddenInTable
             };
         }
 
@@ -401,19 +425,21 @@ namespace CodeGeneratorForm
             // Update relations list here based on your needs
             RemoveRelation(oldRelation.RelatedEntity);
             Relations.Add(updatedInfo);
-            //var index = Relations.FindIndex(r => r.RelatedEntity == updatedInfo.RelatedEntity);
-            //if (index != -1)
-            //{
-            //    Relations[index] = new Relation
-            //    {
-            //        RelatedEntity = updatedInfo.RelatedEntity,
-            //        Type = updatedInfo.Type
-            //    };
-            //}
+            if (!updatedInfo.IsGeneratedInTable)
+            {
+                NotGeneratedTableRelations.Add(updatedInfo.RelatedEntity);
+            }
+            else if(updatedInfo.HiddenInTable)
+            {
+                HiddenTableRelations.Add(updatedInfo.RelatedEntity);
+            }
+
         }
         private void RemoveRelation(string relationEntityRelated)
         {
             Relations.RemoveAll(r => r.RelatedEntity == relationEntityRelated);
+            NotGeneratedTableRelations.RemoveAll(r => r == relationEntityRelated);
+            HiddenTableRelations.RemoveAll(r => r == relationEntityRelated);
         }
 
 
@@ -695,7 +721,7 @@ namespace CodeGeneratorForm
             content = File.ReadAllText(filePath);
             foreach (var item in this.Relations)
             {
-                if (!content.Contains($"DbSet<{item.RelatedEntity}>"))
+                if (item.Type != RelationType.OneToOneSelfJoin && !content.Contains($"DbSet<{item.RelatedEntity}>"))
                 {
                     MessageBox.Show($"Relation with {item.RelatedEntity} is failed : DbSet of {item.RelatedEntity} dose not found in AppDbContext");
                     return false;
@@ -736,6 +762,9 @@ namespace CodeGeneratorForm
                         break;
                     case "VD":
                         type = (prop.Validation != null && prop.Validation.Required) ? "string" : "string?";
+                        break;
+                    case "VDs":
+                        type = (prop.Validation != null && prop.Validation.Required) ? "List<string>" : "List<string>?";
                         break;
                     default:
                         type = prop.Type;
@@ -788,6 +817,8 @@ namespace CodeGeneratorForm
             editForm.PropertyInfo.Localized = oldPropertyInfo.Localized;
             editForm.PropertyInfo.EnumValues = oldPropertyInfo.EnumValues;
             editForm.PropertyInfo.GeneralInfo = oldPropertyInfo.GeneralInfo;
+            editForm.PropertyInfo.GeneratedColumn = oldPropertyInfo.GeneratedColumn;
+            editForm.PropertyInfo.HiddenColumn = oldPropertyInfo.HiddenColumn;
             editForm.ShowDialog();
 
             if (editForm.PropertyInfo.IsSaved)
@@ -814,8 +845,16 @@ namespace CodeGeneratorForm
             {
                 GeneralInfo = properties.PropertiesList.FirstOrDefault(p => p.Name == propertyName),
                 Localized = properties.LocalizedProp.Contains(propertyName),
-                EnumValues = properties.EnumProps.FirstOrDefault(e => e.prop == propertyName)
+                EnumValues = properties.EnumProps.FirstOrDefault(e => e.prop == propertyName),
             };
+            if (NotGeneratedTableColumns.Any(p => p == propertyName))
+            {
+                res.GeneratedColumn = false;
+            }
+            else if (HiddenTableColumns.Any(p => p == propertyName))
+            {
+                res.HiddenColumn = true;
+            }
 
             return res;
 
@@ -846,6 +885,15 @@ namespace CodeGeneratorForm
             {
                 properties.EnumProps.Add(updatedInfo.EnumValues);
             }
+            if (!updatedInfo.GeneratedColumn)
+            {
+                NotGeneratedTableColumns.Add(updatedInfo.GeneralInfo.Name);
+            }
+            else if(updatedInfo.HiddenColumn)
+            {
+                HiddenTableColumns.Add(updatedInfo.GeneralInfo.Name);
+            }
+
         }
 
         private void RemoveProperty(string propertyName)
@@ -853,6 +901,8 @@ namespace CodeGeneratorForm
             properties.PropertiesList.RemoveAll(p => p.Name == propertyName);
             properties.LocalizedProp.Remove(propertyName);
             properties.EnumProps.RemoveAll(e => e.prop.Contains(propertyName));
+            NotGeneratedTableColumns.RemoveAll(p => p == propertyName);
+            HiddenTableColumns.RemoveAll(p => p == propertyName);
         }
 
         private void checkBox1_CheckedChanged(object sender, EventArgs e)

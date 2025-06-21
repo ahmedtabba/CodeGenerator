@@ -34,17 +34,48 @@ namespace ApplicationGenerator
             #region Create VersioningDto
             string versioningDtoPath = Path.Combine(path, "..", "..", "Application", "Common", "Models", "Versioning", $"{entityName}VersioningDTO.cs");
             List<string> propList = new List<string>();
-            properties.ForEach(p => propList.Add((p.Type == "GPG" && p.Validation == null)
-            ? $"public {p.Type}? {p.Name} {{ get; set; }}"
-            : $"public {p.Type} {p.Name} {{ get; set; }}"));
 
-            var tempList = new List<string>();
-            foreach (var item in propList)
+            foreach (var prop in properties)
             {
-                var s = item.Replace("GPG", "string").Replace("PNGs", "List<string>").Replace("VD", "string?");
-                tempList.Add(s);
+                switch (prop.Type)
+                {
+                    case "GPG":
+                        if (prop.Validation != null && prop.Validation.Required)
+                            propList.Add($"\t\tpublic {prop.Type} {prop.Name} {{ get; set; }}");
+                        else
+                            propList.Add($"\t\tpublic {prop.Type}? {prop.Name} {{ get; set; }}");
+                        break;
+                    case "PNGs":
+                        propList.Add($"\t\tpublic {prop.Type} {prop.Name} {{ get; set; }} = new {prop.Type}();");
+                        break;
+                    case "VD":
+                        if (prop.Validation != null && prop.Validation.Required)
+                            propList.Add($"\t\tpublic {prop.Type} {prop.Name} {{ get; set; }}");
+                        else
+                            propList.Add($"\t\tpublic {prop.Type}? {prop.Name} {{ get; set; }}");
+                        break;
+                    case "VDs":
+                        propList.Add($"\t\tpublic {prop.Type} {prop.Name} {{ get; set; }} = new {prop.Type}();");
+                        break;
+                    default:
+                        propList.Add($"\t\tpublic {prop.Type} {prop.Name} {{ get; set; }}");
+                        break;
+                }
             }
-            tempList.ForEach(p => p.Replace("GPG", "string").Replace("PNGs", "List<string>").Replace("VD", "string?"));
+            //var tempProps = string.Join(Environment.NewLine, propList);
+
+
+            //properties.ForEach(p => propList.Add((p.Type == "GPG" && p.Validation == null)
+            //? $"public {p.Type}? {p.Name} {{ get; set; }}"
+            //: $"public {p.Type} {p.Name} {{ get; set; }}"));
+
+            //var tempList = new List<string>();
+            //foreach (var item in propList)
+            //{
+            //    var s = item.Replace("GPG", "string").Replace("PNGs", "List<string>").Replace("VD", "string?");
+            //    tempList.Add(s);
+            //}
+            //tempList.ForEach(p => p.Replace("GPG", "string").Replace("PNGs", "List<string>").Replace("VD", "string?"));
 
             foreach (var relation in relations)
             {
@@ -52,30 +83,36 @@ namespace ApplicationGenerator
                 switch (relation.Type)
                 {
                     case RelationType.OneToOneSelfJoin:
-                        tempList.Add($"\t\tpublic Guid? {entityName}ParentId {{ get; set; }}");
+                        propList.Add($"\t\tpublic Guid? {entityName}ParentId {{ get; set; }}");
+                        propList.Add($"\t\tpublic string? {entityName}Parent{relation.DisplayedProperty} {{ get; set; }}");
                         break;
                     case RelationType.OneToOne:
-                        tempList.Add($"\t\tpublic Guid {relation.RelatedEntity}Id {{ get; set; }}");
+                        propList.Add($"\t\tpublic Guid {relation.RelatedEntity}Id {{ get; set; }}");
+                        propList.Add($"\t\tpublic string {relation.RelatedEntity}{relation.DisplayedProperty} {{ get; set; }}");
                         break;
                     case RelationType.OneToOneNullable:
-                        tempList.Add($"\t\tpublic Guid? {relation.RelatedEntity}Id {{ get; set; }}");
+                        propList.Add($"\t\tpublic Guid? {relation.RelatedEntity}Id {{ get; set; }}");
+                        propList.Add($"\t\tpublic string? {relation.RelatedEntity}{relation.DisplayedProperty} {{ get; set; }}");
                         break;
                     case RelationType.ManyToOne:
-                        tempList.Add($"\t\tpublic Guid {relation.RelatedEntity}Id {{ get; set; }}");
+                        propList.Add($"\t\tpublic Guid {relation.RelatedEntity}Id {{ get; set; }}");
+                        propList.Add($"\t\tpublic string {relation.RelatedEntity}{relation.DisplayedProperty} {{ get; set; }}");
                         break;
                     case RelationType.ManyToOneNullable:
-                        tempList.Add($"\t\tpublic Guid? {relation.RelatedEntity}Id {{ get; set; }}");
+                        propList.Add($"\t\tpublic Guid? {relation.RelatedEntity}Id {{ get; set; }}");
+                        propList.Add($"\t\tpublic string? {relation.RelatedEntity}{relation.DisplayedProperty} {{ get; set; }}");
                         break;
                     case RelationType.ManyToMany:
-                        tempList.Add($"\t\tpublic List<Guid> {relation.RelatedEntity}Ids {{ get; set; }}");
+                        propList.Add($"\t\tpublic List<Guid> {relation.RelatedEntity}Ids {{ get; set; }}");
+                        propList.Add($"\t\tpublic List<string> {relation.RelatedEntity}{relation.DisplayedProperty.GetPluralName()} {{ get; set; }}");
                         break;
                     default:
                         break;
                 }
 
             }
-
-            var props = string.Join(Environment.NewLine, tempList);
+            var tempList = string.Join(Environment.NewLine, propList);
+            var props = tempList.Replace("GPG", "string").Replace("PNGs", "List<string>").Replace("VDs", "List<string>").Replace("VD", "string");
 
             var dtoContent = $@"using System;
 using Application.Common.Interfaces.Services.Versioning;
@@ -402,15 +439,46 @@ namespace Domain.Events.{entityName}Events
             string? HandleNotification = !notification ? null : $"await HandleNotification(notification, cancellationToken);";
 
             var propList = GetVersionDTOProp(properties, relations);
+            string? manyEntityRelated = relations.Any(r => r.Type == RelationType.ManyToMany) ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity : null;
+            string? manyDisplayProp = relations.Any(r => r.Type == RelationType.ManyToMany) ? relations.First(r => r.Type == RelationType.ManyToMany).DisplayedProperty: null ;
             StringBuilder versioningDTOBuilder = new StringBuilder();
             foreach (var item in propList)
             {
                 if (item.EndsWith("Ids"))
                 {
-                    var temp = item.Remove(item.Length - 3);
-                    string? relatedEntityManyPlural = relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.EndsWith("y") ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[..^1] + "ies" : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity + "s";
-                    var tempPlural = temp.EndsWith("y") ? temp[..^1] + "ies" : temp + "s";
-                    versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{tempPlural}.Select(x => x.Id).ToList(),");
+                    //var temp = item.Remove(item.Length - 3);
+                    string? relatedEntityManyPlural = manyEntityRelated!.GetPluralName();
+                    //var tempPlural = temp.GetPluralName();
+                    versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{relatedEntityManyPlural}.Select(x => x.Id).ToList(),");
+                }
+                else if (manyDisplayProp != null && item == (manyEntityRelated + manyDisplayProp.GetPluralName()))
+                {
+                    string? relatedEntityManyPlural = manyEntityRelated!.GetPluralName();
+                    versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{relatedEntityManyPlural}.Select(x => x.{manyDisplayProp}).ToList(),");
+                }
+                else if (!item.EndsWith("Id") && relations.Any(r => item.Contains(r.RelatedEntity)))
+                {
+                    Relation rel = relations.First(r => item.Contains(r.RelatedEntity));
+                    switch (rel.Type)
+                    {
+                        case RelationType.OneToOneSelfJoin:
+                            versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{rel.RelatedEntity}Parent != null ? obj.{rel.RelatedEntity}Parent.{rel.DisplayedProperty} : null,");
+                            break;
+                        case RelationType.OneToOne:
+                            versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{rel.RelatedEntity}.{rel.DisplayedProperty},");
+                            break;
+                        case RelationType.OneToOneNullable:
+                            versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{rel.RelatedEntity} != null ? obj.{rel.RelatedEntity}.{rel.DisplayedProperty} : null,");
+                            break;
+                        case RelationType.ManyToOne:
+                            versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{rel.RelatedEntity}.{rel.DisplayedProperty},");
+                            break;
+                        case RelationType.ManyToOneNullable:
+                            versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{rel.RelatedEntity} != null ? obj.{rel.RelatedEntity}.{rel.DisplayedProperty} : null,");
+                            break;
+                        default:
+                            break;
+                    }
                 }
                 else
                     versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{item},");
@@ -703,17 +771,45 @@ namespace Application.{entityPlural}.EventHandlers
             if (!notification.IsVersionedCommand)
                 await HandleUserAction(notification, versionId);";
             string? HandleNotification = !notification ? null : $"await HandleNotification(notification, cancellationToken);";
-
             var propList = GetVersionDTOProp(properties, relations);
+            string? manyEntityRelated = relations.Any(r => r.Type == RelationType.ManyToMany) ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity : null;
+            string? manyDisplayProp = relations.Any(r => r.Type == RelationType.ManyToMany) ? relations.First(r => r.Type == RelationType.ManyToMany).DisplayedProperty : null;
             StringBuilder oldVersioningDTOBuilder = new StringBuilder();
             foreach (var item in propList)
             {
                 if (item.EndsWith("Ids"))
                 {
-                    var temp = item.Remove(item.Length - 3);
-                    string? relatedEntityManyPlural = relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.EndsWith("y") ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[..^1] + "ies" : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity + "s";
-                    var tempPlural = temp.EndsWith("y") ? temp[..^1] + "ies" : temp + "s";
-                    oldVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = oldObj.{tempPlural}.Select(x => x.Id).ToList(),");
+                    string? relatedEntityManyPlural = manyEntityRelated!.GetPluralName();
+                    oldVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = oldObj.{relatedEntityManyPlural}.Select(x => x.Id).ToList(),");
+                }
+                else if (manyDisplayProp != null && item == (manyEntityRelated + manyDisplayProp.GetPluralName()))
+                {
+                    string? relatedEntityManyPlural = manyEntityRelated!.GetPluralName();
+                    oldVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = oldObj.{relatedEntityManyPlural}.Select(x => x.{manyDisplayProp}).ToList(),");
+                }
+                else if (!item.EndsWith("Id") && relations.Any(r => item.Contains(r.RelatedEntity)))
+                {
+                    Relation rel = relations.First(r => item.Contains(r.RelatedEntity));
+                    switch (rel.Type)
+                    {
+                        case RelationType.OneToOneSelfJoin:
+                            oldVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = oldObj.{rel.RelatedEntity}Parent != null ? oldObj.{rel.RelatedEntity}Parent.{rel.DisplayedProperty} : null,");
+                            break;
+                        case RelationType.OneToOne:
+                            oldVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = oldObj.{rel.RelatedEntity}.{rel.DisplayedProperty},");
+                            break;
+                        case RelationType.OneToOneNullable:
+                            oldVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = oldObj.{rel.RelatedEntity} != null ? oldObj.{rel.RelatedEntity}.{rel.DisplayedProperty} : null,");
+                            break;
+                        case RelationType.ManyToOne:
+                            oldVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = oldObj.{rel.RelatedEntity}.{rel.DisplayedProperty},");
+                            break;
+                        case RelationType.ManyToOneNullable:
+                            oldVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = oldObj.{rel.RelatedEntity} != null ? oldObj.{rel.RelatedEntity}.{rel.DisplayedProperty} : null,");
+                            break;
+                        default:
+                            break;
+                    }
                 }
                 else
                     oldVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = oldObj.{item},");
@@ -724,10 +820,37 @@ namespace Application.{entityPlural}.EventHandlers
             {
                 if (item.EndsWith("Ids"))
                 {
-                    var temp = item.Remove(item.Length - 3);
-                    string? relatedEntityManyPlural = relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.EndsWith("y") ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[..^1] + "ies" : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity + "s";
-                    var tempPlural = temp.EndsWith("y") ? temp[..^1] + "ies" : temp + "s";
-                    newVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = newObj.{tempPlural}.Select(x => x.Id).ToList(),");
+                    string? relatedEntityManyPlural = manyEntityRelated!.GetPluralName();
+                    newVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = newObj.{relatedEntityManyPlural}.Select(x => x.Id).ToList(),");
+                }
+                else if (manyDisplayProp != null && item == (manyEntityRelated + manyDisplayProp.GetPluralName()))
+                {
+                    string? relatedEntityManyPlural = manyEntityRelated!.GetPluralName();
+                    newVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = newObj.{relatedEntityManyPlural}.Select(x => x.{manyDisplayProp}).ToList(),");
+                }
+                else if (!item.EndsWith("Id") && relations.Any(r => item.Contains(r.RelatedEntity)))
+                {
+                    Relation rel = relations.First(r => item.Contains(r.RelatedEntity));
+                    switch (rel.Type)
+                    {
+                        case RelationType.OneToOneSelfJoin:
+                            newVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = newObj.{rel.RelatedEntity}Parent != null ? newObj.{rel.RelatedEntity}Parent.{rel.DisplayedProperty} : null,");
+                            break;
+                        case RelationType.OneToOne:
+                            newVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = newObj.{rel.RelatedEntity}.{rel.DisplayedProperty},");
+                            break;
+                        case RelationType.OneToOneNullable:
+                            newVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = newObj.{rel.RelatedEntity} != null ? newObj.{rel.RelatedEntity}.{rel.DisplayedProperty} : null,");
+                            break;
+                        case RelationType.ManyToOne:
+                            newVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = newObj.{rel.RelatedEntity}.{rel.DisplayedProperty},");
+                            break;
+                        case RelationType.ManyToOneNullable:
+                            newVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = newObj.{rel.RelatedEntity} != null ? newObj.{rel.RelatedEntity}.{rel.DisplayedProperty} : null,");
+                            break;
+                        default:
+                            break;
+                    }
                 }
                 else
                     newVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = newObj.{item},");
@@ -1043,15 +1166,46 @@ namespace Application.{entityPlural}.EventHandlers
             string? HandleNotification = !notification ? null : $"await HandleNotification(notification, cancellationToken);";
 
             var propList = GetVersionDTOProp(properties, relations);
+            string? manyEntityRelated = relations.Any(r => r.Type == RelationType.ManyToMany) ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity : null;
+            string? manyDisplayProp = relations.Any(r => r.Type == RelationType.ManyToMany) ? relations.First(r => r.Type == RelationType.ManyToMany).DisplayedProperty : null;
             StringBuilder versioningDTOBuilder = new StringBuilder();
             foreach (var item in propList)
             {
                 if (item.EndsWith("Ids"))
                 {
-                    var temp = item.Remove(item.Length - 3);
-                    string? relatedEntityManyPlural = relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.EndsWith("y") ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[..^1] + "ies" : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity + "s";
-                    var tempPlural = temp.EndsWith("y") ? temp[..^1] + "ies" : temp + "s";
-                    versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{tempPlural}.Select(x => x.Id).ToList(),");
+                    //var temp = item.Remove(item.Length - 3);
+                    string? relatedEntityManyPlural = manyEntityRelated!.GetPluralName();
+                    //var tempPlural = temp.GetPluralName();
+                    versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{relatedEntityManyPlural}.Select(x => x.Id).ToList(),");
+                }
+                else if (manyDisplayProp != null && item == (manyEntityRelated + manyDisplayProp.GetPluralName()))
+                {
+                    string? relatedEntityManyPlural = manyEntityRelated!.GetPluralName();
+                    versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{relatedEntityManyPlural}.Select(x => x.{manyDisplayProp}).ToList(),");
+                }
+                else if (!item.EndsWith("Id") && relations.Any(r => item.Contains(r.RelatedEntity)))
+                {
+                    Relation rel = relations.First(r => item.Contains(r.RelatedEntity));
+                    switch (rel.Type)
+                    {
+                        case RelationType.OneToOneSelfJoin:
+                            versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{rel.RelatedEntity}Parent != null ? obj.{rel.RelatedEntity}Parent.{rel.DisplayedProperty} : null,");
+                            break;
+                        case RelationType.OneToOne:
+                            versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{rel.RelatedEntity}.{rel.DisplayedProperty},");
+                            break;
+                        case RelationType.OneToOneNullable:
+                            versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{rel.RelatedEntity} != null ? obj.{rel.RelatedEntity}.{rel.DisplayedProperty} : null,");
+                            break;
+                        case RelationType.ManyToOne:
+                            versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{rel.RelatedEntity}.{rel.DisplayedProperty},");
+                            break;
+                        case RelationType.ManyToOneNullable:
+                            versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{rel.RelatedEntity} != null ? obj.{rel.RelatedEntity}.{rel.DisplayedProperty} : null,");
+                            break;
+                        default:
+                            break;
+                    }
                 }
                 else
                     versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{item},");
@@ -1347,21 +1501,27 @@ namespace Application.{entityPlural}.EventHandlers
                 {
                     case RelationType.OneToOneSelfJoin:
                         propList.Add($"{relation.RelatedEntity}ParentId");
+                        propList.Add($"{relation.RelatedEntity}Parent{relation.DisplayedProperty}");
                         break;
                     case RelationType.OneToOne:
                         propList.Add($"{relation.RelatedEntity}Id");
+                        propList.Add($"{relation.RelatedEntity}{relation.DisplayedProperty}");
                         break;
                     case RelationType.OneToOneNullable:
                         propList.Add($"{relation.RelatedEntity}Id");
+                        propList.Add($"{relation.RelatedEntity}{relation.DisplayedProperty}");
                         break;
                     case RelationType.ManyToOne:
                         propList.Add($"{relation.RelatedEntity}Id");
+                        propList.Add($"{relation.RelatedEntity}{relation.DisplayedProperty}");
                         break;
                     case RelationType.ManyToOneNullable:
                         propList.Add($"{relation.RelatedEntity}Id");
+                        propList.Add($"{relation.RelatedEntity}{relation.DisplayedProperty}");
                         break;
                     case RelationType.ManyToMany:
                         propList.Add($"{relation.RelatedEntity}Ids");
+                        propList.Add($"{relation.RelatedEntity}{relation.DisplayedProperty.GetPluralName()}");
                         break;
                     default:
                         break;

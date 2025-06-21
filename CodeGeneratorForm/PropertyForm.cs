@@ -153,6 +153,9 @@ namespace CodeGeneratorForm
                 case "Video":
                     property.Type = "VD";
                     break;
+                case "List of videos":
+                    property.Type = "VDs";
+                    break;
 
                 case "List of":
                     property.Type = propValidation.Required ? $"List<{cmboListType.SelectedItem}>" : $"List<{cmboListType.SelectedItem}>?";
@@ -187,8 +190,15 @@ namespace CodeGeneratorForm
         private void PropertyForm_Load(object sender, EventArgs e)
         {
             if (PropertyInfo.GeneralInfo.Name == null || PropertyInfo.GeneralInfo.Type == null)
+            {
+                this.chkLocalized.Visible = this.HasLocalization;
                 return;
+
+            }
             this.txtName.Text = PropertyInfo.GeneralInfo.Name;
+            this.chkHasColumn.Checked = PropertyInfo.GeneratedColumn;
+            this.chkHiddenColumn.Checked = PropertyInfo.HiddenColumn;
+            this.chkLocalized.Visible = this.HasLocalization;
             this.chkLocalized.Checked = PropertyInfo.Localized ? true : false;
 
             if (PropertyInfo.GeneralInfo.Type.StartsWith("List"))
@@ -229,6 +239,12 @@ namespace CodeGeneratorForm
             if (PropertyInfo.GeneralInfo.Type == "VD")
             {
                 cmboType.SelectedIndex = 10;
+                FillValidation();
+                return;
+            }
+            if (PropertyInfo.GeneralInfo.Type == "VDs")
+            {
+                cmboType.SelectedIndex = 11;
                 FillValidation();
                 return;
             }

@@ -81,7 +81,7 @@
             // cmboType
             // 
             cmboType.FormattingEnabled = true;
-            cmboType.Items.AddRange(new object[] { "string", "int", "double", "decimal", "float", "bool", "enum", "List of", "Image (single file)", "List of images (multi files)", "Video", "DateTime", "DateOnly", "TimeOnly", "Guid" });
+            cmboType.Items.AddRange(new object[] { "string", "int", "double", "decimal", "float", "bool", "enum", "List of", "Image (single file)", "List of images (multi files)", "Video", "List of videos", "DateTime", "DateOnly", "TimeOnly", "Guid" });
             cmboType.Location = new Point(62, 41);
             cmboType.Name = "cmboType";
             cmboType.Size = new Size(128, 23);
@@ -189,7 +189,7 @@
             chkLocalized.TabIndex = 14;
             chkLocalized.Text = "Localized";
             chkLocalized.UseVisualStyleBackColor = true;
-            chkLocalized.Visible = this.HasLocalization;
+            chkLocalized.Visible = false;
             // 
             // lblEnum
             // 

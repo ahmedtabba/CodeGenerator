@@ -11,6 +11,7 @@ namespace SharedClasses
         public string RelatedEntity { get; set; } = null!;
         public RelationType Type { get; set; }
         public string DisplayedProperty { get; set; } = null!;
+        public bool IsGeneratedInTable { get; set; } = true;
         public bool HiddenInTable { get; set; } = false;
     }
 }
