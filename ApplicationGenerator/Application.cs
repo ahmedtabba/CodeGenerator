@@ -55,6 +55,7 @@ namespace Application.Common.Interfaces.IRepositories
             StringBuilder mapperEnum = new StringBuilder();
             StringBuilder imageCode = new StringBuilder();
             StringBuilder videoCode = new StringBuilder();
+            StringBuilder fileCode = new StringBuilder();
             foreach (var prop in properties)
             {
                 if (prop.Type == "GPG")
@@ -112,6 +113,37 @@ namespace Application.Common.Interfaces.IRepositories
                 {
                     propList.Add($"\t\tpublic List<FileDto> {prop.Name}Files {{ get; set; }} = new List<FileDto>();");
                     videoCode.Append($@"
+                foreach (var item in request.{prop.Name}Files)
+                    {{
+                        var path = await _fileService.UploadFileAsync(item);
+                        {entityName.ToLower()}.{prop.Name}.Add(path);
+                    }}
+
+");
+                }
+                else if (prop.Type == "FL")
+                {
+                    if (prop.Validation != null && prop.Validation.Required)
+                    {
+                        propList.Add($"\t\tpublic FileDto {prop.Name}File {{ get; set; }} = new FileDto();");
+                        fileCode.Append($@"
+                {entityName.ToLower()}.{prop.Name} =  await _fileService.UploadFileAsync(request.{prop.Name}File);
+
+");
+                    }
+                    else
+                    {
+                        propList.Add($"\t\tpublic FileDto? {prop.Name}File {{ get; set; }}");
+                        fileCode.Append($@"
+                {entityName.ToLower()}.{prop.Name} = request.{prop.Name}File != null ? await _fileService.UploadFileAsync(request.{prop.Name}File) : null;
+
+");
+                    }
+                }
+                else if (prop.Type == "FLs")
+                {
+                    propList.Add($"\t\tpublic List<FileDto> {prop.Name}Files {{ get; set; }} = new List<FileDto>();");
+                    fileCode.Append($@"
                 foreach (var item in request.{prop.Name}Files)
                     {{
                         var path = await _fileService.UploadFileAsync(item);
@@ -292,6 +324,7 @@ namespace Application.{entityPlural}.Commands.Create{entityName}
                 var {entityName.ToLower()} = _mapper.Map<{entityName}>(request);
                 {imageCode}
                 {videoCode}
+                {fileCode}
                 {relationManyToManyCode}
                 await {entityRepoName}Repository.AddAsync({entityName.ToLower()});
                 {eventCode}
@@ -699,12 +732,16 @@ namespace Application.{entityPlural}.Commands.CreateBulk{entityName}
             var propList = new List<string>();
             StringBuilder imageCode = new StringBuilder();
             StringBuilder videoCode = new StringBuilder();
+            StringBuilder fileCode = new StringBuilder();
             string? oldImageUrl = string.Empty;
             string? oldVideoUrl = string.Empty;
+            string? oldFileUrl = string.Empty;
             StringBuilder oldImageToDeleteCode = new StringBuilder();
             StringBuilder oldVideoToDeleteCode = new StringBuilder();
             StringBuilder oldImagesToDeleteCode = new StringBuilder();
             StringBuilder oldVideosToDeleteCode = new StringBuilder();
+            StringBuilder oldFileToDeleteCode = new StringBuilder();
+            StringBuilder oldFilesToDeleteCode = new StringBuilder();
             StringBuilder mapperEnum = new StringBuilder();
             foreach (var prop in properties)
             {
@@ -910,6 +947,107 @@ namespace Application.{entityPlural}.Commands.CreateBulk{entityName}
 
 ");
                 }
+                else if (prop.Type == "FL")
+                {
+                    if (prop.Validation != null && prop.Validation.Required)
+                    {
+                        propList.Add($"\t\tpublic FileDto? {prop.Name}File {{ get; set; }}");
+                        propList.Add($"\t\tpublic string? {prop.Name}Url {{ get; set; }}");
+                        oldFileUrl = $"var oldFileUrl = existingObj.{prop.Name};";
+                        fileCode.Append($@"
+                if (request.{prop.Name}File != null)
+                    existingObj.{prop.Name} = await _fileService.UploadFileAsync(request.{prop.Name}File);
+                else
+                    existingObj.{prop.Name} = request.{prop.Name}Url!;
+
+");
+                        oldFileToDeleteCode.Append($@"
+                if (request.{prop.Name}File != null)
+                    await _fileService.DeleteFileAsync(oldFileUrl);
+
+");
+                    }
+                    else
+                    {
+                        propList.Add($"\t\tpublic FileDto? {prop.Name}File {{ get; set; }}");
+                        propList.Add($"\t\tpublic bool? DeleteOld{prop.Name} {{ get; set; }}");
+                        oldFileUrl = $"var oldFileUrl = existingObj.{prop.Name};";
+                        fileCode.Append($@"
+                if (request.{prop.Name}File != null)
+                    existingObj.{prop.Name} = await _fileService.UploadFileAsync(request.{prop.Name}File);
+                if (request.DeleteOld{prop.Name} != null && request.DeleteOld{prop.Name}.Value)
+                    existingObj.{prop.Name} = null;
+
+");
+                        oldFileToDeleteCode.Append($@"
+                if (request.{prop.Name}File != null || (request.DeleteOld{prop.Name} != null && request.DeleteOld{prop.Name}.Value))
+                    if(oldVideoUrl != null )
+                    await _fileService.DeleteFileAsync(oldFileUrl);
+
+");
+                    }
+                }
+                else if (prop.Type == "FLs")
+                {
+                    propList.Add($"\t\tpublic List<FileDto>? {prop.Name}Files {{ get; set; }} = new List<FileDto>();");
+                    propList.Add($"\t\tpublic List<string>? Deleted{prop.Name}URLs {{ get; set; }}");
+                    fileCode.Append($@"
+                if (request.{prop.Name}Files != null && request.{prop.Name}Files.Any())
+                {{
+
+                    //Save old urls
+                    var oldFilesURLs = new List<string>();
+                    foreach (var item in existingObj.{prop.Name})
+                    {{
+                        oldFilesURLs.Add(item);
+                    }}
+                    existingObj.{prop.Name}.Clear();
+                    //Add new files
+                    foreach (var file in request.{prop.Name}Files)
+                    {{
+                        var fileUrl = await _fileService.UploadFileAsync(file);
+                        // Add the new URL
+                        existingObj.{prop.Name}.Add(fileUrl);
+                    }}
+                    //Add old files to entity
+                    if (request.Deleted{prop.Name}URLs != null)
+                        foreach (var item in oldFilesURLs)
+                        {{
+                            if (!request.Deleted{prop.Name}URLs.Contains(item))
+                                existingObj.{prop.Name}.Add(item);
+                        }}
+                    else
+                        foreach (var item in oldFilesURLs)
+                        {{
+                            existingObj.{prop.Name}.Add(item);
+                        }}
+                }}
+                else
+                {{
+                    if (request.Deleted{prop.Name}URLs != null && request.Deleted{prop.Name}URLs.Any())
+                    {{
+                        var remainingFilesURLs = new List<string>();
+                        foreach (var item in existingObj.{prop.Name})
+                        {{
+                            if (!request.Deleted{prop.Name}URLs.Contains(item))
+                            {{
+                                remainingFilesURLs.Add(item);
+                            }}
+                        }}
+                        existingObj.{prop.Name} = remainingFilesURLs;
+                    }}
+                }}
+
+");
+                    oldFilesToDeleteCode.Append($@"
+                if(request.Deleted{prop.Name}URLs != null)
+                    foreach (var path in request.Deleted{prop.Name}URLs)
+                    {{
+                        await _fileService.DeleteFileAsync(path);
+                    }}
+
+");
+                }
                 else
                 {
                     if (enumProps.Any(p => p.prop == prop.Name))
@@ -1046,10 +1184,13 @@ namespace Application.{entityPlural}.Commands.CreateBulk{entityName}
 ";
             string? oldImageUrlLine = hasVersioning ? null : oldImageUrl;
             string? oldVideoUrlLine = hasVersioning ? null : oldVideoUrl;
+            string? oldFileUrlLine = hasVersioning ? null : oldFileUrl;
             string? oldImageToDeleteCodeLine = hasVersioning ? null : oldImageToDeleteCode.ToString();
             string? oldVideoToDeleteCodeLine = hasVersioning ? null : oldVideoToDeleteCode.ToString();
+            string? oldFileToDeleteCodeLine = hasVersioning ? null : oldFileToDeleteCode.ToString();
             string? oldImagesToDeleteCodeLine = hasVersioning ? null : oldImagesToDeleteCode.ToString();
             string? oldVideosToDeleteCodeLine = hasVersioning ? null : oldVideosToDeleteCode.ToString();
+            string? oldFilesToDeleteCodeLine = hasVersioning ? null : oldFilesToDeleteCode.ToString();
 
             string GetMethod = relations.Any() ? $"Get{entityName}" : "GetByIdAsync";
             string content = $@"
@@ -1122,11 +1263,13 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                 {deepCopyCode}
                 {oldImageUrlLine}
                 {oldVideoUrlLine}
+                {oldFileUrlLine}
                 _mapper.Map(request, existingObj);
                 {localizationCode}
 
                 {imageCode}
-                {videoCode}
+                {videoCode}                
+                {fileCode}
                 {relationManyToManyCode}
                 {eventCode}
 
@@ -1136,10 +1279,13 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                 await _unitOfWork.CommitAsync();
 
                 {oldImageToDeleteCodeLine}
-                {oldVideoToDeleteCodeLine}
+                {oldVideoToDeleteCodeLine}      
+                {oldFileToDeleteCodeLine}
                 
                 {oldImagesToDeleteCodeLine}
-                {oldVideosToDeleteCodeLine}
+                {oldVideosToDeleteCodeLine}   
+                {oldFilesToDeleteCodeLine}
+
             }}
             catch (Exception)
             {{
@@ -1600,7 +1746,7 @@ namespace Application.{entityPlural}.Commands.UpdateBulk{entityName}
             StringBuilder rulesStore = new StringBuilder();
             foreach (var item in properties)
             {
-                if (item.Type != "GPG" && item.Type != "PNGs" && item.Type != "VD" && item.Type != "VDs")
+                if (item.Type != "GPG" && item.Type != "PNGs" && item.Type != "VD" && item.Type != "VDs" && item.Type != "FL" && item.Type != "FLs")
                 {
                     string? rule = GeneratePropertyRules(item);
                     if (rule != null)
@@ -1798,11 +1944,11 @@ namespace Application.{entityPlural}.Commands.UpdateBulk{entityName}
                 {entityName.ToLower()}.AddDomainEvent({lowerEntityName}Event);
 ";
 
-            string? deletedImagesVar = hasVersioning ? null : properties.Any(p => (p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD" || p.Type == "VDs")) ? $"var deletedImagesPaths = new List<string>();" : null;
-            StringBuilder ImageSaveCode = new StringBuilder();
-            string? DeleteImagesCode = hasVersioning ? null : properties.Any(p => (p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD" || p.Type == "VDs")) 
+            string? deletedAssetsVar = hasVersioning ? null : properties.Any(p => (p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD" || p.Type == "VDs" || p.Type == "FL" || p.Type == "FLs")) ? $"var deletedAssetsPaths = new List<string>();" : null;
+            StringBuilder AssetSaveCode = new StringBuilder();
+            string? deleteAssetsCode = hasVersioning ? null : properties.Any(p => (p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD" || p.Type == "VDs" || p.Type == "FL" || p.Type == "FLs")) 
                 ? $@"
-                foreach (var path in deletedImagesPaths)
+                foreach (var path in deletedAssetsPaths)
                     {{
                         if (path != null)
                             await _fileService.DeleteFileAsync(path);
@@ -1811,30 +1957,41 @@ namespace Application.{entityPlural}.Commands.UpdateBulk{entityName}
             foreach (var prop in properties)
             {
                 if (prop.Type == "GPG")
-                    ImageSaveCode.Append($@"
-                deletedImagesPaths.Add({entityName.ToLower()}.{prop.Name});
+                    AssetSaveCode.Append($@"
+                deletedAssetsPaths.Add({entityName.ToLower()}.{prop.Name});
 
 ");
                 if (prop.Type == "VD")
-                    ImageSaveCode.Append($@"
-                deletedImagesPaths.Add({entityName.ToLower()}.{prop.Name});
+                    AssetSaveCode.Append($@"
+                deletedAssetsPaths.Add({entityName.ToLower()}.{prop.Name});
+
+");
+                if (prop.Type == "FL")
+                    AssetSaveCode.Append($@"
+                deletedAssetsPaths.Add({entityName.ToLower()}.{prop.Name});
 
 ");
                 if (prop.Type == "PNGs")
-                    ImageSaveCode.Append($@"
+                    AssetSaveCode.Append($@"
                 foreach(var path in {entityName.ToLower()}.{prop.Name})
-                    deletedImagesPaths.Add(path);
+                    deletedAssetsPaths.Add(path);
 
 ");
                 if (prop.Type == "VDs")
-                    ImageSaveCode.Append($@"
+                    AssetSaveCode.Append($@"
                 foreach(var path in {entityName.ToLower()}.{prop.Name})
-                    deletedImagesPaths.Add(path);
+                    deletedAssetsPaths.Add(path);
+
+");
+                if (prop.Type == "FLs")
+                    AssetSaveCode.Append($@"
+                foreach(var path in {entityName.ToLower()}.{prop.Name})
+                    deletedAssetsPaths.Add(path);
 
 ");
             }
             string GetMethod = relations.Any() ? $"Get{entityName}" : "GetByIdAsync";
-            string? ImageSaveCodeLine = hasVersioning ? null : ImageSaveCode.ToString();
+            string? AssetSaveCodeLine = hasVersioning ? null : AssetSaveCode.ToString();
             string content = $@"
 using Microsoft.Extensions.Logging;
 using System;
@@ -1879,8 +2036,8 @@ namespace Application.{entityPlural}.Commands.Delete{entityName}
             {{
                 await _unitOfWork.BeginTransactionAsync();
                 var {entityName.ToLower()} = await {entityRepoName}Repository.{GetMethod}(request.{entityName}Id);
-                {deletedImagesVar}
-                {ImageSaveCodeLine}
+                {deletedAssetsVar}
+                {AssetSaveCodeLine}
                 {eventCode1}
 
                 await {entityRepoName}Repository.DeleteAsync({entityName.ToLower()});
@@ -1888,7 +2045,7 @@ namespace Application.{entityPlural}.Commands.Delete{entityName}
 
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
                 await _unitOfWork.CommitAsync();
-                {DeleteImagesCode}
+                {deleteAssetsCode}
             }}
             catch (Exception)
             {{
@@ -2227,6 +2384,14 @@ namespace Application.{entityPlural}.Commands.DeleteBulk{entityName}
                 {
                     mapperAssets.Append($".ForMember(dest => dest.{prop.Name}Urls, opt => opt.MapFrom(src => src.{prop.Name}))");
                 }
+                else if (prop.Type == "FL")
+                {
+                    mapperAssets.Append($".ForMember(dest => dest.{prop.Name}Url, opt => opt.MapFrom(src => src.{prop.Name}))");
+                }
+                else if (prop.Type == "FLs")
+                {
+                    mapperAssets.Append($".ForMember(dest => dest.{prop.Name}Urls, opt => opt.MapFrom(src => src.{prop.Name}))");
+                }
             }
             StringBuilder relationMapp = new StringBuilder();
             foreach (var rel in relations)
@@ -2426,6 +2591,14 @@ namespace Application.{entityPlural}.Queries.Get{entityName}Query
                         mapperAssets.Append($".ForMember(dest => dest.{prop.Name}Url, opt => opt.MapFrom(src => src.{prop.Name}))");
                     }
                     else if (prop.Type == "VDs")
+                    {
+                        mapperAssets.Append($".ForMember(dest => dest.{prop.Name}Urls, opt => opt.MapFrom(src => src.{prop.Name}))");
+                    }
+                    else if (prop.Type == "FL")
+                    {
+                        mapperAssets.Append($".ForMember(dest => dest.{prop.Name}Url, opt => opt.MapFrom(src => src.{prop.Name}))");
+                    }
+                    else if (prop.Type == "FLs")
                     {
                         mapperAssets.Append($".ForMember(dest => dest.{prop.Name}Urls, opt => opt.MapFrom(src => src.{prop.Name}))");
                     }
@@ -2630,6 +2803,14 @@ namespace Application.{entityPlural}.Queries.Get{entityName}WithLocalization
                 {
                     mapperAssets.Append($".ForMember(dest => dest.{prop.Name}Urls, opt => opt.MapFrom(src => src.{prop.Name}))");
                     mapperAssets.AppendLine();
+                }
+                else if (prop.Type == "FL")
+                {
+                    mapperAssets.Append($".ForMember(dest => dest.{prop.Name}Url, opt => opt.MapFrom(src => src.{prop.Name}))");
+                }
+                else if (prop.Type == "FLs")
+                {
+                    mapperAssets.Append($".ForMember(dest => dest.{prop.Name}Urls, opt => opt.MapFrom(src => src.{prop.Name}))");
                 }
             }
             StringBuilder relationMapp = new StringBuilder();
@@ -2911,6 +3092,21 @@ namespace Application.{entityPlural}.Queries.Get{entityPlural}WithPagination
                 {
                     propList.Add($"\t\tpublic List<string> {prop.Name}Urls {{ get; set; }} = new List<string>();");
                 }
+                else if (prop.Type == "FL")
+                {
+                    if (prop.Validation != null && prop.Validation.Required)
+                    {
+                        propList.Add($"\t\tpublic string {prop.Name}Url {{ get; set; }}");
+                    }
+                    else
+                    {
+                        propList.Add($"\t\tpublic string? {prop.Name}Url {{ get; set; }}");
+                    }
+                }
+                else if (prop.Type == "FLs")
+                {
+                    propList.Add($"\t\tpublic List<string> {prop.Name}Urls {{ get; set; }} = new List<string>();");
+                }
                 else
                 {
                     if (enumProps.Any(p => p.prop == prop.Name))
@@ -3005,6 +3201,14 @@ namespace Application.{entityPlural}.Queries
             {
                 rules.AppendLine($"            RuleFor(x => x.{property.Name}Files)");
             }
+            else if (property.Type == "FL")
+            {
+                rules.AppendLine($"            RuleFor(x => x.{property.Name}File)");
+            }
+            else if (property.Type == "FLs")
+            {
+                rules.AppendLine($"            RuleFor(x => x.{property.Name}Files)");
+            }
             else
                 rules.AppendLine($"            RuleFor(x => x.{property.Name})");
 
@@ -3014,11 +3218,11 @@ namespace Application.{entityPlural}.Queries
                 //rules.Append(".");
 
                 // Use NotNull() for numeric types, NotEmpty() for strings
-                if (property.Type == "int" || property.Type == "decimal" || property.Type == "float" || property.Type == "double" || property.Type == "GPG" || property.Type == "VD")
+                if (property.Type == "int" || property.Type == "decimal" || property.Type == "float" || property.Type == "double" || property.Type == "GPG" || property.Type == "VD" || property.Type == "FL")
                 {
                     rules.AppendLine($"\t\t\t\t.NotNull().WithMessage(\"{property.Name} is required.\")");
                 }
-                else if (property.Type == "string" || property.Type == "PNGs" || property.Type == "VDs" || property.Type.Contains("List<") || property.Type.Contains("Date") || property.Type.Contains("Time"))
+                else if (property.Type == "string" || property.Type == "PNGs" || property.Type == "VDs" || property.Type == "FLs" || property.Type.Contains("List<") || property.Type.Contains("Date") || property.Type.Contains("Time"))
                 {
                     rules.AppendLine($"\t\t\t\t.NotEmpty().WithMessage(\"{property.Name} is required.\")");
                 }

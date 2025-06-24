@@ -50,6 +50,7 @@
             groupBox1 = new GroupBox();
             chkHasColumn = new CheckBox();
             chkHiddenColumn = new CheckBox();
+            lblFileHint = new Label();
             groupBox1.SuspendLayout();
             SuspendLayout();
             // 
@@ -81,7 +82,7 @@
             // cmboType
             // 
             cmboType.FormattingEnabled = true;
-            cmboType.Items.AddRange(new object[] { "string", "int", "double", "decimal", "float", "bool", "enum", "List of", "Image (single file)", "List of images (multi files)", "Video", "List of videos", "DateTime", "DateOnly", "TimeOnly", "Guid" });
+            cmboType.Items.AddRange(new object[] { "string", "int", "double", "decimal", "float", "bool", "enum", "List of", "Image (single file)", "List of images (multi files)", "Video", "List of videos", "File", "List of files", "DateTime", "DateOnly", "TimeOnly", "Guid" });
             cmboType.Location = new Point(62, 41);
             cmboType.Name = "cmboType";
             cmboType.Size = new Size(128, 23);
@@ -270,11 +271,23 @@
             chkHiddenColumn.Text = "Hide in Table";
             chkHiddenColumn.UseVisualStyleBackColor = true;
             // 
+            // lblFileHint
+            // 
+            lblFileHint.AutoSize = true;
+            lblFileHint.Location = new Point(346, 44);
+            lblFileHint.Name = "lblFileHint";
+            lblFileHint.Size = new Size(220, 15);
+            lblFileHint.TabIndex = 40;
+            lblFileHint.Text = "Accepted Files : rar/zip/txt/xlsx/docx/pdf";
+            lblFileHint.UseMnemonic = false;
+            lblFileHint.Visible = false;
+            // 
             // PropertyForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(793, 341);
+            Controls.Add(lblFileHint);
             Controls.Add(chkHiddenColumn);
             Controls.Add(chkHasColumn);
             Controls.Add(groupBox1);
@@ -322,5 +335,6 @@
         private GroupBox groupBox1;
         private CheckBox chkHasColumn;
         private CheckBox chkHiddenColumn;
+        private Label lblFileHint;
     }
 }

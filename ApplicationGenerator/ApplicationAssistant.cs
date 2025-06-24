@@ -57,6 +57,15 @@ namespace ApplicationGenerator
                     case "VDs":
                         propList.Add($"\t\tpublic {prop.Type} {prop.Name} {{ get; set; }} = new {prop.Type}();");
                         break;
+                    case "FL":
+                        if (prop.Validation != null && prop.Validation.Required)
+                            propList.Add($"\t\tpublic {prop.Type} {prop.Name} {{ get; set; }}");
+                        else
+                            propList.Add($"\t\tpublic {prop.Type}? {prop.Name} {{ get; set; }}");
+                        break;
+                    case "FLs":
+                        propList.Add($"\t\tpublic {prop.Type} {prop.Name} {{ get; set; }} = new {prop.Type}();");
+                        break;
                     default:
                         propList.Add($"\t\tpublic {prop.Type} {prop.Name} {{ get; set; }}");
                         break;
@@ -112,7 +121,7 @@ namespace ApplicationGenerator
 
             }
             var tempList = string.Join(Environment.NewLine, propList);
-            var props = tempList.Replace("GPG", "string").Replace("PNGs", "List<string>").Replace("VDs", "List<string>").Replace("VD", "string");
+            var props = tempList.Replace("GPG", "string").Replace("PNGs", "List<string>").Replace("VDs", "List<string>").Replace("VD", "string").Replace("FLs", "List<string>").Replace("FL", "string");
 
             var dtoContent = $@"using System;
 using Application.Common.Interfaces.Services.Versioning;

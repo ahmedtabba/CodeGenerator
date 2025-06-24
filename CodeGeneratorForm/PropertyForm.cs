@@ -45,6 +45,10 @@ namespace CodeGeneratorForm
                     lblEnum.Visible = false;
                     txtEnums.Visible = false;
                 }
+                if (cmboType.SelectedIndex == 12 || cmboType.SelectedIndex == 13)
+                    lblFileHint.Visible = true;
+                else
+                    lblFileHint.Visible = false;
             }
         }
 
@@ -156,6 +160,12 @@ namespace CodeGeneratorForm
                 case "List of videos":
                     property.Type = "VDs";
                     break;
+                case "File":
+                    property.Type = "FL";
+                    break;
+                case "List of files":
+                    property.Type = "FLs";
+                    break;
 
                 case "List of":
                     property.Type = propValidation.Required ? $"List<{cmboListType.SelectedItem}>" : $"List<{cmboListType.SelectedItem}>?";
@@ -245,6 +255,18 @@ namespace CodeGeneratorForm
             if (PropertyInfo.GeneralInfo.Type == "VDs")
             {
                 cmboType.SelectedIndex = 11;
+                FillValidation();
+                return;
+            }
+            if (PropertyInfo.GeneralInfo.Type == "FL")
+            {
+                cmboType.SelectedIndex = 12;
+                FillValidation();
+                return;
+            }
+            if (PropertyInfo.GeneralInfo.Type == "FLs")
+            {
+                cmboType.SelectedIndex = 13;
                 FillValidation();
                 return;
             }

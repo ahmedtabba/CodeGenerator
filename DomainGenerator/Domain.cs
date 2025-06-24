@@ -35,6 +35,15 @@ namespace DomainGenerator
                     case "VDs":
                         propList.Add($"        public {prop.Type} {prop.Name} {{ get; set; }} = new {prop.Type}();");
                         break;
+                    case "FL":
+                        if (prop.Validation != null && prop.Validation.Required)
+                            propList.Add($"        public {prop.Type} {prop.Name} {{ get; set; }}");
+                        else
+                            propList.Add($"        public {prop.Type}? {prop.Name} {{ get; set; }}");
+                        break;
+                    case "FLs":
+                        propList.Add($"        public {prop.Type} {prop.Name} {{ get; set; }} = new {prop.Type}();");
+                        break;
                     default:
                         propList.Add($"        public {prop.Type} {prop.Name} {{ get; set; }}");
                         break;
@@ -50,7 +59,7 @@ namespace DomainGenerator
     //     : $"        public {p.Type} {p.Name} {{ get; set; }}"
     //));
 
-            var props = tempProps.Replace("GPG", "string").Replace("PNGs", "List<string>").Replace("VDs", "List<string>").Replace("VD", "string");
+            var props = tempProps.Replace("GPG", "string").Replace("PNGs", "List<string>").Replace("VDs", "List<string>").Replace("VD", "string").Replace("FLs", "List<string>").Replace("FL", "string");
             //var propsList = properties.Item1.Any(p => p.Type == "VD") ? properties.Item1.Any(p => p.Type == "VD" && p.Validation != null) ? props.Replace("VD", "string") : props.Replace("VD", "string?") : props;
             string content = null!;
             if (!hasLocalization) 

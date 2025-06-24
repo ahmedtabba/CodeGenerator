@@ -103,7 +103,7 @@ namespace CodeGeneratorForm
             }
 
             string entityPlural = entityName.GetPluralName();
-            bool hasAssets = properties.PropertiesList.Any(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD" || p.Type == "VDs");
+            bool hasAssets = properties.PropertiesList.Any(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD" || p.Type == "VDs" || p.Type == "FL" || p.Type == "FLs");
             if (!hasAssets)
                 VueJsHelper.GenerateStoreFile(entityName, properties,NotGeneratedTableColumns,HiddenTableColumns,Relations, VueJsHelper.VueJsSolutionPath);
             else
@@ -764,6 +764,12 @@ namespace CodeGeneratorForm
                         type = (prop.Validation != null && prop.Validation.Required) ? "string" : "string?";
                         break;
                     case "VDs":
+                        type = (prop.Validation != null && prop.Validation.Required) ? "List<string>" : "List<string>?";
+                        break;
+                    case "FL":
+                        type = (prop.Validation != null && prop.Validation.Required) ? "string" : "string?";
+                        break;
+                    case "FLs":
                         type = (prop.Validation != null && prop.Validation.Required) ? "List<string>" : "List<string>?";
                         break;
                     default:
