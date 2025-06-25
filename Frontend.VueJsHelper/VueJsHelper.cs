@@ -725,19 +725,30 @@ export const {storeName} = defineStore('{entityLower}', {{
             string viewTablePath = Path.Combine(viewDirectory, $"{entityPlural}.vue");
 
             StringBuilder enumFilters = new StringBuilder();
+            StringBuilder enumDisplayOption = new StringBuilder();
             foreach (var enm in enumProps)
             {
                 List<string> st = new List<string>();
+                List<string> stOptions = new List<string>();
                 for (int i = 0; i < enm.enumValues.Count; i++)
                 {
                     var enmValueLower = char.ToLower(enm.enumValues[i][0]) + enm.enumValues[i].Substring(1);
                     string line = $"    {{label: t('field.{enmValueLower}'), value: '{i}' }},";
+                    string lineOption = $"    {{label: t('field.{enmValueLower}'), value: {i} }},";
                     st.Add(line);
+                    stOptions.Add(lineOption);
                 }
                 enumFilters.AppendLine($@"
 const filter{entityName}{enm.prop}Options = [
 {string.Join(Environment.NewLine,st)}
 ];");
+
+                enumDisplayOption.AppendLine($@"
+const {entityName.GetCamelCaseName()}{enm.prop}Options = [
+{string.Join(Environment.NewLine, stOptions)}
+];
+");
+
             }
 
 
@@ -857,8 +868,9 @@ import {{ {capitalEntityPlural}_ROUTE as PAGE_ROUTE }} from '@/utils/Constants';
 import ListTemplate from '@/components/table/ListTemplate.vue';
 import {{ FilterMatchMode, FilterOperator }} from '@primevue/core/api';
 {relationImports}
-const {{ t, formattedDate, dataTableDateFormatter, isColumnSelected }} = useList(useStore(), PAGE_ROUTE, {{ autoLoad: false }});
+const {{ t, formattedDate, dataTableDateFormatter, isColumnSelected, getOptionLabel }} = useList(useStore(), PAGE_ROUTE, {{ autoLoad: false }});
 {enumFilters.ToString().TrimEnd()}
+{enumDisplayOption.ToString().TrimEnd()}
 
 const globalFields = ref([{string.Join(",", filterSectionGlobalFields)}]);
 const filters = ref();
@@ -910,7 +922,7 @@ initFilters();
                 return $@"
             <Column v-if=""isColumnSelected('{propLower}')"" field=""{propLower}"" :header=""$t('field.{propLower}')"" :show-add-button=""false"" :show-filter-match-modes=""false"" :show-filter-operator=""false"" :sortable=""true"" >
                 <template #body=""{{ data }}"">
-                    {{{{ data.{propLower} }}}}
+                    {{{{ getOptionLabel({entityName.GetCamelCaseName()}{prop.Name}Options,data.{propLower}) }}}}
                 </template>
                 <template #filter=""{{ filterModel }}"">
                         <Select v-model=""filterModel.value"" :options=""filter{entityName}{prop.Name}Options"" option-value=""value"" option-label=""label"" showClear :placeholder=""$t('field.{propLower}')""></Select>
@@ -1496,6 +1508,7 @@ const {{ state, onPropChanged, onSave, onCancel, t }} = useSingle(store, PAGE_RO
                         v-model=""state.{propLower}""
                         :placeholder=""$t('field.select{prop.Name}')""
                         class=""w-full""
+                        showClear
                         :invalid=""state.validationErrors.{propLower}""
                         @change=""(e) => onPropChanged(e.value, '{propLower}')""
                         :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
@@ -1544,7 +1557,6 @@ const {{ state, onPropChanged, onSave, onCancel, t }} = useSingle(store, PAGE_RO
                     />
                 </div>";
             }
-
             if (typeWithoutNullable == "GPG")
             {
                 return $@"
@@ -1905,6 +1917,7 @@ const {{ state, onPropChanged, onSave, onCancel, t }} = useSingle(store, PAGE_RO
                         :loading=""loading{entityRelatedPlural}""
                         :placeholder=""$t('field.select{rel.RelatedEntity}')""
                         class=""w-full""
+                        showClear
                         filter
                         @filter=""(e) => search{entityRelatedPlural}(e.value)""
                         @change=""(e) => onPropChanged(e.value, '{propLower}Id')""
