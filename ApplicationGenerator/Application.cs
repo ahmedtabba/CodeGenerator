@@ -217,18 +217,29 @@ namespace Application.Common.Interfaces.IRepositories
                         prop = $"\t\tpublic List<Guid> {relation.RelatedEntity}Ids {{ get; set; }}";
                         relationPropsList.Add(prop);
                         break;
+                    case RelationType.UserSingle:
+                        prop = $"\t\tpublic string {relation.DisplayedProperty}Id {{ get; set; }}";
+                        relationPropsList.Add(prop);
+                        break;
+                    case RelationType.UserSingleNullable:
+                        prop = $"\t\tpublic string? {relation.DisplayedProperty}Id {{ get; set; }}";
+                        relationPropsList.Add(prop);
+                        break;
+                    case RelationType.UserMany:
+                        prop = $"\t\tpublic List<string> {relation.DisplayedProperty.GetPluralName()}Ids {{ get; set; }}";
+                        relationPropsList.Add(prop);
+                        break;
                     default:
                         break;
                 }
             }
-
             string relationProps = string.Join(Environment.NewLine, relationPropsList);
-            string? injectCTORMany1 = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $",I{relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity}Repository {char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository";
-            string? injectCTORMany2 = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $"_{char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository = {char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository;";
-            string? injectCTORMany3 = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $"private readonly I{relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity}Repository _{char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository;";
-            string? relatedEntityManyPlural = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.EndsWith("y") ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[..^1] + "ies" : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity + "s";
-            string? relatedEntityManyRepo = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $"_{char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository";
-            string ? relationManyToManyCode = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $@"
+            string? injectCTORMany1 = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $",I{relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity}Repository {relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.GetCamelCaseName()}Repository";
+            string? injectCTORMany2 = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $"_{relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.GetCamelCaseName()}Repository = {relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.GetCamelCaseName()}Repository;";
+            string? injectCTORMany3 = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $"private readonly I{relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity}Repository _{relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.GetCamelCaseName()}Repository;";
+            string? relatedEntityManyPlural = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.GetPluralName();
+            string? relatedEntityManyRepo = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $"_{relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.GetCamelCaseName()}Repository";
+            string ? relationManyToManyCode = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $@"                                                                            
                 var objs = await {relatedEntityManyRepo}.GetAllAsTracking()
                         .Where(x => request.{relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity}Ids.Contains(x.Id))
                         .ToListAsync();                
@@ -237,6 +248,20 @@ namespace Application.Common.Interfaces.IRepositories
                 {{
                     {entityName.ToLower()}.{relatedEntityManyPlural}.Add(obj);
                 }}";
+
+            //string? injectCTORUserMany1 = !relations.Any(r => r.Type == RelationType.UserMany) ? null : $",I{entityName}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty}Repository {entityName.GetCamelCaseName()}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty}Repository";
+            //string? injectCTORUserMany2 = !relations.Any(r => r.Type == RelationType.UserMany) ? null : $"_{entityName.GetCamelCaseName()}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty}Repository = {entityName.GetCamelCaseName()}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty}Repository;";
+            //string? injectCTORUserMany3 = !relations.Any(r => r.Type == RelationType.UserMany) ? null : $"private readonly I{entityName}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty}Repository _{entityName.GetCamelCaseName()}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty}Repository;";
+            string? relationUserManyCode = !relations.Any(r => r.Type == RelationType.UserMany) ? null : $@"                                                                            
+                foreach (var id in request.{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty.GetPluralName()}Ids)
+                    {{
+                        {entityName}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty} user = new {entityName}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty}
+                        {{
+                            {entityName}Id = {entityName.ToLower()}.Id,
+                            UserId = id
+                        }};
+                        {entityName.ToLower()}.{entityName}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty.GetPluralName()}.Add(user);
+                    }}";
 
             string? localizationIRepo = hasLocalization ? $",I{entityName}LocalizationRepository {lowerEntityName}LocalizationRepository" : null;
             string? localizationInjectIRepo = hasLocalization ? $"_{lowerEntityName}LocalizationRepository = {lowerEntityName}LocalizationRepository;" : null;
@@ -326,6 +351,7 @@ namespace Application.{entityPlural}.Commands.Create{entityName}
                 {videoCode}
                 {fileCode}
                 {relationManyToManyCode}
+                {relationUserManyCode}
                 await {entityRepoName}Repository.AddAsync({entityName.ToLower()});
                 {eventCode}
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -557,23 +583,30 @@ namespace Application.{entityPlural}.Commands.CreateBulk{entityName}
             string commandName = $"Create{entityName}Command";
             string filePath = Path.Combine(path, $"{className}.cs");
             string? methodsUnique = string.Empty;
+            string? identityUsing = relations.Any(r => r.Type == RelationType.UserSingle || r.Type == RelationType.UserSingleNullable || r.Type == RelationType.UserMany) ? "using Application.Common.Interfaces.Identity;" : null;
             StringBuilder injectCTOR1 = new($"ILogger<{className}> logger");
             foreach (var relation in relations)
             {
-                if (relation.Type != RelationType.OneToMany || relation.Type != RelationType.OneToManyNullable)
-                    injectCTOR1.Append($",I{relation.RelatedEntity}Repository {char.ToLower(relation.RelatedEntity[0]) + relation.RelatedEntity.Substring(1)}Repository");
+                if (relation.Type != RelationType.OneToMany && relation.Type != RelationType.OneToManyNullable && relation.Type != RelationType.UserSingle && relation.Type != RelationType.UserSingleNullable && relation.Type != RelationType.UserMany)
+                    injectCTOR1.Append($",I{relation.RelatedEntity}Repository {relation.RelatedEntity.GetCamelCaseName()}Repository");
             }
             StringBuilder injectCTOR2 = new StringBuilder($"\t\t\t_logger = logger;");
             foreach (var relation in relations)
             {
-                if (relation.Type != RelationType.OneToMany || relation.Type != RelationType.OneToManyNullable)
-                    injectCTOR2.AppendLine($"_{char.ToLower(relation.RelatedEntity[0]) + relation.RelatedEntity.Substring(1)}Repository = {char.ToLower(relation.RelatedEntity[0]) + relation.RelatedEntity.Substring(1)}Repository;");
+                if (relation.Type != RelationType.OneToMany && relation.Type != RelationType.OneToManyNullable && relation.Type != RelationType.UserSingle && relation.Type != RelationType.UserSingleNullable && relation.Type != RelationType.UserMany)
+                    injectCTOR2.AppendLine($"_{relation.RelatedEntity.GetCamelCaseName()}Repository = {relation.RelatedEntity.GetCamelCaseName()}Repository;");
             }
             StringBuilder injectCTOR3 = new($"\t\tprivate readonly ILogger<{className}> _logger;");
             foreach (var relation in relations)
             {
-                if (relation.Type != RelationType.OneToMany || relation.Type != RelationType.OneToManyNullable)
-                    injectCTOR3.AppendLine($"private readonly I{relation.RelatedEntity}Repository _{char.ToLower(relation.RelatedEntity[0]) + relation.RelatedEntity.Substring(1)}Repository;");
+                if (relation.Type != RelationType.OneToMany && relation.Type != RelationType.OneToManyNullable && relation.Type != RelationType.UserSingle && relation.Type != RelationType.UserSingleNullable && relation.Type != RelationType.UserMany)
+                    injectCTOR3.AppendLine($"private readonly I{relation.RelatedEntity}Repository _{relation.RelatedEntity.GetCamelCaseName()}Repository;");
+            }
+            if(relations.Any(r => r.Type == RelationType.UserSingle || r.Type == RelationType.UserSingleNullable || r.Type == RelationType.UserMany))
+            {
+                injectCTOR1.Append($",IIdentityService identityService");
+                injectCTOR2.AppendLine($"\t\t\t_identityService = identityService;");
+                injectCTOR3.AppendLine($"\tprivate readonly IIdentityService _identityService;");
             }
             StringBuilder rulesStore = new StringBuilder();
             foreach (var item in properties)
@@ -600,13 +633,14 @@ namespace Application.{entityPlural}.Commands.CreateBulk{entityName}
                     methodsUnique += methodUnique;
                 }
             }
-            rulesStore.AppendLine(GenerateRelationRules(relations));
+            rulesStore.AppendLine(GenerateRelationRules(relations,entityName));
             string rules = string.Join(Environment.NewLine, rulesStore.ToString());
 
             string content = $@"
 using FluentValidation;
 using Application.Common.Interfaces.IRepositories;
 using Microsoft.Extensions.Logging;
+{identityUsing}
 
 namespace Application.{entityPlural}.Commands.Create{entityName}
 {{
@@ -720,6 +754,7 @@ namespace Application.{entityPlural}.Commands.CreateBulk{entityName}
                 {lowerEntityName}Event.RollbackedToVersionId = request.RollbackedToVersionId;
                 {lowerEntityName}Event.IsVersionedCommand = request.IsVersionedCommand;
 ";
+            string? identityUsing = relations.Any(r => r.Type == RelationType.UserSingle || r.Type == RelationType.UserSingleNullable || r.Type == RelationType.UserMany) ? "using Application.Common.Interfaces.Identity;" : null;
             var neededUsing = (hasVersioning || hasUserAction || hasNotification) ? $"using Domain.Events.{entityName}Events;using Application.Common.Models.Versioning;" : null;
             var deepCopyCode = (hasVersioning || hasUserAction || hasNotification) ? $"var old{entityName} = existingObj.DeepCopyJsonDotNet();" : null;
             var eventCode = !(hasVersioning || hasNotification || hasUserAction) ? null :
@@ -1115,6 +1150,18 @@ namespace Application.{entityPlural}.Commands.CreateBulk{entityName}
                         prop = $"\t\tpublic List<Guid> {relation.RelatedEntity}Ids {{ get; set; }}";
                         relationPropsList.Add(prop);
                         break;
+                    case RelationType.UserSingle:
+                        prop = $"\t\tpublic string {relation.DisplayedProperty}Id {{ get; set; }}";
+                        relationPropsList.Add(prop);
+                        break;
+                    case RelationType.UserSingleNullable:
+                        prop = $"\t\tpublic string? {relation.DisplayedProperty}Id {{ get; set; }}";
+                        relationPropsList.Add(prop);
+                        break;
+                    case RelationType.UserMany:
+                        prop = $"\t\tpublic List<string> {relation.DisplayedProperty.GetPluralName()}Ids {{ get; set; }}";
+                        relationPropsList.Add(prop);
+                        break;
                     default:
                         break;
                 }
@@ -1123,7 +1170,16 @@ namespace Application.{entityPlural}.Commands.CreateBulk{entityName}
             string? injectCTORMany1 = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $",I{relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity}Repository {char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository";
             string? injectCTORMany2 = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $"_{char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository = {char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository;";
             string? injectCTORMany3 = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $"private readonly I{relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity}Repository _{char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository;";
-            string? relatedEntityManyName = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity;
+            
+            string? injectCTORUserMany1 = !relations.Any(r => r.Type == RelationType.UserMany) ? null : $",I{entityName}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty}Repository {entityName.GetCamelCaseName()}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty}Repository";
+            string? injectCTORUserMany2 = !relations.Any(r => r.Type == RelationType.UserMany) ? null : $"_{entityName.GetCamelCaseName()}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty}Repository = {entityName.GetCamelCaseName()}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty}Repository;";
+            string? injectCTORUserMany3 = !relations.Any(r => r.Type == RelationType.UserMany) ? null : $"private readonly I{entityName}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty}Repository _{entityName.GetCamelCaseName()}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty}Repository;";
+            
+            string? injectCTORIdentity1 = !relations.Any(r => r.Type == RelationType.UserMany) ? null : ",IIdentityService identityService";
+            string? injectCTORIdentity2 = !relations.Any(r => r.Type == RelationType.UserMany) ? null : "_identityService = identityService;";
+            string? injectCTORIdentity3 = !relations.Any(r => r.Type == RelationType.UserMany) ? null : "private readonly IIdentityService _identityService;";
+            
+            string ? relatedEntityManyName = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity;
             string? relatedEntityManyPlural = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.EndsWith("y") ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[..^1] + "ies" : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity + "s";
             string? relatedEntityManyRepo = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $"_{char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository";
             string? relationManyToManyCode = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $@"
@@ -1153,6 +1209,39 @@ namespace Application.{entityPlural}.Commands.CreateBulk{entityName}
                         existingObj.{relatedEntityManyPlural}.Remove(existing{relatedEntityManyName});
                     }}
                 }}";
+
+            string? relationUserManyCode = !relations.Any(r => r.Type == RelationType.UserMany) ? null : $@"
+                //Handel {relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty.GetPluralName()}
+
+                var currentUsers = existingObj.{entityName}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty.GetPluralName()}.ToList();
+                var newUsersIds = request.{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty.GetPluralName()}Ids;
+                // Get the new users from the repository
+                var newUsers = await _identityService.GetAllUsers()
+                    .Where(u => newUsersIds.Contains(u.Id))
+                    .ToListAsync();
+                // Add new users if not already in the existing collection
+                foreach (var user in newUsers)
+                {{
+                    if (!currentUsers.Any(u => u.UserId == user.Id))
+                    {{
+                        {entityName}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty} obj = new {entityName}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty}
+                        {{
+                            {entityName} = existingObj,
+                            UserId = user.Id
+                        }};
+                        await _{entityName.GetCamelCaseName()}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty}Repository.AddAsync(obj);
+                        await _unitOfWork.SaveChangesAsync(cancellationToken);
+                    }}
+                }}
+                // Remove users that are no longer in the updated list
+                foreach (var currentUser in currentUsers)
+                {{
+                    if (!newUsersIds.Contains(currentUser.UserId))
+                    {{
+                        existingObj.{entityName}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty.GetPluralName()}.Remove(currentUser);
+                    }}
+                }}";
+
             string? localizationIRepo = hasLocalization ? $",I{entityName}LocalizationRepository {lowerEntityName}LocalizationRepository" : null;
             string? localizationInjectIRepo = hasLocalization ? $"_{lowerEntityName}LocalizationRepository = {lowerEntityName}LocalizationRepository;" : null;
             string? localizationFieldIRepo = hasLocalization ? $"private readonly I{entityName}LocalizationRepository _{lowerEntityName}LocalizationRepository;" : null;
@@ -1209,6 +1298,7 @@ using Domain.Enums;
 using Application.Common.Models.Localization;
 using Application.Common.Extensions;
 {neededUsing}
+{identityUsing}
 
 namespace Application.{entityPlural}.Commands.Update{entityName}
 {{
@@ -1238,12 +1328,14 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
         private readonly IFileService _fileService;
         {localizationFieldIRepo}
         {injectCTORMany3}
+        {injectCTORUserMany3}
+        {injectCTORIdentity3}
 
         public {className}Handler(ILogger<{className}Handler> logger,
                                             IMapper mapper,
                                             IUnitOfWorkAsync unitOfWork,
                                             IFileService fileService,
-                                            I{entityName}Repository repository{localizationIRepo}{injectCTORMany1})
+                                            I{entityName}Repository repository{localizationIRepo}{injectCTORMany1}{injectCTORUserMany1}{injectCTORIdentity1})
                                             
         {{
             _logger = logger;
@@ -1253,6 +1345,8 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
             _unitOfWork = unitOfWork;
             {localizationInjectIRepo}
             {injectCTORMany2}
+            {injectCTORUserMany2}
+            {injectCTORIdentity2}
         }}
         public async Task Handle({className} request, CancellationToken cancellationToken)
         {{
@@ -1271,6 +1365,7 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                 {videoCode}                
                 {fileCode}
                 {relationManyToManyCode}
+                {relationUserManyCode}
                 {eventCode}
 
                 await {entityRepoName}Repository.UpdateAsync(existingObj);
@@ -1725,23 +1820,30 @@ namespace Application.{entityPlural}.Commands.UpdateBulk{entityName}
             string commandName = $"Update{entityName}Command";
             string filePath = Path.Combine(path, $"{className}.cs");
             string? methodsUnique = string.Empty;
+            string? identityUsing = relations.Any(r => r.Type == RelationType.UserSingle || r.Type == RelationType.UserSingleNullable || r.Type == RelationType.UserMany) ? "using Application.Common.Interfaces.Identity;" : null;
             StringBuilder injectCTOR1 = new($"ILogger<{className}> logger,I{entityName}Repository {char.ToLower(entityName[0]) + entityName.Substring(1)}Repository");
             foreach (var relation in relations)
             {
-                if (relation.Type != RelationType.OneToMany && relation.Type != RelationType.OneToManyNullable && relation.Type != RelationType.OneToOneSelfJoin )
+                if (relation.Type != RelationType.OneToMany && relation.Type != RelationType.OneToManyNullable && relation.Type != RelationType.OneToOneSelfJoin && relation.Type != RelationType.UserSingle && relation.Type != RelationType.UserSingleNullable && relation.Type != RelationType.UserMany)
                     injectCTOR1.Append($",I{relation.RelatedEntity}Repository {char.ToLower(relation.RelatedEntity[0]) + relation.RelatedEntity.Substring(1)}Repository");
             }
             StringBuilder injectCTOR2 = new StringBuilder($"\t\t\t_logger = logger;_{char.ToLower(entityName[0]) + entityName.Substring(1)}Repository = {char.ToLower(entityName[0]) + entityName.Substring(1)}Repository;");
             foreach (var relation in relations)
             {
-                if (relation.Type != RelationType.OneToMany && relation.Type != RelationType.OneToManyNullable && relation.Type != RelationType.OneToOneSelfJoin)
+                if (relation.Type != RelationType.OneToMany && relation.Type != RelationType.OneToManyNullable && relation.Type != RelationType.OneToOneSelfJoin && relation.Type != RelationType.UserSingle && relation.Type != RelationType.UserSingleNullable && relation.Type != RelationType.UserMany)
                     injectCTOR2.AppendLine($"_{char.ToLower(relation.RelatedEntity[0]) + relation.RelatedEntity.Substring(1)}Repository = {char.ToLower(relation.RelatedEntity[0]) + relation.RelatedEntity.Substring(1)}Repository;");
             }
             StringBuilder injectCTOR3 = new($"\t\tprivate readonly ILogger<{className}> _logger; private readonly I{entityName}Repository _{char.ToLower(entityName[0]) + entityName.Substring(1)}Repository;");
             foreach (var relation in relations)
             {
-                if (relation.Type != RelationType.OneToMany && relation.Type != RelationType.OneToManyNullable && relation.Type != RelationType.OneToOneSelfJoin)
+                if (relation.Type != RelationType.OneToMany && relation.Type != RelationType.OneToManyNullable && relation.Type != RelationType.OneToOneSelfJoin && relation.Type != RelationType.UserSingle && relation.Type != RelationType.UserSingleNullable && relation.Type != RelationType.UserMany)
                     injectCTOR3.AppendLine($"private readonly I{relation.RelatedEntity}Repository _{char.ToLower(relation.RelatedEntity[0]) + relation.RelatedEntity.Substring(1)}Repository;");
+            }
+            if (relations.Any(r => r.Type == RelationType.UserSingle || r.Type == RelationType.UserSingleNullable || r.Type == RelationType.UserMany))
+            {
+                injectCTOR1.Append($",IIdentityService identityService");
+                injectCTOR2.AppendLine($"\t\t\t_identityService = identityService;");
+                injectCTOR3.AppendLine($"\tprivate readonly IIdentityService _identityService;");
             }
             StringBuilder rulesStore = new StringBuilder();
             foreach (var item in properties)
@@ -1765,7 +1867,7 @@ namespace Application.{entityPlural}.Commands.UpdateBulk{entityName}
                 }
 
             }
-            rulesStore.AppendLine(GenerateRelationRules(relations));
+            rulesStore.AppendLine(GenerateRelationRules(relations,entityName));
             string rules = string.Join(Environment.NewLine, rulesStore.ToString());
 
             string content = $@"
@@ -1773,6 +1875,7 @@ using FluentValidation;
 using Application.Common.Interfaces.IRepositories;
 using Microsoft.Extensions.Logging;
 using Application.{entityPlural}.Commands.Update{entityName};
+{identityUsing}
 
 namespace Application.{entityPlural}.Commands.Update{entityName}
 {{
@@ -2459,11 +2562,63 @@ namespace Application.{entityPlural}.Queries.Get{entityName}Query
             if (request.LanguageId != null) 
                 await _localizationService.Fill{entityName}Localization(dto, request.LanguageId.Value);";
 
+            string? identityUsing = relations.Any(r => r.Type == RelationType.UserSingle || r.Type == RelationType.UserSingleNullable || r.Type == RelationType.UserMany) ? "using Application.Common.Interfaces.Identity;" : null;
+
             string getMethod = relations.Any() ? $"Get{entityName}" : "GetByIdAsync";
+            StringBuilder UserRelationCode = new StringBuilder();
+            string? injectCTORIdentity1 = null;
+            string? injectCTORIdentity2 = null;
+            string? injectCTORIdentity3 = null;
+            if (relations.Any(r => r.Type == RelationType.UserSingle || r.Type == RelationType.UserSingleNullable || r.Type == RelationType.UserMany))
+            {
+                injectCTORIdentity1 = ",IIdentityService identityService";
+                injectCTORIdentity2 = "_identityService = identityService;";
+                injectCTORIdentity3 = "private readonly IIdentityService _identityService;";
+                foreach (var rel in relations)
+                {
+                    string code = null!;
+                    switch (rel.Type)
+                    {
+                        case RelationType.UserSingle:
+                            code = $@"
+            var {rel.DisplayedProperty.GetCamelCaseName()} = await _identityService.GetUserByIdAsync({entityName.ToLower()}.{rel.DisplayedProperty}Id);
+            dto.{rel.DisplayedProperty}Name = {rel.DisplayedProperty.GetCamelCaseName()}.FullName;";
+                            UserRelationCode.Append(code);
+                            break;
+
+                        case RelationType.UserSingleNullable:
+                            code = $@"
+            if({entityName.ToLower()}.{rel.DisplayedProperty}Id != null)
+            {{
+                var {rel.DisplayedProperty.GetCamelCaseName()} = await _identityService.GetUserByIdAsync({entityName.ToLower()}.{rel.DisplayedProperty}Id);
+                dto.{rel.DisplayedProperty}Name = {rel.DisplayedProperty.GetCamelCaseName()}.FullName;
+            }}";
+                            UserRelationCode.Append(code);
+                            break;
+
+                        case RelationType.UserMany:
+                            code = $@"
+            //Fill {rel.DisplayedProperty.GetPluralName()}
+            var usersIds = {entityName.ToLower()}.{entityName}{rel.DisplayedProperty.GetPluralName()}.Select(x => x.UserId).ToList();
+            var users = await _identityService.GetAllUsers()
+                .Where(u => usersIds.Contains(u.Id))
+                .ToListAsync();
+            foreach (var user in users)
+            {{
+                dto.{rel.DisplayedProperty.GetPluralName()}Names.Add(user.FullName);
+            }}";
+                            UserRelationCode.Append(code);
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
             string content = $@"
 using Microsoft.Extensions.Logging;
 using Application.Common.Interfaces.IRepositories;
 using Application.Common.Interfaces.Services;
+{identityUsing}
 
 namespace Application.{entityPlural}.Queries.Get{entityName}Query
 {{
@@ -2479,23 +2634,25 @@ namespace Application.{entityPlural}.Queries.Get{entityName}Query
         private readonly IMapper _mapper;
         private readonly I{entityName}Repository {entityRepoName}Repository;
         private readonly ILocalizationService _localizationService;
+        {injectCTORIdentity3}
 
         public Get{entityName}QueryHandler(ILogger<Get{entityName}QueryHandler> logger,
                                            IMapper mapper,
                                            ILocalizationService localizationService,
-                                           I{entityName}Repository {lowerEntityName}Repository)
+                                           I{entityName}Repository {lowerEntityName}Repository{injectCTORIdentity1})
         {{
             _logger = logger;
             _mapper = mapper;
             _localizationService = localizationService;
             {entityRepoName}Repository = {lowerEntityName}Repository;
+            {injectCTORIdentity2}
         }}
 
         public async Task<Get{entityName}Dto> Handle(Get{entityName}Query request, CancellationToken cancellationToken)
         {{
             var {entityName.ToLower()} = await {entityRepoName}Repository.{getMethod}(request.{entityName}Id);//TODO:AfterGenerateCode: add method to repository to get object include Navigations if existed
             var dto = _mapper.Map<Get{entityName}Dto>({entityName.ToLower()});
-
+            {UserRelationCode}
             {localizationCode}
             return dto;
         }}
@@ -2667,10 +2824,62 @@ namespace Application.{entityPlural}.Queries.Get{entityName}WithLocalization
             string x = entityName;
             string lowerEntityName = char.ToLower(x[0]) + x.Substring(1);
             string entityRepoName = $"_{lowerEntityName}";
+            string? identityUsing = relations.Any(r => r.Type == RelationType.UserSingle || r.Type == RelationType.UserSingleNullable || r.Type == RelationType.UserMany) ? "using Application.Common.Interfaces.Identity;" : null;
+
             string getMethod = relations.Any() ? $"Get{entityName}" : "GetByIdAsync";
+            StringBuilder UserRelationCode = new StringBuilder();
+            string? injectCTORIdentity1 = null;
+            string? injectCTORIdentity2 = null;
+            string? injectCTORIdentity3 = null;
+            if (relations.Any(r => r.Type == RelationType.UserSingle || r.Type == RelationType.UserSingleNullable || r.Type == RelationType.UserMany))
+            {
+                injectCTORIdentity1 = ",IIdentityService identityService";
+                injectCTORIdentity2 = "_identityService = identityService;";
+                injectCTORIdentity3 = "private readonly IIdentityService _identityService;";
+                foreach (var rel in relations)
+                {
+                    string code = null!;
+                    switch (rel.Type)
+                    {
+                        case RelationType.UserSingle:
+                            code = $@"
+            var {rel.DisplayedProperty.GetCamelCaseName()} = await _identityService.GetUserByIdAsync({entityName.ToLower()}.{rel.DisplayedProperty}Id);
+            result.{rel.DisplayedProperty}Name = {rel.DisplayedProperty.GetCamelCaseName()}.FullName;";
+                            UserRelationCode.Append(code);
+                            break;
+
+                        case RelationType.UserSingleNullable:
+                            code = $@"
+            if({entityName.ToLower()}.{rel.DisplayedProperty}Id != null)
+            {{
+                var {rel.DisplayedProperty.GetCamelCaseName()} = await _identityService.GetUserByIdAsync({entityName.ToLower()}.{rel.DisplayedProperty}Id);
+                result.{rel.DisplayedProperty}Name = {rel.DisplayedProperty.GetCamelCaseName()}.FullName;
+            }}";
+                            UserRelationCode.Append(code);
+                            break;
+
+                        case RelationType.UserMany:
+                            code = $@"
+            //Fill {rel.DisplayedProperty.GetPluralName()}
+            var usersIds = {entityName.ToLower()}.{entityName}{rel.DisplayedProperty.GetPluralName()}.Select(x => x.UserId).ToList();
+            var users = await _identityService.GetAllUsers()
+                .Where(u => usersIds.Contains(u.Id))
+                .ToListAsync();
+            foreach (var user in users)
+            {{
+                result.{rel.DisplayedProperty.GetPluralName()}Names.Add(user.FullName);
+            }}";
+                            UserRelationCode.Append(code);
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
             string content = $@"using System;
 using Microsoft.Extensions.Logging;
 using Application.Common.Interfaces.IRepositories;
+{identityUsing}
 
 namespace Application.{entityPlural}.Queries.Get{entityName}WithLocalization
 {{
@@ -2684,21 +2893,23 @@ namespace Application.{entityPlural}.Queries.Get{entityName}WithLocalization
         private readonly ILogger<Get{entityName}WithLocalizationQueryHandler> _logger;
         private readonly IMapper _mapper;
         private readonly I{entityName}Repository {entityRepoName}Repository;
+        {injectCTORIdentity3}
 
         public Get{entityName}WithLocalizationQueryHandler(ILogger<Get{entityName}WithLocalizationQueryHandler> logger,
                                            IMapper mapper,
-                                           I{entityName}Repository {lowerEntityName}Repository)
+                                           I{entityName}Repository {lowerEntityName}Repository{injectCTORIdentity1})
         {{
             _logger = logger;
             _mapper = mapper;
             {entityRepoName}Repository = {lowerEntityName}Repository;
+            {injectCTORIdentity2}
         }}
 
         public async Task<Get{entityName}WithLocalizationDto> Handle(Get{entityName}WithLocalizationQuery request, CancellationToken cancellationToken)
         {{
             var {entityName.ToLower()} = await {entityRepoName}Repository.{getMethod}(request.{entityName}Id);//TODO:AfterGenerateCode: add method to repository to get object include Localization
             var result = _mapper.Map<Get{entityName}WithLocalizationDto>({entityName.ToLower()});
-
+            {UserRelationCode}
             return result;
         }}
     }}
@@ -2877,6 +3088,7 @@ namespace Application.{entityPlural}.Queries.Get{entityPlural}WithPagination
             string? localizationCode = !hasLocalization ? null : $@"
             if (request.LanguageId != null) 
                 await _localizationService.Fill{entityName}Localization(result, request.LanguageId.Value);";
+            string? identityUsing = relations.Any(r => r.Type == RelationType.UserSingle || r.Type == RelationType.UserSingleNullable || r.Type == RelationType.UserMany) ? "using Application.Common.Interfaces.Identity;" : null;
 
             StringBuilder filtersProps = new StringBuilder();
             List<string> filtersList = new List<string>();
@@ -2907,15 +3119,143 @@ namespace Application.{entityPlural}.Queries.Get{entityPlural}WithPagination
 
                 }
             }
+
+            StringBuilder UserRelationCode = new StringBuilder();
+            string? injectCTORIdentity1 = null;
+            string? injectCTORIdentity2 = null;
+            string? injectCTORIdentity3 = null;
+            string? ifUserFilters = null;
+            StringBuilder forUsersFilters = new StringBuilder();
+            string applyFilterParam = !relations.Any(r => r.Type == RelationType.UserSingle || r.Type == RelationType.UserSingleNullable || r.Type == RelationType.UserMany) ? "request.Filters" : "FiltersListWithoutUsers";
+            string sortParam = !relations.Any(r => r.Type == RelationType.UserSingle || r.Type == RelationType.UserSingleNullable || r.Type == RelationType.UserMany) ? "request.Filters" : "newSort";
+            
+            if (relations.Any(r => r.Type == RelationType.UserSingle || r.Type == RelationType.UserSingleNullable || r.Type == RelationType.UserMany))
+            {
+                if (relations.Any(r => r.Type == RelationType.UserMany))
+                {
+                    injectCTORIdentity1 = $",IIdentityService identityService,I{entityName}{relations.First(re => re.Type == RelationType.UserMany).DisplayedProperty}Repository {entityName.GetCamelCaseName()}{relations.First(re => re.Type == RelationType.UserMany).DisplayedProperty}Repository";
+                    injectCTORIdentity2 = $"_identityService = identityService; _{entityName.GetCamelCaseName()}{relations.First(re => re.Type == RelationType.UserMany).DisplayedProperty}Repository = {entityName.GetCamelCaseName()}{relations.First(re => re.Type == RelationType.UserMany).DisplayedProperty}Repository;";
+                    injectCTORIdentity3 = $"private readonly IIdentityService _identityService; private readonly I{entityName}{relations.First(re => re.Type == RelationType.UserMany).DisplayedProperty}Repository _{entityName.GetCamelCaseName()}{relations.First(re => re.Type == RelationType.UserMany).DisplayedProperty}Repository;";
+                }
+                else
+                {
+                    injectCTORIdentity1 = ",IIdentityService identityService";
+                    injectCTORIdentity2 = "_identityService = identityService;";
+                    injectCTORIdentity3 = "private readonly IIdentityService _identityService;";
+                }
+            }
+            if (relations.Any(r => r.Type == RelationType.UserSingle || r.Type == RelationType.UserSingleNullable || r.Type == RelationType.UserMany))
+            {
+                
+                foreach (var rel in relations)
+                {
+                    string code = null!;
+                    switch (rel.Type)
+                    {
+                        case RelationType.UserSingle:
+                            code = $@"
+                var {rel.DisplayedProperty.GetCamelCaseName()} = await _identityService.GetUserByIdAsync(item.{rel.DisplayedProperty}Id);
+                item.{rel.DisplayedProperty}Name = {rel.DisplayedProperty.GetCamelCaseName()}.FullName;";
+                            UserRelationCode.Append(code);
+
+                            if (ifUserFilters == null)
+                                ifUserFilters = $"item.FieldName == \"{rel.DisplayedProperty.GetCamelCaseName()}Name\"";
+                            else
+                                ifUserFilters+= $" || item.FieldName == \"{rel.DisplayedProperty.GetCamelCaseName()}Name\"";
+
+                            forUsersFilters.Append($@"
+                    if (item.FieldName == ""{rel.DisplayedProperty.GetCamelCaseName()}Name"")
+                    {{
+                        var userIds = helper.ApplyUser(item.Operation,item.Value).GetAwaiter().GetResult();
+                        query = query.Where(x => userIds.Contains(x.{rel.DisplayedProperty}Id));
+                    }}");
+                            break;
+
+                        case RelationType.UserSingleNullable:
+                            code = $@"
+                if(item.{rel.DisplayedProperty}Id != null)
+                {{
+                    var {rel.DisplayedProperty.GetCamelCaseName()} = await _identityService.GetUserByIdAsync(item.{rel.DisplayedProperty}Id);
+                    item.{rel.DisplayedProperty}Name = {rel.DisplayedProperty.GetCamelCaseName()}.FullName;
+                }}";
+                            UserRelationCode.Append(code);
+
+                            if (ifUserFilters == null)
+                                ifUserFilters = $"item.FieldName == \"{rel.DisplayedProperty.GetCamelCaseName()}Name\"";
+                            else
+                                ifUserFilters += $" || item.FieldName == \"{rel.DisplayedProperty.GetCamelCaseName()}Name\"";
+
+                            forUsersFilters.Append($@"
+                    if (item.FieldName == ""{rel.DisplayedProperty.GetCamelCaseName()}Name"")
+                    {{
+                        var userIds = helper.ApplyUser(item.Operation,item.Value).GetAwaiter().GetResult();
+                        query = query.Where(x => userIds.Contains(x.{rel.DisplayedProperty}Id));
+                    }}");
+                            break;
+
+                        case RelationType.UserMany:
+                            code = $@"
+                //Fill {rel.DisplayedProperty.GetPluralName()}
+                var usersIds = await _{entityName.GetCamelCaseName()}{relations.First(re => re.Type == RelationType.UserMany).DisplayedProperty}Repository.GetAll()
+                        .Where(x => x.{entityName}Id == item.Id)
+                        .Select(x => x.UserId)
+                        .ToListAsync();
+
+                var users = await _identityService.GetAllUsers()
+                    .Where(u => usersIds.Contains(u.Id))
+                    .ToListAsync();
+                foreach (var user in users)
+                {{
+                    item.{rel.DisplayedProperty.GetPluralName()}Ids.Add(user.Id);
+                    item.{rel.DisplayedProperty.GetPluralName()}Names.Add(user.FullName);
+                }}";
+                            UserRelationCode.Append(code);
+
+                            if (ifUserFilters == null)
+                                ifUserFilters = $"item.FieldName == \"{rel.DisplayedProperty.GetCamelCaseName()}Names\"";
+                            else
+                                ifUserFilters += $" || item.FieldName == \"{rel.DisplayedProperty.GetCamelCaseName().GetPluralName()}Names\"";
+
+                            forUsersFilters.Append($@"
+                    if (item.FieldName == ""{rel.DisplayedProperty.GetCamelCaseName().GetPluralName()}Names"")
+                    {{
+                        var userIds = helper.ApplyUser(item.Operation,item.Value).GetAwaiter().GetResult();
+                        query = query.Where(x => x.{entityName}{rel.DisplayedProperty.GetPluralName()}.Any(e => userIds.Contains(e.UserId)));
+                    }}");
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
+            string? filterUsersCode = !relations.Any(r => r.Type == RelationType.UserSingle || r.Type == RelationType.UserSingleNullable || r.Type == RelationType.UserMany) ? null :
+                $@"
+                List<FilterCriteria> FiltersListWithoutUsers = new List<FilterCriteria>();
+                List<FilterCriteria> FiltersListUsers = new List<FilterCriteria>();
+                request.Filters.ForEach(FiltersListWithoutUsers.Add);
+                foreach (var item in request.Filters)
+                {{
+                    if ({ifUserFilters})
+                    {{
+                        FiltersListWithoutUsers.RemoveAll(f => f.FieldName == item.FieldName);
+                        FiltersListUsers.Add(item);
+                    }}
+                }}
+                UserMethodsHelper helper = new UserMethodsHelper(_identityService);
+                foreach (var item in FiltersListUsers)
+                {{
+                    {forUsersFilters.ToString().TrimEnd()}
+                }}";
             foreach (var prop in filtersList)
             {
                 filters.Append($@"
             if (request.{prop} != null)
                 query = query
                     .Where(x => x.{prop} == request.{prop});
-
 ");
             }
+
+
 
             string GetAllMethod = relations.Any() ? $"Get{entityPlural}()" : "GetAll()";
             string content = $@"
@@ -2927,6 +3267,7 @@ using AutoMapper.QueryableExtensions;
 using Application.Common.Mappings;
 using Application.Common.Interfaces.Services;
 using Application.Common.Extensions;
+{identityUsing}
 
 namespace Application.{entityPlural}.Queries.Get{entityPlural}WithPagination
 {{
@@ -2947,16 +3288,18 @@ namespace Application.{entityPlural}.Queries.Get{entityPlural}WithPagination
         private readonly IMapper _mapper;
         private readonly I{entityName}Repository _{lowerEntityName}Repository;
         private readonly ILocalizationService _localizationService;
+        {injectCTORIdentity3}
 
         public Get{entityPlural}WithPaginationQueryHandler(ILogger<Get{entityPlural}WithPaginationQueryHandler> logger,
                                                            IMapper mapper,
                                                            ILocalizationService localizationService,
-                                                           I{entityName}Repository repository)
+                                                           I{entityName}Repository repository{injectCTORIdentity1})
         {{
             _logger = logger;
             _mapper = mapper;
             _localizationService = localizationService;
             _{lowerEntityName}Repository = repository;
+            {injectCTORIdentity2}
         }}
 
         public async Task<PaginatedList<Get{entityPlural}WithPaginationDto>> Handle(Get{entityPlural}WithPaginationQuery request, CancellationToken cancellationToken)
@@ -2967,15 +3310,18 @@ namespace Application.{entityPlural}.Queries.Get{entityPlural}WithPagination
             //    query = query.Where(x => x.Name.ToLower().Contains(request.SearchText.ToLower()));
 
             {filters}
-
+            {filterUsersCode}
             var result = await query
                 .ProjectTo<Get{entityPlural}WithPaginationDto>(_mapper.ConfigurationProvider)
-                .ApplyFilters(request.Filters)
+                .ApplyFilters({applyFilterParam})
                 .OrderBy(request.Sort)
                 .PaginatedListAsync(request.PageNumber, request.PageSize);
 
             {localizationCode}
-
+            foreach (var item in result.Items)
+            {{
+                {UserRelationCode}
+            }}
             return result;
         }}
     }}
@@ -3051,6 +3397,20 @@ namespace Application.{entityPlural}.Queries.Get{entityPlural}WithPagination
                         string displayedPropertyPlural = relation.DisplayedProperty.EndsWith("y") ? relation.DisplayedProperty[..^1] + "ies" : relation.DisplayedProperty + "s";
                         relationsProps.Add($"\t\tpublic List<Guid> {relation.RelatedEntity}Ids {{  get; set; }}\n");
                         relationsProps.Add($"\t\tpublic List<string> {relation.RelatedEntity}{displayedPropertyPlural} {{  get; set; }}\n");
+                        break;
+
+                    case RelationType.UserSingle:
+                        relationsProps.Add($"\t\tpublic string {relation.DisplayedProperty}Id {{  get; set; }}\n");
+                        relationsProps.Add($"\t\tpublic string {relation.DisplayedProperty}Name {{  get; set; }}\n");
+                        break;
+                    case RelationType.UserSingleNullable:
+                        relationsProps.Add($"\t\tpublic string? {relation.DisplayedProperty}Id {{  get; set; }}\n");
+                        relationsProps.Add($"\t\tpublic string? {relation.DisplayedProperty}Name {{  get; set; }}\n");
+                        break;
+
+                    case RelationType.UserMany:
+                        relationsProps.Add($"\t\tpublic List<string> {relation.DisplayedProperty.GetPluralName()}Ids {{  get; set; }} = new List<string>();\n");
+                        relationsProps.Add($"\t\tpublic List<string> {relation.DisplayedProperty.GetPluralName()}Names {{  get; set; }} = new List<string>();\n");
 
                         break;
                     default:
@@ -3668,7 +4028,7 @@ namespace Application.{entityPlural}.Queries
             return methods.ToString();
         }
 
-        static string GenerateRelationRules(List<Relation> relations)
+        static string GenerateRelationRules(List<Relation> relations,string entityName)
         {
             var rules = new StringBuilder();
             foreach (var relation in relations)
@@ -3714,6 +4074,36 @@ namespace Application.{entityPlural}.Queries
                    }}
                 }});";
 
+                string ruleUserSingleNotNullable = $@" 
+            RuleFor(l => l.{relation.DisplayedProperty}Id)
+                .NotEmpty().WithMessage(""{relation.DisplayedProperty}Id Must be passed"")
+                .CustomAsync(async (name, context, cancellationToken) =>
+                {{
+                   if (!await Is{relation.DisplayedProperty}Existed(context.InstanceToValidate))
+                   {{
+                       context.AddFailure(""{relation.DisplayedProperty} is not found"");
+                   }}
+                }});";
+
+                string ruleUserSingleNullable = $@" 
+            RuleFor(l => l.{relation.DisplayedProperty}Id)
+                .CustomAsync(async (name, context, cancellationToken) =>
+                {{
+                   if (!await Is{relation.DisplayedProperty}Existed(context.InstanceToValidate))
+                   {{
+                       context.AddFailure(""{relation.DisplayedProperty} is not found"");
+                   }}
+                }});";
+
+                string ruleUserMany = $@" 
+            RuleFor(l => l.{relation.DisplayedProperty.GetPluralName()}Ids)
+                .CustomAsync(async (name, context, cancellationToken) =>
+                {{
+                   if (!await AreMany{relation.DisplayedProperty.GetPluralName()}Existed(context.InstanceToValidate))
+                   {{
+                       context.AddFailure("" Some {relation.DisplayedProperty.GetPluralName()} are not found"");
+                   }}
+                }});";
                 switch (relation.Type)
                 {
                     case RelationType.OneToOneSelfJoin:
@@ -3748,6 +4138,18 @@ namespace Application.{entityPlural}.Queries
                         break;
                     case RelationType.ManyToMany:
                         rules.AppendLine(ruleManyToMany);
+                        rules.AppendLine();
+                        break;
+                    case RelationType.UserSingle:
+                        rules.AppendLine(ruleUserSingleNotNullable);
+                        rules.AppendLine();
+                        break;
+                    case RelationType.UserSingleNullable:
+                        rules.AppendLine(ruleUserSingleNullable);
+                        rules.AppendLine();
+                        break;
+                    case RelationType.UserMany:
+                        rules.AppendLine(ruleUserMany);
                         rules.AppendLine();
                         break;
                     default:
@@ -3820,7 +4222,46 @@ namespace Application.{entityPlural}.Queries
             return true;
         }}";
 
+                string methodUserSingleNotNullable = $@" 
+        public async Task<bool> Is{relation.DisplayedProperty}Existed({commandName} command)
+        {{
+            var user = await _identityService.GetUserByIdAsync(command.{relation.DisplayedProperty}Id);
+            if (user == null) 
+                return false;
+        
+            return true;
+        }}";
 
+                string methodUserSingleNullable = $@" 
+        public async Task<bool> Is{relation.DisplayedProperty}Existed({commandName} command)
+        {{
+            if (command.{relation.DisplayedProperty}Id is null)
+                return true;
+
+            var user = await _identityService.GetUserByIdAsync(command.{relation.DisplayedProperty}Id);
+            if (user == null) 
+                return false;
+        
+            return true;
+        }}";
+                string methodUserMany = $@" 
+        public async Task<bool> AreMany{relation.DisplayedProperty.GetPluralName()}Existed({commandName} command)
+        {{
+            if (!command.{relation.DisplayedProperty.GetPluralName()}Ids.Any())
+                return true;
+
+            foreach (var id in command.{relation.DisplayedProperty.GetPluralName()}Ids)
+            {{
+                var user = await _identityService.GetUserByIdAsync(id);
+
+                if (user == null)
+                    return false;
+            }}
+
+            return true;
+        }}";
+
+                
                 switch (relation.Type)
                 {
                     case RelationType.OneToOneSelfJoin:
@@ -3855,6 +4296,18 @@ namespace Application.{entityPlural}.Queries
                         break;
                     case RelationType.ManyToMany:
                         methods.AppendLine(methodManyToMany);
+                        methods.AppendLine();
+                        break;
+                    case RelationType.UserSingle:
+                        methods.AppendLine(methodUserSingleNotNullable);
+                        methods.AppendLine();
+                        break;
+                    case RelationType.UserSingleNullable:
+                        methods.AppendLine(methodUserSingleNullable);
+                        methods.AppendLine();
+                        break;
+                    case RelationType.UserMany:
+                        methods.AppendLine(methodUserMany);
                         methods.AppendLine();
                         break;
                     default:

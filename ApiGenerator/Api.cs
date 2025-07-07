@@ -144,6 +144,15 @@ namespace ApiGenerator
                     case RelationType.ManyToMany:
                         filtersProps.Add($"\t\tpublic List<Guid> {relation.RelatedEntity}Ids {{  get; set; }}\n");
                         break;
+                    case RelationType.UserSingle:
+                        filtersProps.Add($"\t\tpublic string {relation.DisplayedProperty}Id {{  get; set; }}\n");
+                        break;
+                    case RelationType.UserSingleNullable:
+                        filtersProps.Add($"\t\tpublic string? {relation.DisplayedProperty}Id {{  get; set; }}\n");
+                        break;
+                    case RelationType.UserMany:
+                        filtersProps.Add($"\t\tpublic List<string> {relation.DisplayedProperty.GetPluralName()}Ids {{  get; set; }}\n");
+                        break;
                     default:
                         break;
                 }
@@ -305,6 +314,15 @@ namespace Api.NeededDto.{entityName}
                         break;
                     case RelationType.ManyToMany:
                         filtersProps.Add($"\t\tpublic List<Guid> {relation.RelatedEntity}Ids {{  get; set; }}\n");
+                        break;
+                    case RelationType.UserSingle:
+                        filtersProps.Add($"\t\tpublic string {relation.DisplayedProperty}Id {{  get; set; }}\n");
+                        break;
+                    case RelationType.UserSingleNullable:
+                        filtersProps.Add($"\t\tpublic string? {relation.DisplayedProperty}Id {{  get; set; }}\n");
+                        break;
+                    case RelationType.UserMany:
+                        filtersProps.Add($"\t\tpublic List<string> {relation.DisplayedProperty.GetPluralName()}Ids {{  get; set; }}\n");
                         break;
                     default:
                         break;

@@ -115,6 +115,15 @@ namespace ApplicationGenerator
                         propList.Add($"\t\tpublic List<Guid> {relation.RelatedEntity}Ids {{ get; set; }}");
                         propList.Add($"\t\tpublic List<string> {relation.RelatedEntity}{relation.DisplayedProperty.GetPluralName()} {{ get; set; }}");
                         break;
+                    case RelationType.UserSingle:
+                        propList.Add($"\t\tpublic string {relation.DisplayedProperty}Id {{ get; set; }}");
+                        break;
+                    case RelationType.UserSingleNullable:
+                        propList.Add($"\t\tpublic string? {relation.DisplayedProperty}Id {{ get; set; }}");
+                        break;
+                    case RelationType.UserMany:
+                        propList.Add($"\t\tpublic List<string> {relation.DisplayedProperty.GetPluralName()}Ids {{ get; set; }}");
+                        break;
                     default:
                         break;
                 }
@@ -492,6 +501,22 @@ namespace Domain.Events.{entityName}Events
                 else
                     versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{item},");
             }
+            var propListUser = GetVersionDTOUserProp(relations);
+            if (propListUser.Any())
+            {
+                foreach(var item in propListUser)
+                {
+                    if (item.EndsWith("Ids"))
+                    {
+                        var temp = item.Remove(item.Length - 3);
+                        versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{entityName}{temp}.Select(x => x.UserId).ToList(),");
+                    }
+                    else
+                    {
+                        versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{item},");
+                    }
+                }
+            }
 
             string? HandleVersioningMethod = !versioning ? null : $@"
         private async Task<string> HandleVersioning({entityName}CreatedEvent notification)
@@ -823,6 +848,22 @@ namespace Application.{entityPlural}.EventHandlers
                 else
                     oldVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = oldObj.{item},");
             }
+            var propListUser = GetVersionDTOUserProp(relations);
+            if (propListUser.Any())
+            {
+                foreach (var item in propListUser)
+                {
+                    if (item.EndsWith("Ids"))
+                    {
+                        var temp = item.Remove(item.Length - 3);
+                        oldVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = oldObj.{entityName}{temp}.Select(x => x.UserId).ToList(),");
+                    }
+                    else
+                    {
+                        oldVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = oldObj.{item},");
+                    }
+                }
+            }
 
             StringBuilder newVersioningDTOBuilder = new StringBuilder();
             foreach (var item in propList)
@@ -863,6 +904,21 @@ namespace Application.{entityPlural}.EventHandlers
                 }
                 else
                     newVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = newObj.{item},");
+            }
+            if (propListUser.Any())
+            {
+                foreach (var item in propListUser)
+                {
+                    if (item.EndsWith("Ids"))
+                    {
+                        var temp = item.Remove(item.Length - 3);
+                        newVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = newObj.{entityName}{temp}.Select(x => x.UserId).ToList(),");
+                    }
+                    else
+                    {
+                        newVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = newObj.{item},");
+                    }
+                }
             }
 
             string? HandleVersioningMethod = !versioning ? null : $@"
@@ -1219,7 +1275,22 @@ namespace Application.{entityPlural}.EventHandlers
                 else
                     versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{item},");
             }
-
+            var propListUser = GetVersionDTOUserProp(relations);
+            if (propListUser.Any())
+            {
+                foreach (var item in propListUser)
+                {
+                    if (item.EndsWith("Ids"))
+                    {
+                        var temp = item.Remove(item.Length - 3);
+                        versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{entityName}{temp}.Select(x => x.UserId).ToList(),");
+                    }
+                    else
+                    {
+                        versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{item},");
+                    }
+                }
+            }
             string? HandleVersioningMethod = !versioning ? null : $@"
         private async Task<string> HandleVersioning({entityName}DeletedEvent notification)
         {{
@@ -1531,6 +1602,38 @@ namespace Application.{entityPlural}.EventHandlers
                     case RelationType.ManyToMany:
                         propList.Add($"{relation.RelatedEntity}Ids");
                         propList.Add($"{relation.RelatedEntity}{relation.DisplayedProperty.GetPluralName()}");
+                        break;
+                    //case RelationType.UserSingle:
+                    //    propList.Add($"{relation.DisplayedProperty}Id");
+                    //    break;
+                    //case RelationType.UserSingleNullable:
+                    //    propList.Add($"{relation.DisplayedProperty}Id");
+                    //    break;
+                    //case RelationType.UserMany:
+                    //    propList.Add($"{relation.DisplayedProperty.GetPluralName()}Ids");
+                    //    break;
+                    default:
+                        break;
+                }
+            }
+            return propList;
+        }
+        static List<string> GetVersionDTOUserProp(List<Relation> relations)
+        {
+            List<string> propList = new List<string>();
+
+            foreach (var relation in relations)
+            {
+                switch (relation.Type)
+                {
+                    case RelationType.UserSingle:
+                        propList.Add($"{relation.DisplayedProperty}Id");
+                        break;
+                    case RelationType.UserSingleNullable:
+                        propList.Add($"{relation.DisplayedProperty}Id");
+                        break;
+                    case RelationType.UserMany:
+                        propList.Add($"{relation.DisplayedProperty.GetPluralName()}Ids");
                         break;
                     default:
                         break;

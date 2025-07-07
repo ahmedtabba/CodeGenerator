@@ -54,6 +54,7 @@
             pnlScrollable = new Panel();
             label5 = new Label();
             pnlRelations = new Panel();
+            btnRelUsers = new Button();
             groupBoxOption.SuspendLayout();
             SuspendLayout();
             // 
@@ -267,11 +268,11 @@
             // 
             // btnNewRelation
             // 
-            btnNewRelation.Location = new Point(9, 401);
+            btnNewRelation.Location = new Point(1, 401);
             btnNewRelation.Name = "btnNewRelation";
-            btnNewRelation.Size = new Size(90, 25);
+            btnNewRelation.Size = new Size(149, 25);
             btnNewRelation.TabIndex = 57;
-            btnNewRelation.Text = "New Relation";
+            btnNewRelation.Text = "New Relation => Entities";
             btnNewRelation.UseVisualStyleBackColor = true;
             btnNewRelation.Click += btnNewRelation_Click;
             // 
@@ -297,9 +298,9 @@
             // 
             pnlScrollable.AutoScroll = true;
             pnlScrollable.BorderStyle = BorderStyle.FixedSingle;
-            pnlScrollable.Location = new Point(139, 146);
+            pnlScrollable.Location = new Point(151, 146);
             pnlScrollable.Name = "pnlScrollable";
-            pnlScrollable.Size = new Size(621, 210);
+            pnlScrollable.Size = new Size(609, 210);
             pnlScrollable.TabIndex = 0;
             // 
             // label5
@@ -315,10 +316,20 @@
             // 
             pnlRelations.AutoScroll = true;
             pnlRelations.BorderStyle = BorderStyle.FixedSingle;
-            pnlRelations.Location = new Point(139, 401);
+            pnlRelations.Location = new Point(151, 401);
             pnlRelations.Name = "pnlRelations";
-            pnlRelations.Size = new Size(621, 221);
+            pnlRelations.Size = new Size(609, 221);
             pnlRelations.TabIndex = 62;
+            // 
+            // btnRelUsers
+            // 
+            btnRelUsers.Location = new Point(1, 443);
+            btnRelUsers.Name = "btnRelUsers";
+            btnRelUsers.Size = new Size(149, 25);
+            btnRelUsers.TabIndex = 63;
+            btnRelUsers.Text = "New Relation => Users";
+            btnRelUsers.UseVisualStyleBackColor = true;
+            btnRelUsers.Click += btnRelUsers_Click;
             // 
             // Form1
             // 
@@ -326,6 +337,7 @@
             AutoScaleMode = AutoScaleMode.Font;
             AutoScroll = true;
             ClientSize = new Size(772, 634);
+            Controls.Add(btnRelUsers);
             Controls.Add(pnlRelations);
             Controls.Add(label5);
             Controls.Add(pnlScrollable);
@@ -377,5 +389,6 @@
         private Panel pnlRelations;
         private CheckBox checkBoxBulk;
         private Label lblBulk;
+        private Button btnRelUsers;
     }
 }

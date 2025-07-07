@@ -110,6 +110,9 @@ namespace InfrastructureGenerator
                         case RelationType.ManyToMany:
                             includeLines.Add($"Include(x => x.{entityRelatedPlural})");
                             break;
+                        case RelationType.UserMany:
+                            includeLines.Add($"Include(x => x.{entityName}{rel.DisplayedProperty.GetPluralName()})");
+                            break;
                         default:
                             break;
                     }

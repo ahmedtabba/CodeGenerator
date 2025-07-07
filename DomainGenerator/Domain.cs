@@ -44,6 +44,11 @@ namespace DomainGenerator
                     case "FLs":
                         propList.Add($"        public {prop.Type} {prop.Name} {{ get; set; }} = new {prop.Type}();");
                         break;
+
+                    case var type when type.StartsWith("virtual"):
+                        propList.Add($"        public {prop.Type} {prop.Name} {{ get; set; }} = new {prop.Name}();");
+                        break;
+
                     default:
                         propList.Add($"        public {prop.Type} {prop.Name} {{ get; set; }}");
                         break;
@@ -229,18 +234,25 @@ namespace Domain.Enums
             string fileEntityPath = Path.Combine(domainPath, $"{entityName}.cs");
             string contentEntity = File.ReadAllText(fileEntityPath);
             int insertEntityIndex = contentEntity.LastIndexOf("}") -3;
+            string? contentRelatedEntity = null;
+            int insertRelatedEntityIndex = 0;
+            string entityRelatedPlural = null;
             foreach (var relation in relations)
             {
-                var fileRelatedEntityPath =Path.Combine(domainPath, $"{relation.RelatedEntity}.cs") ;
-                if (!File.Exists(fileRelatedEntityPath))
+                string? fileRelatedEntityPath = null;
+                if (relation.RelatedEntity != "User")
                 {
-                    //Console.WriteLine($"⚠️ {relation.RelatedEntity}.cs not found.");
-                    return;
+                    fileRelatedEntityPath = Path.Combine(domainPath, $"{relation.RelatedEntity}.cs");
+                    if (fileRelatedEntityPath != null && !File.Exists(fileRelatedEntityPath))
+                    {
+                        //Console.WriteLine($"⚠️ {relation.RelatedEntity}.cs not found.");
+                        return;
+                    }
+                    contentRelatedEntity = File.ReadAllText(fileRelatedEntityPath);
+                    // Add before the last closing brace
+                    insertRelatedEntityIndex = contentRelatedEntity.LastIndexOf("}") - 3;
+                    entityRelatedPlural = relation.RelatedEntity.EndsWith("y") ? relation.RelatedEntity[..^1] + "ies" : relation.RelatedEntity + "s";
                 }
-                string contentRelatedEntity = File.ReadAllText(fileRelatedEntityPath);
-                // Add before the last closing brace
-                int insertRelatedEntityIndex = contentRelatedEntity.LastIndexOf("}") -3;
-                string entityRelatedPlural = relation.RelatedEntity.EndsWith("y") ? relation.RelatedEntity[..^1] + "ies" : relation.RelatedEntity + "s";
                 switch (relation.Type)
                 {
                     case RelationType.OneToOneSelfJoin:
@@ -287,6 +299,18 @@ namespace Domain.Enums
                         contentRelatedEntity = contentRelatedEntity.Insert(insertRelatedEntityIndex, "\n" + "\t\t"+ $"public virtual ICollection<{entityName}> {entityPlural} {{ get; set; }} = new List<{entityName}>();" + "\n\t");
                         contentEntity = contentEntity.Insert(insertEntityIndex, "\n" + "\t\t"+$"public virtual ICollection<{relation.RelatedEntity}> {entityRelatedPlural} {{ get; set; }} = new List<{relation.RelatedEntity}>();"+"\n\t");
                         File.WriteAllText(fileRelatedEntityPath, contentRelatedEntity);
+                        File.WriteAllText(fileEntityPath, contentEntity);
+                        break;
+                    case RelationType.UserSingle:
+                        contentEntity = contentEntity.Insert(insertEntityIndex, "\n" + "\t\t" + $"public string {relation.DisplayedProperty}Id {{ get; set; }}" + "\n\t");
+                        File.WriteAllText(fileEntityPath, contentEntity);
+                        break;
+                    case RelationType.UserSingleNullable:
+                        contentEntity = contentEntity.Insert(insertEntityIndex, "\n" + "\t\t" + $"public string? {relation.DisplayedProperty}Id {{ get; set; }}" + "\n\t");
+                        File.WriteAllText(fileEntityPath, contentEntity);
+                        break;
+                    case RelationType.UserMany:
+                        contentEntity = contentEntity.Insert(insertEntityIndex, "\n" + "\t\t" + $"public virtual ICollection<{entityName}{relation.DisplayedProperty}> {entityName}{relation.DisplayedProperty.GetPluralName()} {{ get; set; }} = new List<{entityName}{relation.DisplayedProperty}>();" + "\n\t");
                         File.WriteAllText(fileEntityPath, contentEntity);
                         break;
                     default: 

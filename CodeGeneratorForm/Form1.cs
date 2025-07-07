@@ -21,8 +21,8 @@ namespace CodeGeneratorForm
         public SharedClasses.Properties properties { get; set; } = new SharedClasses.Properties();
         public List<string> NotGeneratedTableColumns { get; set; } = new List<string>();
         public List<string> HiddenTableColumns { get; set; } = new List<string>();
-        public List<string> NotGeneratedTableRelations { get; set; } = new List<string>();
-        public List<string> HiddenTableRelations { get; set; } = new List<string>();
+        public List<NonGeneratedRelation> NotGeneratedTableRelations { get; set; } = new List<NonGeneratedRelation>();
+        public List<HiddenRelation> HiddenTableRelations { get; set; } = new List<HiddenRelation>();
         public Form1()
         {
             InitializeComponent();
@@ -96,7 +96,7 @@ namespace CodeGeneratorForm
                 }
             }
 
-            if (!ValidateSolution()) 
+            if (!ValidateSolution())
             {
                 ClearForm();
                 return;
@@ -105,22 +105,22 @@ namespace CodeGeneratorForm
             string entityPlural = entityName.GetPluralName();
             bool hasAssets = properties.PropertiesList.Any(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD" || p.Type == "VDs" || p.Type == "FL" || p.Type == "FLs");
             if (!hasAssets)
-                VueJsHelper.GenerateStoreFile(entityName, properties,NotGeneratedTableColumns,HiddenTableColumns,Relations, VueJsHelper.VueJsSolutionPath);
+                VueJsHelper.GenerateStoreFile(entityName, properties, NotGeneratedTableColumns, HiddenTableColumns, Relations, VueJsHelper.VueJsSolutionPath);
             else
                 VueJsHelper.GenerateStoreFileWithAssets(entityName, properties, NotGeneratedTableColumns, HiddenTableColumns, Relations, VueJsHelper.VueJsSolutionPath);
-            
+
             VueJsHelper.UpdateConstantsJs(entityName, VueJsHelper.VueJsSolutionPath);
             VueJsHelper.UpdateRouterIndexJs(entityName, VueJsHelper.VueJsSolutionPath);
             VueJsHelper.UpdateAppMenu(entityName, VueJsHelper.VueJsSolutionPath);
-            VueJsHelper.GenerateTableView(entityName, VueJsHelper.VueJsSolutionPath, properties.PropertiesList, properties.EnumProps, NotGeneratedTableColumns, HiddenTableColumns,Relations);
-            VueJsHelper.GenerateSingleView(entityName, VueJsHelper.VueJsSolutionPath, properties.PropertiesList, properties.EnumProps, Relations,hasAssets);
+            VueJsHelper.GenerateTableView(entityName, VueJsHelper.VueJsSolutionPath, properties.PropertiesList, properties.EnumProps, NotGeneratedTableColumns, HiddenTableColumns, Relations);
+            VueJsHelper.GenerateSingleView(entityName, VueJsHelper.VueJsSolutionPath, properties.PropertiesList, properties.EnumProps, Relations, hasAssets);
             // Save metadata before generating code
             try
             {
                 MetadataManager.SaveEntityMetadata(solutionDir, entityName, entityPlural,
                     hasLocalization, hasPermissions, hasVersioning, hasNotification,
-                    hasUserAction, bulk, 
-                    (properties.PropertiesList, 
+                    hasUserAction, bulk,
+                    (properties.PropertiesList,
                     properties.LocalizedProp,
                     properties.EnumProps),
                     Relations);
@@ -182,6 +182,20 @@ namespace CodeGeneratorForm
                         Infrastructure.GenerateRepository($"{entityName}{relation.RelatedEntity}", repoPath);
                         Infrastructure.UpdateDependencyInjection($"{entityName}{relation.RelatedEntity}", domainPath);
                     }
+                    if (relation.Type == RelationType.UserMany)
+                    {
+                        List<(string Type, string Name, PropertyValidation Validation)> props = new List<(string Type, string Name, PropertyValidation Validation)>
+                {
+                    ("Guid",$"{entityName}Id",new PropertyValidation()),
+                    ($"virtual {entityName}",$"{entityName}",new PropertyValidation()),
+                    ("string",$"{relation.RelatedEntity}Id",new PropertyValidation())
+                };
+                        Domain.GenerateEntityClass($"{entityName}{relation.DisplayedProperty}", domainPath, (props, new List<string>(), new List<(string, List<string>)>()), false, new List<Relation>());
+                        Infrastructure.UpdateAppDbContext($"{entityName}{relation.DisplayedProperty}", domainPath);
+                        Application.GenerateIRepositoryInterface($"{entityName}{relation.DisplayedProperty}", repoInterfacePath);
+                        Infrastructure.GenerateRepository($"{entityName}{relation.DisplayedProperty}", repoPath);
+                        Infrastructure.UpdateDependencyInjection($"{entityName}{relation.DisplayedProperty}", domainPath);
+                    }
                 }
 
                 Infrastructure.GenerateConfiguration(entityName, domainPath, relatedEntitiesList);
@@ -204,18 +218,18 @@ namespace CodeGeneratorForm
                     Infrastructure.UpdateLocalizationService(entityName, domainPath, properties.LocalizedProp);
                 if (hasNotification || hasVersioning || hasUserAction)
                 {
-                    ApplicationAssistant.GenerateEvents(entityName, domainPath, hasVersioning,bulk);
+                    ApplicationAssistant.GenerateEvents(entityName, domainPath, hasVersioning, bulk);
                     ApplicationAssistant.GenerateHandlers(entityName, domainPath, properties.PropertiesList, Relations, hasVersioning, hasUserAction, hasNotification, bulk);
                 }
                 Application.GenerateCreateCommand(entityName, entityPlural, createCommandPath, properties.PropertiesList, properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction);
                 Application.GenerateCreateCommandValidator(entityName, entityPlural, createCommandPath, properties.PropertiesList, Relations);
-                
+
                 Application.GenerateUpdateCommand(entityName, entityPlural, updateCommandPath, properties.PropertiesList, properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction);
                 Application.GenerateUpdateCommandValidator(entityName, entityPlural, updateCommandPath, properties.PropertiesList, Relations);
 
 
-                Application.GenerateDeleteCommand(entityName, entityPlural, deleteCommandPath, properties.PropertiesList, Relations,hasVersioning, hasNotification, hasUserAction);
-                Application.GenerateDeleteCommandValidator(entityName, entityPlural, deleteCommandPath, properties.PropertiesList,Relations);
+                Application.GenerateDeleteCommand(entityName, entityPlural, deleteCommandPath, properties.PropertiesList, Relations, hasVersioning, hasNotification, hasUserAction);
+                Application.GenerateDeleteCommandValidator(entityName, entityPlural, deleteCommandPath, properties.PropertiesList, Relations);
 
                 if (bulk)
                 {
@@ -234,7 +248,7 @@ namespace CodeGeneratorForm
 
                 Application.GenerateGetByIdQuery(entityName, entityPlural, queryPath, hasLocalization, properties.PropertiesList, properties.EnumProps, Relations);
 
-                Application.GenerateGetWithPaginationQuery(entityName, entityPlural, queryPath, hasLocalization,properties.PropertiesList,properties.EnumProps, Relations);
+                Application.GenerateGetWithPaginationQuery(entityName, entityPlural, queryPath, hasLocalization, properties.PropertiesList, properties.EnumProps, Relations);
                 Application.GenerateBaseDto(entityName, entityPlural, properties.PropertiesList, properties.EnumProps, solutionDir, Relations, hasLocalization);
 
                 if (hasLocalization)
@@ -242,7 +256,7 @@ namespace CodeGeneratorForm
 
                 Api.GenerateNeededDtos(entityName, entityPlural, properties.PropertiesList, properties.EnumProps, solutionDir, hasLocalization, Relations, bulk);
 
-                Api.AddRoutesToApiRoutes(entityName, entityPlural, solutionDir, hasLocalization,bulk);
+                Api.AddRoutesToApiRoutes(entityName, entityPlural, solutionDir, hasLocalization, bulk);
 
                 Api.GenerateController(entityName, entityPlural, properties.PropertiesList, properties.EnumProps, solutionDir, hasLocalization, hasPermissions, bulk);
                 // VueJsHelper.GenerateStoreFile(entityName, properties);
@@ -305,7 +319,7 @@ namespace CodeGeneratorForm
                 return;
             }
 
-            RelationForm relationForm = new RelationForm(solutionDir,properties, txtEntityName.Text);
+            RelationForm relationForm = new RelationForm(solutionDir, properties, txtEntityName.Text);
             relationForm.ShowDialog();
             var relation = relationForm.Relation;
             if (relationForm.IsSaved)
@@ -336,38 +350,74 @@ namespace CodeGeneratorForm
                     BorderStyle = BorderStyle.FixedSingle,
                     BackColor = Color.White,
                 };
-                Label lblRel = new Label
+                if (relation.Type != RelationType.UserSingle && relation.Type != RelationType.UserSingleNullable && relation.Type != RelationType.UserMany)
                 {
-                    AutoSize = true,
-                    Location = new Point(5, 5),
-                    Text = $"{relation.Type} with {relation.RelatedEntity}"
-                };
+                    Label lblRel = new Label
+                    {
+                        AutoSize = true,
+                        Location = new Point(5, 5),
+                        Text = $"{relation.Type} with {relation.RelatedEntity}"
+                    };
+                    // Edit button
+                    Button btnRelEdit = new Button
+                    {
+                        Text = "Edit",
+                        Tag = relation.RelatedEntity,
+                        Location = new Point(relPanel.Width - 140, 5),
+                        Size = new Size(60, 25)
+                    };
+                    btnRelEdit.Click += BtnRelEdit_Click;
 
-                // Edit button
-                Button btnRelEdit = new Button
+                    // Delete button
+                    Button btnRelDelete = new Button
+                    {
+                        Text = "Delete",
+                        Tag = relation.RelatedEntity,
+                        Location = new Point(relPanel.Width - 75, 5),
+                        Size = new Size(60, 25)
+                    };
+                    btnRelDelete.Click += BtnRelDelete_Click;
+
+                    // Add controls to panel
+                    relPanel.Controls.AddRange(new Control[] { lblRel, btnRelEdit, btnRelDelete });
+                    pnlRelations.Controls.Add(relPanel);
+
+                    yPosition += relPanel.Height + 10;
+                }
+                else
                 {
-                    Text = "Edit",
-                    Tag = relation.RelatedEntity,
-                    Location = new Point(relPanel.Width - 140, 5),
-                    Size = new Size(60, 25)
-                };
-                btnRelEdit.Click += BtnRelEdit_Click;
+                    Label lblRel = new Label
+                    {
+                        AutoSize = true,
+                        Location = new Point(5, 5),
+                        Text = $"{relation.Type} with {relation.RelatedEntity} ({relation.DisplayedProperty})"
+                    };
+                    // Edit button
+                    Button btnUserRelEdit = new Button
+                    {
+                        Text = "Edit",
+                        Tag = relation.DisplayedProperty,
+                        Location = new Point(relPanel.Width - 140, 5),
+                        Size = new Size(60, 25)
+                    };
+                    btnUserRelEdit.Click += BtnUserRelEdit_Click;
 
-                // Delete button
-                Button btnRelDelete = new Button
-                {
-                    Text = "Delete",
-                    Tag = relation.RelatedEntity,
-                    Location = new Point(relPanel.Width - 75, 5),
-                    Size = new Size(60, 25)
-                };
-                btnRelDelete.Click += BtnRelDelete_Click;
+                    // Delete button
+                    Button btnUserRelDelete = new Button
+                    {
+                        Text = "Delete",
+                        Tag = relation.DisplayedProperty,
+                        Location = new Point(relPanel.Width - 75, 5),
+                        Size = new Size(60, 25)
+                    };
+                    btnUserRelDelete.Click += BtnUserRelDelete_Click;
+                    // Add controls to panel
+                    relPanel.Controls.AddRange(new Control[] { lblRel, btnUserRelEdit, btnUserRelDelete });
+                    pnlRelations.Controls.Add(relPanel);
 
-                // Add controls to panel
-                relPanel.Controls.AddRange(new Control[] { lblRel, btnRelEdit, btnRelDelete });
-                pnlRelations.Controls.Add(relPanel);
-
-                yPosition += relPanel.Height + 10;
+                    yPosition += relPanel.Height + 10;
+                }
+                
             }
         }
         private void BtnRelEdit_Click(object sender, EventArgs e)
@@ -379,9 +429,37 @@ namespace CodeGeneratorForm
                 return;
             }
 
-            string relationEntityRelated = ((Button)sender).Tag.ToString();
+            string relationEntityRelated = ((Button)sender).Tag.ToString(); 
             var oldRelationInfo = GetRelationInfo(relationEntityRelated);
-            RelationForm editForm = new RelationForm(solutionDir, properties, txtEntityName.Text);
+            RelationForm editForm = new RelationForm(solutionDir,properties,txtEntityName.Text);
+            editForm.Relation.RelatedEntity = oldRelationInfo.RelatedEntity;
+            editForm.Relation.Type = oldRelationInfo.Type;
+            editForm.Relation.DisplayedProperty = oldRelationInfo.DisplayedProperty;
+            editForm.Relation.IsGeneratedInTable = oldRelationInfo.IsGeneratedInTable;
+            editForm.Relation.HiddenInTable = oldRelationInfo.HiddenInTable;
+
+            editForm.ShowDialog();
+
+            if (editForm.IsSaved)
+            {
+                UpdateRelations(editForm.Relation, oldRelationInfo);
+                UpdateRelationDisplay();
+
+            }
+        }
+
+        private void BtnUserRelEdit_Click(object sender, EventArgs e)
+        {
+            var solutionDir = txtDir.Text;
+            if (string.IsNullOrWhiteSpace(solutionDir))
+            {
+                MessageBox.Show("Please enter the solution directory first");
+                return;
+            }
+
+            string displayedProperty = ((Button)sender).Tag.ToString();
+            var oldRelationInfo = GetUserRelationInfo(displayedProperty);
+            UserRelationForm editForm = new UserRelationForm();
             editForm.Relation.RelatedEntity = oldRelationInfo.RelatedEntity;
             editForm.Relation.Type = oldRelationInfo.Type;
             editForm.Relation.DisplayedProperty = oldRelationInfo.DisplayedProperty;
@@ -408,6 +486,17 @@ namespace CodeGeneratorForm
                 UpdateRelationDisplay();
             }
         }
+
+        private void BtnUserRelDelete_Click(object sender, EventArgs e)
+        {
+            string displayedProperty = ((Button)sender).Tag.ToString();
+            if (MessageBox.Show($"Are you sure you want to delete relation with 'User , {displayedProperty}'?",
+                                "Confirm Delete", MessageBoxButtons.YesNo) == DialogResult.Yes)
+            {
+                RemoveRelation("User", displayedProperty);
+                UpdateRelationDisplay();
+            }
+        }
         private Relation GetRelationInfo(string relationEntityRelated)
         {
             return new Relation
@@ -419,27 +508,80 @@ namespace CodeGeneratorForm
                 HiddenInTable = Relations.FirstOrDefault(r => r.RelatedEntity == relationEntityRelated).HiddenInTable
             };
         }
+        private Relation GetUserRelationInfo(string displayedProperty)
+        {
+            return new Relation
+            {
+                RelatedEntity = "User",
+                Type = Relations.FirstOrDefault(r => r.RelatedEntity == "User" && r.DisplayedProperty == displayedProperty).Type,
+                DisplayedProperty = displayedProperty,
+                IsGeneratedInTable = Relations.FirstOrDefault(r => r.RelatedEntity == "User" && r.DisplayedProperty == displayedProperty).IsGeneratedInTable,
+                HiddenInTable = Relations.FirstOrDefault(r => r.RelatedEntity == "User" && r.DisplayedProperty == displayedProperty).HiddenInTable
+            };
+        }
 
         private void UpdateRelations(Relation updatedInfo, Relation oldRelation)
         {
-            // Update relations list here based on your needs
-            RemoveRelation(oldRelation.RelatedEntity);
-            Relations.Add(updatedInfo);
-            if (!updatedInfo.IsGeneratedInTable)
+            if (oldRelation.RelatedEntity == "User")
             {
-                NotGeneratedTableRelations.Add(updatedInfo.RelatedEntity);
+                RemoveRelation("User", oldRelation.DisplayedProperty);
+                Relations.Add(updatedInfo);
+                if (!updatedInfo.IsGeneratedInTable)
+                {
+                    NotGeneratedTableRelations.Add(new NonGeneratedRelation
+                    {
+                        DisplayedProperty = updatedInfo.DisplayedProperty,
+                        RelatedEntityName = updatedInfo.RelatedEntity,
+                        RelationType = updatedInfo.Type
+                    });
+                }
+                else if (updatedInfo.HiddenInTable)
+                {
+                    HiddenTableRelations.Add(new HiddenRelation
+                    {
+                        DisplayedProperty = updatedInfo.DisplayedProperty,
+                        RelatedEntityName = updatedInfo.RelatedEntity,
+                        RelationType = updatedInfo.Type
+                    });
+                }
             }
-            else if(updatedInfo.HiddenInTable)
+            else
             {
-                HiddenTableRelations.Add(updatedInfo.RelatedEntity);
+                // Update relations list here based on your needs
+                RemoveRelation(oldRelation.RelatedEntity);
+                Relations.Add(updatedInfo);
+                if (!updatedInfo.IsGeneratedInTable)
+                {
+                    NotGeneratedTableRelations.Add(new NonGeneratedRelation
+                    {
+                        DisplayedProperty = updatedInfo.DisplayedProperty,
+                        RelatedEntityName = updatedInfo.RelatedEntity
+                    });
+                }
+                else if (updatedInfo.HiddenInTable)
+                {
+                    HiddenTableRelations.Add(new HiddenRelation
+                    {
+                        DisplayedProperty = updatedInfo.DisplayedProperty,
+                        RelatedEntityName = updatedInfo.RelatedEntity
+                    });
+                }
             }
-
         }
-        private void RemoveRelation(string relationEntityRelated)
+        private void RemoveRelation(string relationEntityRelated,string? displayedProp = null)
         {
-            Relations.RemoveAll(r => r.RelatedEntity == relationEntityRelated);
-            NotGeneratedTableRelations.RemoveAll(r => r == relationEntityRelated);
-            HiddenTableRelations.RemoveAll(r => r == relationEntityRelated);
+            if (displayedProp != null)
+            {
+                Relations.RemoveAll(r => r.RelatedEntity == relationEntityRelated && r.DisplayedProperty == displayedProp);
+                NotGeneratedTableRelations.RemoveAll(r => r.RelatedEntityName == relationEntityRelated && r.DisplayedProperty == displayedProp);
+                HiddenTableRelations.RemoveAll(r => r.RelatedEntityName == relationEntityRelated && r.DisplayedProperty == displayedProp);
+            }
+            else 
+            {
+                Relations.RemoveAll(r => r.RelatedEntity == relationEntityRelated);
+                NotGeneratedTableRelations.RemoveAll(r => r.RelatedEntityName == relationEntityRelated);
+                HiddenTableRelations.RemoveAll(r => r.RelatedEntityName == relationEntityRelated);
+            }
         }
 
 
@@ -451,7 +593,7 @@ namespace CodeGeneratorForm
             checkBoxPermissions.Checked = false;
             checkBoxUserActions.Checked = false;
             checkBoxVersioning.Checked = false;
-            checkBoxBulk.Checked = false; 
+            checkBoxBulk.Checked = false;
             txtEntityName.Clear();
             pnlScrollable.Controls.Clear();
             pnlRelations.Controls.Clear();
@@ -721,6 +863,8 @@ namespace CodeGeneratorForm
             content = File.ReadAllText(filePath);
             foreach (var item in this.Relations)
             {
+                if (item.Type == RelationType.UserSingle || item.Type == RelationType.UserSingleNullable || item.Type == RelationType.UserMany)
+                    continue;
                 if (item.Type != RelationType.OneToOneSelfJoin && !content.Contains($"DbSet<{item.RelatedEntity}>"))
                 {
                     MessageBox.Show($"Relation with {item.RelatedEntity} is failed : DbSet of {item.RelatedEntity} dose not found in AppDbContext");
@@ -895,7 +1039,7 @@ namespace CodeGeneratorForm
             {
                 NotGeneratedTableColumns.Add(updatedInfo.GeneralInfo.Name);
             }
-            else if(updatedInfo.HiddenColumn)
+            else if (updatedInfo.HiddenColumn)
             {
                 HiddenTableColumns.Add(updatedInfo.GeneralInfo.Name);
             }
@@ -925,6 +1069,25 @@ namespace CodeGeneratorForm
                 lblBulk.ForeColor = Color.Green;
             else
                 lblBulk.ForeColor = Color.Black;
+        }
+
+        private void btnRelUsers_Click(object sender, EventArgs e)
+        {
+            var solutionDir = txtDir.Text;
+            if (string.IsNullOrWhiteSpace(solutionDir))
+            {
+                MessageBox.Show("Please enter the solution directory first");
+                return;
+            }
+            UserRelationForm userRelationForm = new UserRelationForm();
+            userRelationForm.ShowDialog();
+            var relation = userRelationForm.Relation;
+            if (userRelationForm.IsSaved)
+            {
+                if (relation != null)
+                    Relations.Add(relation);
+            }
+            UpdateRelationDisplay();
         }
     }
 }

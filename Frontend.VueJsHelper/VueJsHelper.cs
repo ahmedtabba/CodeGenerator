@@ -10,7 +10,7 @@ namespace Frontend.VueJsHelper
 {
     public class VueJsHelper
     {
-        public static string VueJsSolutionPath = "C:\\baseFrontTemplateV0.1\\baseFrontTemplateV0.1\\src"; // ضع المسار الجذري لمشروع Vue هنا
+        public static string VueJsSolutionPath = "C:\\baseFrontTemplate\\baseFrontTemplateV1.0\\src"; // ضع المسار الجذري لمشروع Vue هنا
 
         public static void GenerateStoreFile(string entityName, SharedClasses.Properties properties,List<string> notGeneratedTableProperties,List<string> hiddenTableProperties, List<Relation> relations,string srcDir)
         {
@@ -113,9 +113,49 @@ namespace Frontend.VueJsHelper
                     initialStateBuilder.AppendLine($"        {camelCasePropNameIds}: [],");
                     constItemBuilder.AppendLine($"                {camelCasePropNameIds}: this.{camelCasePropNameIds},");
                 }
+                if(rel.Type == RelationType.UserSingle || rel.Type == RelationType.UserSingleNullable)
+                {
+                    string camelCasePropName = rel.DisplayedProperty.GetCamelCaseName();
+                    if (rel.IsGeneratedInTable)
+                    {
+                        string temp = camelCasePropName + "Name";
+                        allColumns.Add($"'{temp}'");
+                        if (!rel.HiddenInTable)
+                        {
+                            defaultColumns.Add($"'{temp}'");
+                        }
+                    }
+                    initialStateBuilder.AppendLine($"        {camelCasePropName}Id: null,");
+                    constItemBuilder.AppendLine($"                {camelCasePropName}Id: this.{camelCasePropName}Id,");
+
+                }
+                if (rel.Type == RelationType.UserMany)
+                {
+                    string camelCasePropNameIds = (rel.DisplayedProperty.GetCamelCaseName()).GetPluralName() + "Ids";
+                    string camelCasePropName = (rel.DisplayedProperty.GetCamelCaseName()).GetPluralName() + "Names";
+                    if (rel.IsGeneratedInTable)
+                    {
+                        allColumns.Add($"'{camelCasePropName}'");
+                        if (!rel.HiddenInTable)
+                        {
+                            defaultColumns.Add($"'{camelCasePropName}'");
+                        }
+                    }
+                    initialStateBuilder.AppendLine($"        {camelCasePropNameIds}: [],");
+                    constItemBuilder.AppendLine($"                {camelCasePropNameIds}: this.{camelCasePropNameIds},");
+                }
                 if (rel.Type == RelationType.ManyToOne || rel.Type == RelationType.OneToOne)
                 {
                     string camelCasePropName = char.ToLower(rel.RelatedEntity[0]) + rel.RelatedEntity.Substring(1);
+                    requiredChecks.Append($@"
+            if (this.{camelCasePropName}Id === null) {{
+                errors.{camelCasePropName}Id = true;
+            }}");
+                }
+
+                if (rel.Type == RelationType.UserSingle)
+                {
+                    string camelCasePropName = rel.DisplayedProperty.GetCamelCaseName();
                     requiredChecks.Append($@"
             if (this.{camelCasePropName}Id === null) {{
                 errors.{camelCasePropName}Id = true;
@@ -126,7 +166,7 @@ namespace Frontend.VueJsHelper
             var content = $@"
 import {{ SAVE, SAVE_FAIL, SAVE_ITEM, VALIDATE_FORM }} from '@/utils/StoreConstant';
 import {{generalActions,generalState}} from './GeneralStore';
-import I18n from '@/config/i18n';
+import i18n from '@/config/i18n';
 import {{defineStore}} from 'pinia';
 import * as generalBackend from '@/backend/Backend';
 import {{{capitalEntityPlural}_ROUTE as PAGE_ROUTE}} from '@/utils/Constants';
@@ -171,9 +211,9 @@ export const {storeName} = defineStore('{entityLower}', {{
 {constItemBuilder}
             }};
             // validation
-            const isValid = this.validateForm();
+            const isValid = this[VALIDATE_FORM]();
             if (!isValid) {{
-                this.sendErrorMessage(I18n.global.t('message.pleaseFillAllRequiredFields'));
+                this.sendErrorMessage(i18n.global.t('message.pleaseFillAllRequiredFields'));
                 this[SAVE_FAIL]();
                 return;
             }}
@@ -186,7 +226,7 @@ export const {storeName} = defineStore('{entityLower}', {{
         }}
     }},
     persist: {{
-        pick: ['selectedColumns']
+        pick: ['selectedColumns', 'itemPageState']
     }}
 }});";
 
@@ -511,9 +551,50 @@ export const {storeName} = defineStore('{entityLower}', {{
                     initialStateBuilder.AppendLine($"        {camelCasePropNameIds}: [],");
                     dataAppendBuilder.AppendLine($"            this.{camelCasePropNameIds}.forEach((id) => data.append('{camelCasePropNameIds}', id));");
                 }
+
+                if (rel.Type == RelationType.UserSingle || rel.Type == RelationType.UserSingleNullable)
+                {
+                    string camelCasePropName = rel.DisplayedProperty.GetCamelCaseName();
+                    if (rel.IsGeneratedInTable)
+                    {
+                        allColumns.Add($"'{camelCasePropName}Name'");
+                        if (!rel.HiddenInTable)
+                        {
+                            defaultColumns.Add($"'{camelCasePropName}Name'");
+                        }
+                    }
+                    initialStateBuilder.AppendLine($"        {camelCasePropName}Id: null,");
+                    dataAppendBuilder.AppendLine($"                data.append('{camelCasePropName}Id', this.{camelCasePropName}Id);");
+
+                }
+                if (rel.Type == RelationType.UserMany)
+                {
+                    string camelCasePropNameIds = (rel.DisplayedProperty.GetCamelCaseName()).GetPluralName() + "Ids";
+                    string camelCasePropName = (rel.DisplayedProperty.GetCamelCaseName()).GetPluralName() + "Names";
+                    if (rel.IsGeneratedInTable)
+                    {
+                        allColumns.Add($"'{camelCasePropName}'");
+                        if (!rel.HiddenInTable)
+                        {
+                            defaultColumns.Add($"'{camelCasePropName}'");
+                        }
+                    }
+                    initialStateBuilder.AppendLine($"        {camelCasePropNameIds}: [],");
+                    dataAppendBuilder.AppendLine($"                this.{camelCasePropNameIds}.forEach((id) => data.append('{camelCasePropNameIds}', id));");
+                }
+
                 if (rel.Type == RelationType.ManyToOne || rel.Type == RelationType.OneToOne)
                 {
                     string camelCasePropName = rel.RelatedEntity.GetCamelCaseName();
+                    requiredChecks.Append($@"
+            if (this.{camelCasePropName}Id === null) {{
+                errors.{camelCasePropName}Id = true;
+            }}");
+                }
+
+                if (rel.Type == RelationType.UserSingle)
+                {
+                    string camelCasePropName = rel.DisplayedProperty.GetCamelCaseName();
                     requiredChecks.Append($@"
             if (this.{camelCasePropName}Id === null) {{
                 errors.{camelCasePropName}Id = true;
@@ -524,7 +605,7 @@ export const {storeName} = defineStore('{entityLower}', {{
             var content = $@"
 import {{ SAVE, SAVE_FAIL, SAVE_ITEM, VALIDATE_FORM }} from '@/utils/StoreConstant';
 import {{generalActions,generalState}} from '@/store/GeneralStore';
-import I18n from '@/config/i18n';
+import i18n from '@/config/i18n';
 import {{defineStore}} from 'pinia';
 import * as generalBackend from '@/backend/Backend';
 import {{{capitalEntityPlural}_ROUTE as PAGE_ROUTE}} from '@/utils/Constants';
@@ -572,9 +653,9 @@ export const {storeName} = defineStore('{entityLower}', {{
         async [SAVE_ITEM]() {{
             this[SAVE]();
             // validation
-            const isValid = this.validateForm();
+            const isValid = this[VALIDATE_FORM]();
             if (!isValid) {{
-                this.sendErrorMessage(I18n.global.t('message.pleaseFillAllRequiredFields'));
+                this.sendErrorMessage(i18n.global.t('message.pleaseFillAllRequiredFields'));
                 this[SAVE_FAIL]();
                 return;
             }}
@@ -589,7 +670,7 @@ export const {storeName} = defineStore('{entityLower}', {{
         }}
     }},
     persist: {{
-        pick: ['selectedColumns']
+        pick: ['selectedColumns', 'itemPageState']
     }}
 }});";
 
@@ -726,6 +807,7 @@ export const {storeName} = defineStore('{entityLower}', {{
 
             StringBuilder enumFilters = new StringBuilder();
             StringBuilder enumDisplayOption = new StringBuilder();
+            StringBuilder watchDate = new StringBuilder();
             foreach (var enm in enumProps)
             {
                 List<string> st = new List<string>();
@@ -806,13 +888,25 @@ const {entityName.GetCamelCaseName()}{enm.prop}Options = [
                         //string st = $"    {{field: '{propLower}', order: 0 }},";
                         //filterSectionSortFields.Add(st);
                         filterSectionGlobalFields.Add($"'{propLower}'");
-                        filterSectionInitFilters.Add($"    {propLower}: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: FilterMatchMode.DATE_IS }}] }},");
+                        filterSectionInitFilters.Add($"    {propLower}: {{ operator: null, constraints: [{{value: null, matchMode: 'dateIs' }}] }},");
+                        watchDate.Append($@"
+watch(
+    () => filters.value.{propLower}.constraints[0].matchMode,
+    (newMode) => {{
+        if (newMode) filters.value.{propLower}.constraints[0].value = null;
+    }}
+);");
                     }
                 }
                 
             }
             StringBuilder relationImports = new StringBuilder();
             StringBuilder relationConsts = new StringBuilder();
+            if (relations.Any(rel => (rel.Type == RelationType.UserMany && rel.IsGeneratedInTable) || (rel.Type == RelationType.UserSingle && rel.IsGeneratedInTable) || (rel.Type == RelationType.UserSingleNullable && rel.IsGeneratedInTable)))
+            {
+                relationImports.AppendLine($"import {{ useUserStore }} from '@/store/UserStore';");
+                relationConsts.AppendLine($"const {{ items: users, loading: loadingUsers, search: searchUsers }} = useList(useUserStore(), '', {{}});");
+            }
             foreach ( var rel in relations )
             {
                 if (rel.IsGeneratedInTable)
@@ -842,6 +936,18 @@ const {entityName.GetCamelCaseName()}{enm.prop}Options = [
                         relationImports.AppendLine($"import {{ use{rel.RelatedEntity}Store }} from '@/store/{rel.RelatedEntity}Store';");
                         relationConsts.AppendLine($"const {{ items: {entityRelatedPluralLower}, loading: loading{entityRelatedPlural}, search: search{entityRelatedPlural} }} = useList(use{rel.RelatedEntity}Store(), '', {{}});");
                     }
+                    if(rel.Type == RelationType.UserSingle || rel.Type == RelationType.UserSingleNullable)
+                    {
+                        var propLower = rel.DisplayedProperty.GetCamelCaseName();
+                        filterSectionGlobalFields.Add($"'{propLower}Name'");
+                        filterSectionInitFilters.Add($"    {propLower}Name: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: FilterMatchMode.EQUALS }}] }},");
+                    }
+                    if (rel.Type == RelationType.UserMany)
+                    {
+                        var propLower = rel.DisplayedProperty.GetCamelCaseName().GetPluralName();
+                        filterSectionGlobalFields.Add($"'{propLower}Names'");
+                        filterSectionInitFilters.Add($"    {propLower}Names: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: FilterMatchMode.CONTAINS }}] }},");
+                    }
                 }
             }
 
@@ -862,13 +968,13 @@ const {entityName.GetCamelCaseName()}{enm.prop}Options = [
             string content = $@"
 <script setup>
 import useList from '@/composables/useList';
-import {{ reactive, ref }} from 'vue';
+import {{ watch, ref }} from 'vue';
 import {{ use{entityName}Store as useStore }} from '@/store/{entityName}Store';
 import {{ {capitalEntityPlural}_ROUTE as PAGE_ROUTE }} from '@/utils/Constants';
 import ListTemplate from '@/components/table/ListTemplate.vue';
 import {{ FilterMatchMode, FilterOperator }} from '@primevue/core/api';
 {relationImports}
-const {{ t, formattedDate, dataTableDateFormatter, isColumnSelected, getOptionLabel }} = useList(useStore(), PAGE_ROUTE, {{ autoLoad: false }});
+const {{ t, formattedDate, onDateBetweenFilterApply, dateMatchModes, clearDateFilter, isColumnSelected, getOptionLabel }} = useList(useStore(), PAGE_ROUTE, {{ }});
 {enumFilters.ToString().TrimEnd()}
 {enumDisplayOption.ToString().TrimEnd()}
 
@@ -882,7 +988,7 @@ const initFilters = () => {{
 }};
 {relationConsts}
 initFilters();
-
+{watchDate.ToString().TrimEnd()}
 </script>
 <template>
     <ListTemplate :pageRoute=""PAGE_ROUTE"" :use-store=""useStore""  title=""title.{entityPluralLower}"" 
@@ -903,7 +1009,7 @@ initFilters();
         {
             var propLower = prop.Name.GetCamelCaseName();
             var typeWithoutNullable = prop.Type.TrimEnd('?');
-            if (typeWithoutNullable == "string" || (typeWithoutNullable == "int" && !enumProps.Any(ep => ep.prop == prop.Name)) || typeWithoutNullable == "double" || typeWithoutNullable == "decimal" || typeWithoutNullable == "float")
+            if (typeWithoutNullable == "string")
             {
                 return $@"
             <Column v-if=""isColumnSelected('{propLower}')"" field=""{propLower}"" :header=""$t('field.{propLower}')"" :show-add-button=""false"" :show-filter-operator=""false"" :sortable=""true"">
@@ -916,7 +1022,20 @@ initFilters();
                 </template>
             </Column>";
             }
-            
+            if ((typeWithoutNullable == "int" && !enumProps.Any(ep => ep.prop == prop.Name)) || typeWithoutNullable == "double" || typeWithoutNullable == "decimal" || typeWithoutNullable == "float")
+            {
+                return $@"
+            <Column v-if=""isColumnSelected('{propLower}')"" field=""{propLower}"" data-type=""numeric"" :header=""$t('field.{propLower}')"" :show-add-button=""false"" :show-filter-operator=""false"" :sortable=""true"">
+                <template #body=""{{ data }}"">
+                    {{{{ data.{propLower} }}}}
+                </template>
+                <template #filter=""{{ filterModel }}"">
+                    <InputText v-keyfilter.int v-model=""filterModel.value"" type=""text""
+                            :placeholder=""$t('search.searchBy{prop.Name}')"" />
+                </template>
+            </Column>";
+            }
+
             if (typeWithoutNullable == "int" && enumProps.Any(ep => ep.prop == prop.Name))//enum case
             {
                 return $@"
@@ -932,12 +1051,19 @@ initFilters();
             if (typeWithoutNullable.Contains("Date") || typeWithoutNullable.Contains("Time"))
             {
                 return $@"
-                <Column v-if=""isColumnSelected('{propLower}')"" field=""{propLower}"" dataType=""date"" style=""width: 80px"" :header=""$t('field.{propLower}')"" :show-add-button=""false"" :show-filter-operator=""false"" :sortable=""true"">
+                <Column v-if=""isColumnSelected('{propLower}')"" field=""{propLower}"" dataType=""date"" :filter-match-mode-options=""dateMatchModes"" style=""width: 80px"" :header=""$t('field.{propLower}')"" :show-add-button=""false"" :show-filter-operator=""false"" :sortable=""true"">
                     <template #body=""{{ data }}"">
                         <div class=""flex justify-center"">{{{{ formattedDate(data.{propLower}) }}}}</div>
                     </template>
                     <template #filter=""{{ filterModel }}"">
-                        <DatePicker v-model=""filterModel.value"" @update:model-value=""dataTableDateFormatter(filterModel)"" dateFormat=""dd/mm/yy"" placeholder=""dd/mm/yyyy""/>
+                        <DatePicker v-if=""filterModel.matchMode === 'dateBetween'"" v-model=""filterModel.value"" selectionMode=""range"" dateFormat=""dd/mm/yy"" :manualInput=""false"" placeholder=""dd/mm/yyyy"" />
+                        <DatePicker v-else v-model=""filterModel.value"" dateFormat=""dd/mm/yy"" :manualInput=""false"" placeholder=""dd/mm/yyyy"" />
+                    </template>
+                    <template #filterapply=""{{ filterCallback }}"">
+                        <Button size=""small"" :label=""$t('button.apply')"" @click=""onDateBetweenFilterApply(filters, filterCallback, '{propLower}')"" />
+                    </template>
+                    <template #filterclear=""{{ filterCallback, filterModel }}"">
+                        <Button size=""small"" variant=""outlined"" :label=""$t('button.clear')"" @click=""clearDateFilter(filterModel, filterCallback)"" />
                     </template>
                 </Column>";
             }
@@ -1017,6 +1143,34 @@ initFilters();
                     </template>
                 </Column> <!-- this column for many to many relation, needs customization-->");
                         }
+
+                        if (rel.Type == RelationType.UserSingle || rel.Type == RelationType.UserSingleNullable)
+                        {
+                            var propLower = rel.DisplayedProperty.GetCamelCaseName() + "Name";
+                            sb.AppendLine($@"
+                <Column v-if=""isColumnSelected('{propLower}')"" field=""{propLower}"" :header=""$t('field.{propLower}')"" :show-add-button=""false"" :show-filter-match-modes=""false"" :show-filter-operator=""false"" :sortable=""true"">
+                    <template #body=""{{ data }}"">
+                        {{{{ data.{propLower}}}}}
+                    </template>
+                    <template #filter=""{{ filterModel }}"">
+                        <Select v-model=""filterModel.value"" filter  @filter=""(e) => searchUsers(e.value)"" :options=""users"" :loading=""loadingUsers"" option-value=""fullName"" option-label=""fullName"" :placeholder=""$t('field.select')""></Select>
+                    </template>
+                </Column>");
+                        }
+
+                        if (rel.Type == RelationType.UserMany)
+                        {
+                            var propLower = rel.DisplayedProperty.GetCamelCaseName().GetPluralName() + "Names";
+                            sb.AppendLine($@"
+                <Column v-if=""isColumnSelected('{propLower}')"" field=""{propLower}"" :header=""$t('field.{propLower}')"" :show-add-button=""false"" :show-filter-match-modes=""false"" :show-filter-operator=""false"" :sortable=""true"">
+                    <template #body=""{{ data }}"">
+                        {{{{ data.{propLower} }}}}
+                    </template>
+                    <template #filter=""{{ filterModel }}"">
+                        <Select v-model=""filterModel.value"" filter  @filter=""(e) => searchUsers(e.value)"" :options=""users"" :loading=""loadingUsers"" option-value=""fullName"" option-label=""fullName"" :placeholder=""$t('field.select')""></Select>
+                    </template>
+                </Column> <!-- this column for many to many relation, needs customization-->");
+                        }
                     }
                 }
             }
@@ -1064,6 +1218,11 @@ const {entityLower}{enm.prop}Options = [
             }
             StringBuilder relationImports = new StringBuilder();
             StringBuilder relationConsts = new StringBuilder();
+            if (relations.Any(rel => rel.Type == RelationType.UserMany || rel.Type == RelationType.UserSingle || rel.Type == RelationType.UserSingleNullable))
+            {
+                relationImports.AppendLine($"import {{ useUserStore }} from '@/store/UserStore';");
+                relationConsts.AppendLine($"const {{ items: users, loading: loadingUsers, search: searchUsers }} = useList(useUserStore(), '', {{}});");
+            }
             foreach (var rel in relations)
             {
                 if (rel.Type == RelationType.OneToOneSelfJoin || rel.Type == RelationType.ManyToOne || rel.Type == RelationType.ManyToOneNullable
@@ -1478,7 +1637,7 @@ const {{ state, onPropChanged, onSave, onCancel, t }} = useSingle(store, PAGE_RO
             }
             if ((typeWithoutNullable == "int" && !enumProps.Any(ep => ep.prop == prop.Name)) || typeWithoutNullable == "double" || typeWithoutNullable == "decimal" || typeWithoutNullable == "float")
             {
-                string? NumOfDigit = (typeWithoutNullable == "double" || typeWithoutNullable == "decimal" || typeWithoutNullable == "float") ? ":maxFractionDigits=\"10\"" : null;
+                string? NumOfDigit = (typeWithoutNullable == "double" || typeWithoutNullable == "decimal" || typeWithoutNullable == "float") ? ":maxFractionDigits=\"4\"" : null;
                 return $@"
                 <div class=""flex flex-col gap-2 w-full"">
                     <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
@@ -1952,6 +2111,59 @@ const {{ state, onPropChanged, onSave, onCancel, t }} = useSingle(store, PAGE_RO
                         :invalid=""state.validationErrors.{propLower}""
                         filter
                         @filter=""(e) => search{entityRelatedPlural}(e.value)""
+                        @change=""(e) => onPropChanged(JSON.parse(JSON.stringify(e.value)), '{propLower}')""
+                        :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                    />
+                </div>");
+                    }
+
+                    if (rel.Type == RelationType.UserSingle || rel.Type == RelationType.UserSingleNullable)
+                    {
+                        var propLower = rel.DisplayedProperty.GetCamelCaseName();
+                        sb.AppendLine($@"
+                <div class=""flex flex-col gap-2 w-full"">
+                    <label for=""{propLower}Name"">{{{{ $t('field.{propLower}Name') }}}}</label>
+                    <Select
+                        :emptyMessage=""$t('message.noAvailableOptions')""
+                        :options=""users""
+                        optionLabel=""fullName""
+                        optionValue=""id""
+                        v-model=""state.{propLower}Id""
+                        :invalid=""state.validationErrors.{propLower}Id""
+                        :loading=""loadingUsers""
+                        :placeholder=""$t('field.selectUser')""
+                        class=""w-full""
+                        showClear
+                        filter
+                        @filter=""(e) => searchUsers(e.value)""
+                        @change=""(e) => onPropChanged(e.value, '{propLower}Id')""
+                        :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                    >
+                        <template #option=""slotProps"">
+                            <div class=""flex items-center"">
+                                <div>{{{{ slotProps.option.fullName }}}}</div>
+                            </div>
+                        </template>
+                    </Select>
+                </div>");
+                    }
+
+                    if (rel.Type == RelationType.UserMany)
+                    {
+                        var propLower = rel.DisplayedProperty.GetCamelCaseName().GetPluralName();
+                        sb.AppendLine($@"
+                <div class=""flex flex-col gap-2 w-full"">
+                    <label for=""{propLower}Names"">{{{{ $t('field.{propLower}Names') }}}}</label>
+                    <MultiSelect class=""w-full"" id=""{propLower}"" type=""text"" dataKey=""id""
+                        optionLabel=""fullName"" optionValue='id'
+                        :placeholder=""$t('field.selectUser')"" 
+                        v-model=""state.{propLower}Ids""
+                        :options=""users""
+                        :loading=""loadingUsers""
+                        :maxSelectedLabels=""3""
+                        :invalid=""state.validationErrors.{propLower}Names""
+                        filter
+                        @filter=""(e) => searchUsers(e.value)""
                         @change=""(e) => onPropChanged(JSON.parse(JSON.stringify(e.value)), '{propLower}')""
                         :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
                     />
