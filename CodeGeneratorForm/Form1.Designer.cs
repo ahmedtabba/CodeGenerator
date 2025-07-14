@@ -54,7 +54,14 @@
             pnlScrollable = new Panel();
             label5 = new Label();
             pnlRelations = new Panel();
+            btnRelUsers = new Button();
+            panel1 = new Panel();
+            rdioChild = new RadioButton();
+            rdioParent = new RadioButton();
+            cmboParent = new ComboBox();
+            lblParent = new Label();
             groupBoxOption.SuspendLayout();
+            panel1.SuspendLayout();
             SuspendLayout();
             // 
             // checkBoxLocalization
@@ -98,7 +105,7 @@
             // 
             // txtEntityName
             // 
-            txtEntityName.Location = new Point(9, 82);
+            txtEntityName.Location = new Point(9, 89);
             txtEntityName.Name = "txtEntityName";
             txtEntityName.Size = new Size(136, 23);
             txtEntityName.TabIndex = 4;
@@ -120,7 +127,7 @@
             groupBoxOption.Controls.Add(checkBoxLocalization);
             groupBoxOption.Location = new Point(151, 67);
             groupBoxOption.Name = "groupBoxOption";
-            groupBoxOption.Size = new Size(609, 55);
+            groupBoxOption.Size = new Size(609, 45);
             groupBoxOption.TabIndex = 5;
             groupBoxOption.TabStop = false;
             groupBoxOption.Text = "Options";
@@ -238,7 +245,7 @@
             // 
             // btnProperty
             // 
-            btnProperty.Location = new Point(10, 146);
+            btnProperty.Location = new Point(10, 190);
             btnProperty.Name = "btnProperty";
             btnProperty.Size = new Size(90, 25);
             btnProperty.TabIndex = 6;
@@ -249,7 +256,7 @@
             // label8
             // 
             label8.AutoSize = true;
-            label8.Location = new Point(9, 128);
+            label8.Location = new Point(9, 172);
             label8.Name = "label8";
             label8.Size = new Size(102, 15);
             label8.TabIndex = 7;
@@ -257,7 +264,7 @@
             // 
             // btnSave
             // 
-            btnSave.Location = new Point(9, 574);
+            btnSave.Location = new Point(9, 618);
             btnSave.Name = "btnSave";
             btnSave.Size = new Size(99, 48);
             btnSave.TabIndex = 54;
@@ -267,18 +274,18 @@
             // 
             // btnNewRelation
             // 
-            btnNewRelation.Location = new Point(9, 401);
+            btnNewRelation.Location = new Point(1, 445);
             btnNewRelation.Name = "btnNewRelation";
-            btnNewRelation.Size = new Size(90, 25);
+            btnNewRelation.Size = new Size(149, 25);
             btnNewRelation.TabIndex = 57;
-            btnNewRelation.Text = "New Relation";
+            btnNewRelation.Text = "New Relation => Entities";
             btnNewRelation.UseVisualStyleBackColor = true;
             btnNewRelation.Click += btnNewRelation_Click;
             // 
             // label3
             // 
             label3.AutoSize = true;
-            label3.Location = new Point(139, 383);
+            label3.Location = new Point(139, 427);
             label3.Name = "label3";
             label3.Size = new Size(55, 15);
             label3.TabIndex = 58;
@@ -287,7 +294,7 @@
             // label4
             // 
             label4.AutoSize = true;
-            label4.Location = new Point(10, 383);
+            label4.Location = new Point(10, 427);
             label4.Name = "label4";
             label4.Size = new Size(97, 15);
             label4.TabIndex = 60;
@@ -297,15 +304,15 @@
             // 
             pnlScrollable.AutoScroll = true;
             pnlScrollable.BorderStyle = BorderStyle.FixedSingle;
-            pnlScrollable.Location = new Point(139, 146);
+            pnlScrollable.Location = new Point(151, 190);
             pnlScrollable.Name = "pnlScrollable";
-            pnlScrollable.Size = new Size(621, 210);
+            pnlScrollable.Size = new Size(609, 210);
             pnlScrollable.TabIndex = 0;
             // 
             // label5
             // 
             label5.AutoSize = true;
-            label5.Location = new Point(139, 128);
+            label5.Location = new Point(139, 172);
             label5.Name = "label5";
             label5.Size = new Size(60, 15);
             label5.TabIndex = 61;
@@ -315,17 +322,83 @@
             // 
             pnlRelations.AutoScroll = true;
             pnlRelations.BorderStyle = BorderStyle.FixedSingle;
-            pnlRelations.Location = new Point(139, 401);
+            pnlRelations.Location = new Point(151, 445);
             pnlRelations.Name = "pnlRelations";
-            pnlRelations.Size = new Size(621, 221);
+            pnlRelations.Size = new Size(609, 221);
             pnlRelations.TabIndex = 62;
+            // 
+            // btnRelUsers
+            // 
+            btnRelUsers.Location = new Point(1, 487);
+            btnRelUsers.Name = "btnRelUsers";
+            btnRelUsers.Size = new Size(149, 25);
+            btnRelUsers.TabIndex = 63;
+            btnRelUsers.Text = "New Relation => Users";
+            btnRelUsers.UseVisualStyleBackColor = true;
+            btnRelUsers.Click += btnRelUsers_Click;
+            // 
+            // panel1
+            // 
+            panel1.BorderStyle = BorderStyle.FixedSingle;
+            panel1.Controls.Add(rdioChild);
+            panel1.Controls.Add(rdioParent);
+            panel1.Location = new Point(9, 119);
+            panel1.Name = "panel1";
+            panel1.Size = new Size(136, 28);
+            panel1.TabIndex = 64;
+            // 
+            // rdioChild
+            // 
+            rdioChild.AutoSize = true;
+            rdioChild.Location = new Point(70, 3);
+            rdioChild.Name = "rdioChild";
+            rdioChild.Size = new Size(53, 19);
+            rdioChild.TabIndex = 1;
+            rdioChild.TabStop = true;
+            rdioChild.Text = "Child";
+            rdioChild.UseVisualStyleBackColor = true;
+            rdioChild.CheckedChanged += rdioChild_CheckedChanged;
+            // 
+            // rdioParent
+            // 
+            rdioParent.AutoSize = true;
+            rdioParent.Location = new Point(5, 3);
+            rdioParent.Name = "rdioParent";
+            rdioParent.Size = new Size(59, 19);
+            rdioParent.TabIndex = 0;
+            rdioParent.TabStop = true;
+            rdioParent.Text = "Parent";
+            rdioParent.UseVisualStyleBackColor = true;
+            // 
+            // cmboParent
+            // 
+            cmboParent.FormattingEnabled = true;
+            cmboParent.Location = new Point(251, 122);
+            cmboParent.Name = "cmboParent";
+            cmboParent.Size = new Size(146, 23);
+            cmboParent.TabIndex = 65;
+            cmboParent.Visible = false;
+            // 
+            // lblParent
+            // 
+            lblParent.AutoSize = true;
+            lblParent.Location = new Point(169, 126);
+            lblParent.Name = "lblParent";
+            lblParent.Size = new Size(75, 15);
+            lblParent.TabIndex = 66;
+            lblParent.Text = "Select Parent";
+            lblParent.Visible = false;
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             AutoScroll = true;
-            ClientSize = new Size(772, 634);
+            ClientSize = new Size(772, 724);
+            Controls.Add(lblParent);
+            Controls.Add(cmboParent);
+            Controls.Add(panel1);
+            Controls.Add(btnRelUsers);
             Controls.Add(pnlRelations);
             Controls.Add(label5);
             Controls.Add(pnlScrollable);
@@ -345,6 +418,8 @@
             Load += Form1_Load;
             groupBoxOption.ResumeLayout(false);
             groupBoxOption.PerformLayout();
+            panel1.ResumeLayout(false);
+            panel1.PerformLayout();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -377,5 +452,11 @@
         private Panel pnlRelations;
         private CheckBox checkBoxBulk;
         private Label lblBulk;
+        private Button btnRelUsers;
+        private Panel panel1;
+        private RadioButton rdioChild;
+        private RadioButton rdioParent;
+        private ComboBox cmboParent;
+        private Label lblParent;
     }
 }

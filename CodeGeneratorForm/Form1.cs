@@ -21,8 +21,8 @@ namespace CodeGeneratorForm
         public SharedClasses.Properties properties { get; set; } = new SharedClasses.Properties();
         public List<string> NotGeneratedTableColumns { get; set; } = new List<string>();
         public List<string> HiddenTableColumns { get; set; } = new List<string>();
-        public List<string> NotGeneratedTableRelations { get; set; } = new List<string>();
-        public List<string> HiddenTableRelations { get; set; } = new List<string>();
+        public List<NonGeneratedRelation> NotGeneratedTableRelations { get; set; } = new List<NonGeneratedRelation>();
+        public List<HiddenRelation> HiddenTableRelations { get; set; } = new List<HiddenRelation>();
         public Form1()
         {
             InitializeComponent();
@@ -79,24 +79,36 @@ namespace CodeGeneratorForm
             var hasUserAction = checkBoxUserActions.Checked;
             var hasNotification = checkBoxNotifications.Checked;
             var bulk = checkBoxBulk.Checked;
-            var entityName = txtEntityName.Text;
-            var solutionDir = $"{txtDir.Text}";
-
-            if (checkBoxBulk.Checked)
+            bool? isParent = rdioParent.Checked ? true : null;
+            bool? isChild = rdioChild.Checked ? true : null;
+            if (rdioChild.Checked)
             {
-                if (Relations.Count == 0)
+                if (cmboParent.SelectedItem == null)
                 {
-                    MessageBox.Show("You choose Bulk, so you should add relation");
-                    return;
-                }
-                if (!Relations.Any(r => r.Type == RelationType.ManyToOne || r.Type == RelationType.ManyToOneNullable))
-                {
-                    MessageBox.Show("You choose Bulk, so you should add relation (ManyToOne)");
+                    MessageBox.Show("You choose Child, so you should add parent entity");
                     return;
                 }
             }
+            string? parentEntityName = rdioChild.Checked ? cmboParent.SelectedItem.ToString() : null;
 
-            if (!ValidateSolution()) 
+            var entityName = txtEntityName.Text;
+            var solutionDir = $"{txtDir.Text}";
+
+            //if (checkBoxBulk.Checked)
+            //{
+            //    if (Relations.Count == 0)
+            //    {
+            //        MessageBox.Show("You choose Bulk, so you should add relation");
+            //        return;
+            //    }
+            //    if (!Relations.Any(r => r.Type == RelationType.ManyToOne || r.Type == RelationType.ManyToOneNullable))
+            //    {
+            //        MessageBox.Show("You choose Bulk, so you should add relation (ManyToOne)");
+            //        return;
+            //    }
+            //}
+
+            if (!ValidateSolution())
             {
                 ClearForm();
                 return;
@@ -104,26 +116,57 @@ namespace CodeGeneratorForm
 
             string entityPlural = entityName.GetPluralName();
             bool hasAssets = properties.PropertiesList.Any(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD" || p.Type == "VDs" || p.Type == "FL" || p.Type == "FLs");
+
             if (!hasAssets)
-                VueJsHelper.GenerateStoreFile(entityName, properties,NotGeneratedTableColumns,HiddenTableColumns,Relations, VueJsHelper.VueJsSolutionPath);
+            {
+                if (isChild == null)
+                    VueJsHelper.GenerateStoreFile(entityName, properties, NotGeneratedTableColumns, HiddenTableColumns, Relations, VueJsHelper.VueJsSolutionPath, isParent);
+            }
             else
                 VueJsHelper.GenerateStoreFileWithAssets(entityName, properties, NotGeneratedTableColumns, HiddenTableColumns, Relations, VueJsHelper.VueJsSolutionPath);
-            
-            VueJsHelper.UpdateConstantsJs(entityName, VueJsHelper.VueJsSolutionPath);
-            VueJsHelper.UpdateRouterIndexJs(entityName, VueJsHelper.VueJsSolutionPath);
-            VueJsHelper.UpdateAppMenu(entityName, VueJsHelper.VueJsSolutionPath);
-            VueJsHelper.GenerateTableView(entityName, VueJsHelper.VueJsSolutionPath, properties.PropertiesList, properties.EnumProps, NotGeneratedTableColumns, HiddenTableColumns,Relations);
-            VueJsHelper.GenerateSingleView(entityName, VueJsHelper.VueJsSolutionPath, properties.PropertiesList, properties.EnumProps, Relations,hasAssets);
+
+            if (isChild == null )
+            {
+                VueJsHelper.UpdateConstantsJs(entityName, VueJsHelper.VueJsSolutionPath);
+                VueJsHelper.UpdateRouterIndexJs(entityName, VueJsHelper.VueJsSolutionPath);
+                VueJsHelper.UpdateAppMenu(entityName, VueJsHelper.VueJsSolutionPath);
+            }
+            else
+            {
+                if(bulk)
+                    VueJsHelper.GeneratePartialBulkStoreFile(entityName, properties, NotGeneratedTableColumns, HiddenTableColumns, Relations, VueJsHelper.VueJsSolutionPath, parentEntityName!);
+                else
+                    VueJsHelper.GeneratePartialStoreFile(entityName, properties, NotGeneratedTableColumns, HiddenTableColumns, Relations, VueJsHelper.VueJsSolutionPath, parentEntityName!);
+            }
+            if (isChild == null) // parent or normal entity, GenerateTableView is the same
+            {
+                VueJsHelper.GenerateTableView(entityName, VueJsHelper.VueJsSolutionPath, properties.PropertiesList, properties.EnumProps, NotGeneratedTableColumns, HiddenTableColumns, Relations,isParent);
+                if (isParent == null )
+                    VueJsHelper.GenerateSingleView(entityName, VueJsHelper.VueJsSolutionPath, properties.PropertiesList, properties.EnumProps, Relations, hasAssets);
+                else
+                {
+                    VueJsHelper.GenerateParentSingleView(entityName, VueJsHelper.VueJsSolutionPath);
+                    VueJsHelper.GenerateParentBasicInfoView(entityName, VueJsHelper.VueJsSolutionPath, properties.PropertiesList, properties.EnumProps, Relations, hasAssets);
+                }
+            }
+            else
+            {
+                if (!bulk)
+                    VueJsHelper.GeneratePartialFormView(entityName, VueJsHelper.VueJsSolutionPath, properties.PropertiesList, properties.EnumProps, Relations, hasAssets, parentEntityName);
+                else
+                    VueJsHelper.GeneratePartialBulkView(entityName, VueJsHelper.VueJsSolutionPath, properties.PropertiesList, properties.EnumProps,NotGeneratedTableColumns,HiddenTableColumns, Relations, parentEntityName);
+
+            }
             // Save metadata before generating code
             try
             {
                 MetadataManager.SaveEntityMetadata(solutionDir, entityName, entityPlural,
                     hasLocalization, hasPermissions, hasVersioning, hasNotification,
-                    hasUserAction, bulk, 
-                    (properties.PropertiesList, 
+                    hasUserAction, bulk,
+                    (properties.PropertiesList,
                     properties.LocalizedProp,
                     properties.EnumProps),
-                    Relations);
+                    Relations,isParent,isChild,parentEntityName);
             }
             catch (Exception ex)
             {
@@ -137,22 +180,27 @@ namespace CodeGeneratorForm
             var createCommandPath = Path.Combine(solutionDir, "Application", entityPlural, "Commands", $"Create{entityName}");
             var updateCommandPath = Path.Combine(solutionDir, "Application", entityPlural, "Commands", $"Update{entityName}");
             var deleteCommandPath = Path.Combine(solutionDir, "Application", entityPlural, "Commands", $"Delete{entityName}");
-            var createBulkCommandPath = Path.Combine(solutionDir, "Application", entityPlural, "Commands", $"CreateBulk{entityName}");
+            //var createBulkCommandPath = Path.Combine(solutionDir, "Application", entityPlural, "Commands", $"CreateBulk{entityName}");
             var updateBulkCommandPath = Path.Combine(solutionDir, "Application", entityPlural, "Commands", $"UpdateBulk{entityName}");
-            var deleteBulkCommandPath = Path.Combine(solutionDir, "Application", entityPlural, "Commands", $"DeleteBulk{entityName}");
+            //var deleteBulkCommandPath = Path.Combine(solutionDir, "Application", entityPlural, "Commands", $"DeleteBulk{entityName}");
             var queryPath = Path.Combine(solutionDir, "Application", entityPlural, "Queries");
-
-            Directory.CreateDirectory(domainPath);
-            Directory.CreateDirectory(repoInterfacePath);
-            Directory.CreateDirectory(createCommandPath);
-            Directory.CreateDirectory(updateCommandPath);
-            Directory.CreateDirectory(deleteCommandPath);
-            if (bulk)
+            if (isChild == null)
             {
-                Directory.CreateDirectory(createBulkCommandPath);
-                Directory.CreateDirectory(updateBulkCommandPath);
-                Directory.CreateDirectory(deleteBulkCommandPath);
+                Directory.CreateDirectory(domainPath);
+                Directory.CreateDirectory(repoInterfacePath);
+                Directory.CreateDirectory(createCommandPath);
+                Directory.CreateDirectory(updateCommandPath);
+                Directory.CreateDirectory(deleteCommandPath);
             }
+            else if (bulk)
+            {
+                Directory.CreateDirectory(updateBulkCommandPath);
+            }
+            else
+            {
+                Directory.CreateDirectory(updateCommandPath);
+            }
+                
 
             try
             {
@@ -160,7 +208,7 @@ namespace CodeGeneratorForm
                 {
                     Infrastructure.GeneratePermission(entityName, domainPath, hasLocalization);
                 }
-                Domain.GenerateEntityClass(entityName, domainPath, (properties.PropertiesList, properties.LocalizedProp, properties.EnumProps), hasLocalization, Relations);
+                Domain.GenerateEntityClass(entityName, domainPath, (properties.PropertiesList, properties.LocalizedProp, properties.EnumProps), hasLocalization, Relations,bulk,isChild,parentEntityName);
                 //GenerateEntityLocalizationClass(entityName, domainPath);
                 Infrastructure.UpdateAppDbContext(entityName, domainPath);
                 if (hasLocalization)
@@ -176,15 +224,30 @@ namespace CodeGeneratorForm
                     ("Guid",$"{entityName}Id",new PropertyValidation()),
                     ("Guid",$"{relation.RelatedEntity}Id",new PropertyValidation())
                 };
-                        Domain.GenerateEntityClass($"{entityName}{relation.RelatedEntity}", domainPath, (props, new List<string>(), new List<(string, List<string>)>()), false, new List<Relation>());
+                        Domain.GenerateEntityClass($"{entityName}{relation.RelatedEntity}", domainPath, (props, new List<string>(), new List<(string, List<string>)>()), false, new List<Relation>(), false);
                         Infrastructure.UpdateAppDbContext($"{entityName}{relation.RelatedEntity}", domainPath);
                         Application.GenerateIRepositoryInterface($"{entityName}{relation.RelatedEntity}", repoInterfacePath);
                         Infrastructure.GenerateRepository($"{entityName}{relation.RelatedEntity}", repoPath);
                         Infrastructure.UpdateDependencyInjection($"{entityName}{relation.RelatedEntity}", domainPath);
                     }
+                    if (relation.Type == RelationType.UserMany)
+                    {
+                        List<(string Type, string Name, PropertyValidation Validation)> props = new List<(string Type, string Name, PropertyValidation Validation)>
+                {
+                    ("Guid",$"{entityName}Id",new PropertyValidation()),
+                    ($"virtual {entityName}",$"{entityName}",new PropertyValidation()),
+                    ("string",$"{relation.RelatedEntity}Id",new PropertyValidation())
+                };
+                        Domain.GenerateEntityClass($"{entityName}{relation.DisplayedProperty}", domainPath, (props, new List<string>(), new List<(string, List<string>)>()), false, new List<Relation>(), false);
+                        Infrastructure.UpdateAppDbContext($"{entityName}{relation.DisplayedProperty}", domainPath);
+                        Application.GenerateIRepositoryInterface($"{entityName}{relation.DisplayedProperty}", repoInterfacePath);
+                        Infrastructure.GenerateRepository($"{entityName}{relation.DisplayedProperty}", repoPath);
+                        Infrastructure.UpdateDependencyInjection($"{entityName}{relation.DisplayedProperty}", domainPath);
+                    }
                 }
 
                 Infrastructure.GenerateConfiguration(entityName, domainPath, relatedEntitiesList);
+       
                 Application.GenerateIRepositoryInterface(entityName, repoInterfacePath, Relations);
                 if (hasLocalization)
                     Application.GenerateIRepositoryInterface($@"{entityName}Localization", repoInterfacePath);
@@ -195,7 +258,16 @@ namespace CodeGeneratorForm
                 if (hasLocalization)
                     Infrastructure.UpdateDependencyInjection($@"{entityName}Localization", domainPath);
                 if (hasVersioning)
-                    ApplicationAssistant.GenerateVersionNeeds(entityName, domainPath, properties.PropertiesList, Relations);
+                {
+                    if (isChild == null)
+                    {
+                        ApplicationAssistant.GenerateVersionNeeds(entityName, domainPath, properties.PropertiesList, Relations);
+                    }
+                    else
+                    {
+                        ApplicationAssistant.GenerateVersionNeeds(entityName, domainPath, properties.PropertiesList, Relations,parentEntityName);
+                    }
+                }
                 if (hasNotification)
                     ApplicationAssistant.GenerateNotificationNeeds(entityName, domainPath);
                 if (hasUserAction)
@@ -204,48 +276,63 @@ namespace CodeGeneratorForm
                     Infrastructure.UpdateLocalizationService(entityName, domainPath, properties.LocalizedProp);
                 if (hasNotification || hasVersioning || hasUserAction)
                 {
-                    ApplicationAssistant.GenerateEvents(entityName, domainPath, hasVersioning,bulk);
-                    ApplicationAssistant.GenerateHandlers(entityName, domainPath, properties.PropertiesList, Relations, hasVersioning, hasUserAction, hasNotification, bulk);
+                    if (isChild == null)
+                        ApplicationAssistant.GenerateEvents(entityName, domainPath, hasVersioning);
+                    else
+                        ApplicationAssistant.GenerateChildEvents(entityName, domainPath, hasVersioning,bulk);
+                    
+                    ApplicationAssistant.GenerateHandlers(entityName, domainPath, properties.PropertiesList, Relations, hasVersioning, hasUserAction, hasNotification, bulk,isChild,parentEntityName);
                 }
-                Application.GenerateCreateCommand(entityName, entityPlural, createCommandPath, properties.PropertiesList, properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction);
-                Application.GenerateCreateCommandValidator(entityName, entityPlural, createCommandPath, properties.PropertiesList, Relations);
-                
-                Application.GenerateUpdateCommand(entityName, entityPlural, updateCommandPath, properties.PropertiesList, properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction);
-                Application.GenerateUpdateCommandValidator(entityName, entityPlural, updateCommandPath, properties.PropertiesList, Relations);
-
-
-                Application.GenerateDeleteCommand(entityName, entityPlural, deleteCommandPath, properties.PropertiesList, Relations,hasVersioning, hasNotification, hasUserAction);
-                Application.GenerateDeleteCommandValidator(entityName, entityPlural, deleteCommandPath, properties.PropertiesList,Relations);
-
-                if (bulk)
+                if(isChild == null)
                 {
-                    Application.GenerateSingleEntity(entityName, entityPlural, createBulkCommandPath, properties.PropertiesList, properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction);
-                    Application.GenerateCreateBulkCommand(entityName, entityPlural, createBulkCommandPath, properties.PropertiesList, properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction);
-                    Application.GenerateCreateBulkCommandValidator(entityName, entityPlural, createBulkCommandPath, properties.PropertiesList, Relations);
+                    Application.GenerateCreateCommand(entityName, entityPlural, createCommandPath, properties.PropertiesList, properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction);
+                    Application.GenerateCreateCommandValidator(entityName, entityPlural, createCommandPath, properties.PropertiesList, Relations);
 
-                    Application.GenerateSingleUpdateEntity(entityName, entityPlural, updateBulkCommandPath, properties.PropertiesList, properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction);
-                    Application.GenerateUpdateBulkCommand(entityName, entityPlural, updateBulkCommandPath, properties.PropertiesList, properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction);
-                    Application.GenerateUpdateBulkCommandValidator(entityName, entityPlural, updateBulkCommandPath, properties.PropertiesList, Relations);
+                    Application.GenerateUpdateCommand(entityName, entityPlural, updateCommandPath, properties.PropertiesList, properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction);
+                    Application.GenerateUpdateCommandValidator(entityName, entityPlural, updateCommandPath, properties.PropertiesList, Relations);
 
-                    Application.GenerateDeleteBulkCommand(entityName, entityPlural, deleteBulkCommandPath, properties.PropertiesList, properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction);
-                    Application.GenerateDeleteBulkCommandValidator(entityName, entityPlural, deleteBulkCommandPath, properties.PropertiesList);
 
+                    Application.GenerateDeleteCommand(entityName, entityPlural, deleteCommandPath, properties.PropertiesList, Relations, hasVersioning, hasNotification, hasUserAction);
+                    Application.GenerateDeleteCommandValidator(entityName, entityPlural, deleteCommandPath, properties.PropertiesList, Relations);
                 }
+                else
+                {
+                    if (!bulk)
+                    {
+                        Application.GenerateUpdatePartialCommand(entityName, entityPlural, updateCommandPath, properties.PropertiesList, properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction,parentEntityName);
+                        //Application.GenerateUpdatePartialCommandValidator(entityName, entityPlural, updateCommandPath, properties.PropertiesList, Relations);
+                    }
+                    else
+                    {
 
-                Application.GenerateGetByIdQuery(entityName, entityPlural, queryPath, hasLocalization, properties.PropertiesList, properties.EnumProps, Relations);
-
-                Application.GenerateGetWithPaginationQuery(entityName, entityPlural, queryPath, hasLocalization,properties.PropertiesList,properties.EnumProps, Relations);
+                    }
+                }
+                var childNotBulk = isChild != null && !bulk;
+                if ((isChild == null && isParent == null) || isParent != null || childNotBulk)
+                    Application.GenerateGetByIdQuery(entityName, entityPlural, queryPath, hasLocalization, properties.PropertiesList, properties.EnumProps, Relations,parentEntityName);
+                else
+                {
+                    //Bulk case
+                }
+                if ((isChild == null && isParent == null) || isParent != null)
+                    Application.GenerateGetWithPaginationQuery(entityName, entityPlural, queryPath, hasLocalization, properties.PropertiesList, properties.EnumProps, Relations);
+                
                 Application.GenerateBaseDto(entityName, entityPlural, properties.PropertiesList, properties.EnumProps, solutionDir, Relations, hasLocalization);
 
                 if (hasLocalization)
                     Application.GenerateGetWithLocalizationQuery(entityName, entityPlural, queryPath, properties.PropertiesList, properties.EnumProps, Relations);
 
-                Api.GenerateNeededDtos(entityName, entityPlural, properties.PropertiesList, properties.EnumProps, solutionDir, hasLocalization, Relations, bulk);
+                Api.GenerateNeededDtos(entityName, entityPlural, properties.PropertiesList, properties.EnumProps, solutionDir, hasLocalization, Relations, bulk, parentEntityName);
 
-                Api.AddRoutesToApiRoutes(entityName, entityPlural, solutionDir, hasLocalization,bulk);
-
-                Api.GenerateController(entityName, entityPlural, properties.PropertiesList, properties.EnumProps, solutionDir, hasLocalization, hasPermissions, bulk);
-                // VueJsHelper.GenerateStoreFile(entityName, properties);
+                Api.AddRoutesToApiRoutes(entityName, entityPlural, solutionDir, hasLocalization, bulk,parentEntityName);
+                if ((isChild == null && isParent == null) || isParent != null)
+                    Api.GenerateController(entityName, entityPlural, properties.PropertiesList, properties.EnumProps, solutionDir, hasLocalization, hasPermissions, bulk);
+                else if (!bulk)
+                    Api.GeneratePartialController(entityName, entityPlural, properties.PropertiesList, properties.EnumProps, solutionDir, hasLocalization, hasPermissions);
+                else
+                {
+                    //Bulk case
+                }
             }
             catch (Exception ex)
             {
@@ -305,7 +392,7 @@ namespace CodeGeneratorForm
                 return;
             }
 
-            RelationForm relationForm = new RelationForm(solutionDir,properties, txtEntityName.Text);
+            RelationForm relationForm = new RelationForm(solutionDir, properties, txtEntityName.Text);
             relationForm.ShowDialog();
             var relation = relationForm.Relation;
             if (relationForm.IsSaved)
@@ -336,38 +423,74 @@ namespace CodeGeneratorForm
                     BorderStyle = BorderStyle.FixedSingle,
                     BackColor = Color.White,
                 };
-                Label lblRel = new Label
+                if (relation.Type != RelationType.UserSingle && relation.Type != RelationType.UserSingleNullable && relation.Type != RelationType.UserMany)
                 {
-                    AutoSize = true,
-                    Location = new Point(5, 5),
-                    Text = $"{relation.Type} with {relation.RelatedEntity}"
-                };
+                    Label lblRel = new Label
+                    {
+                        AutoSize = true,
+                        Location = new Point(5, 5),
+                        Text = $"{relation.Type} with {relation.RelatedEntity}"
+                    };
+                    // Edit button
+                    Button btnRelEdit = new Button
+                    {
+                        Text = "Edit",
+                        Tag = relation.RelatedEntity,
+                        Location = new Point(relPanel.Width - 140, 5),
+                        Size = new Size(60, 25)
+                    };
+                    btnRelEdit.Click += BtnRelEdit_Click;
 
-                // Edit button
-                Button btnRelEdit = new Button
+                    // Delete button
+                    Button btnRelDelete = new Button
+                    {
+                        Text = "Delete",
+                        Tag = relation.RelatedEntity,
+                        Location = new Point(relPanel.Width - 75, 5),
+                        Size = new Size(60, 25)
+                    };
+                    btnRelDelete.Click += BtnRelDelete_Click;
+
+                    // Add controls to panel
+                    relPanel.Controls.AddRange(new Control[] { lblRel, btnRelEdit, btnRelDelete });
+                    pnlRelations.Controls.Add(relPanel);
+
+                    yPosition += relPanel.Height + 10;
+                }
+                else
                 {
-                    Text = "Edit",
-                    Tag = relation.RelatedEntity,
-                    Location = new Point(relPanel.Width - 140, 5),
-                    Size = new Size(60, 25)
-                };
-                btnRelEdit.Click += BtnRelEdit_Click;
+                    Label lblRel = new Label
+                    {
+                        AutoSize = true,
+                        Location = new Point(5, 5),
+                        Text = $"{relation.Type} with {relation.RelatedEntity} ({relation.DisplayedProperty})"
+                    };
+                    // Edit button
+                    Button btnUserRelEdit = new Button
+                    {
+                        Text = "Edit",
+                        Tag = relation.DisplayedProperty,
+                        Location = new Point(relPanel.Width - 140, 5),
+                        Size = new Size(60, 25)
+                    };
+                    btnUserRelEdit.Click += BtnUserRelEdit_Click;
 
-                // Delete button
-                Button btnRelDelete = new Button
-                {
-                    Text = "Delete",
-                    Tag = relation.RelatedEntity,
-                    Location = new Point(relPanel.Width - 75, 5),
-                    Size = new Size(60, 25)
-                };
-                btnRelDelete.Click += BtnRelDelete_Click;
+                    // Delete button
+                    Button btnUserRelDelete = new Button
+                    {
+                        Text = "Delete",
+                        Tag = relation.DisplayedProperty,
+                        Location = new Point(relPanel.Width - 75, 5),
+                        Size = new Size(60, 25)
+                    };
+                    btnUserRelDelete.Click += BtnUserRelDelete_Click;
+                    // Add controls to panel
+                    relPanel.Controls.AddRange(new Control[] { lblRel, btnUserRelEdit, btnUserRelDelete });
+                    pnlRelations.Controls.Add(relPanel);
 
-                // Add controls to panel
-                relPanel.Controls.AddRange(new Control[] { lblRel, btnRelEdit, btnRelDelete });
-                pnlRelations.Controls.Add(relPanel);
+                    yPosition += relPanel.Height + 10;
+                }
 
-                yPosition += relPanel.Height + 10;
             }
         }
         private void BtnRelEdit_Click(object sender, EventArgs e)
@@ -398,6 +521,34 @@ namespace CodeGeneratorForm
             }
         }
 
+        private void BtnUserRelEdit_Click(object sender, EventArgs e)
+        {
+            var solutionDir = txtDir.Text;
+            if (string.IsNullOrWhiteSpace(solutionDir))
+            {
+                MessageBox.Show("Please enter the solution directory first");
+                return;
+            }
+
+            string displayedProperty = ((Button)sender).Tag.ToString();
+            var oldRelationInfo = GetUserRelationInfo(displayedProperty);
+            UserRelationForm editForm = new UserRelationForm();
+            editForm.Relation.RelatedEntity = oldRelationInfo.RelatedEntity;
+            editForm.Relation.Type = oldRelationInfo.Type;
+            editForm.Relation.DisplayedProperty = oldRelationInfo.DisplayedProperty;
+            editForm.Relation.IsGeneratedInTable = oldRelationInfo.IsGeneratedInTable;
+            editForm.Relation.HiddenInTable = oldRelationInfo.HiddenInTable;
+
+            editForm.ShowDialog();
+
+            if (editForm.IsSaved)
+            {
+                UpdateRelations(editForm.Relation, oldRelationInfo);
+                UpdateRelationDisplay();
+
+            }
+        }
+
         private void BtnRelDelete_Click(object sender, EventArgs e)
         {
             string relationEntityRelated = ((Button)sender).Tag.ToString();
@@ -405,6 +556,17 @@ namespace CodeGeneratorForm
                                 "Confirm Delete", MessageBoxButtons.YesNo) == DialogResult.Yes)
             {
                 RemoveRelation(relationEntityRelated);
+                UpdateRelationDisplay();
+            }
+        }
+
+        private void BtnUserRelDelete_Click(object sender, EventArgs e)
+        {
+            string displayedProperty = ((Button)sender).Tag.ToString();
+            if (MessageBox.Show($"Are you sure you want to delete relation with 'User , {displayedProperty}'?",
+                                "Confirm Delete", MessageBoxButtons.YesNo) == DialogResult.Yes)
+            {
+                RemoveRelation("User", displayedProperty);
                 UpdateRelationDisplay();
             }
         }
@@ -419,27 +581,80 @@ namespace CodeGeneratorForm
                 HiddenInTable = Relations.FirstOrDefault(r => r.RelatedEntity == relationEntityRelated).HiddenInTable
             };
         }
+        private Relation GetUserRelationInfo(string displayedProperty)
+        {
+            return new Relation
+            {
+                RelatedEntity = "User",
+                Type = Relations.FirstOrDefault(r => r.RelatedEntity == "User" && r.DisplayedProperty == displayedProperty).Type,
+                DisplayedProperty = displayedProperty,
+                IsGeneratedInTable = Relations.FirstOrDefault(r => r.RelatedEntity == "User" && r.DisplayedProperty == displayedProperty).IsGeneratedInTable,
+                HiddenInTable = Relations.FirstOrDefault(r => r.RelatedEntity == "User" && r.DisplayedProperty == displayedProperty).HiddenInTable
+            };
+        }
 
         private void UpdateRelations(Relation updatedInfo, Relation oldRelation)
         {
-            // Update relations list here based on your needs
-            RemoveRelation(oldRelation.RelatedEntity);
-            Relations.Add(updatedInfo);
-            if (!updatedInfo.IsGeneratedInTable)
+            if (oldRelation.RelatedEntity == "User")
             {
-                NotGeneratedTableRelations.Add(updatedInfo.RelatedEntity);
+                RemoveRelation("User", oldRelation.DisplayedProperty);
+                Relations.Add(updatedInfo);
+                if (!updatedInfo.IsGeneratedInTable)
+                {
+                    NotGeneratedTableRelations.Add(new NonGeneratedRelation
+                    {
+                        DisplayedProperty = updatedInfo.DisplayedProperty,
+                        RelatedEntityName = updatedInfo.RelatedEntity,
+                        RelationType = updatedInfo.Type
+                    });
+                }
+                else if (updatedInfo.HiddenInTable)
+                {
+                    HiddenTableRelations.Add(new HiddenRelation
+                    {
+                        DisplayedProperty = updatedInfo.DisplayedProperty,
+                        RelatedEntityName = updatedInfo.RelatedEntity,
+                        RelationType = updatedInfo.Type
+                    });
+                }
             }
-            else if(updatedInfo.HiddenInTable)
+            else
             {
-                HiddenTableRelations.Add(updatedInfo.RelatedEntity);
+                // Update relations list here based on your needs
+                RemoveRelation(oldRelation.RelatedEntity);
+                Relations.Add(updatedInfo);
+                if (!updatedInfo.IsGeneratedInTable)
+                {
+                    NotGeneratedTableRelations.Add(new NonGeneratedRelation
+                    {
+                        DisplayedProperty = updatedInfo.DisplayedProperty,
+                        RelatedEntityName = updatedInfo.RelatedEntity
+                    });
+                }
+                else if (updatedInfo.HiddenInTable)
+                {
+                    HiddenTableRelations.Add(new HiddenRelation
+                    {
+                        DisplayedProperty = updatedInfo.DisplayedProperty,
+                        RelatedEntityName = updatedInfo.RelatedEntity
+                    });
+                }
             }
-
         }
-        private void RemoveRelation(string relationEntityRelated)
+        private void RemoveRelation(string relationEntityRelated, string? displayedProp = null)
         {
-            Relations.RemoveAll(r => r.RelatedEntity == relationEntityRelated);
-            NotGeneratedTableRelations.RemoveAll(r => r == relationEntityRelated);
-            HiddenTableRelations.RemoveAll(r => r == relationEntityRelated);
+            if (displayedProp != null)
+            {
+                Relations.RemoveAll(r => r.RelatedEntity == relationEntityRelated && r.DisplayedProperty == displayedProp);
+                NotGeneratedTableRelations.RemoveAll(r => r.RelatedEntityName == relationEntityRelated && r.DisplayedProperty == displayedProp);
+                HiddenTableRelations.RemoveAll(r => r.RelatedEntityName == relationEntityRelated && r.DisplayedProperty == displayedProp);
+            }
+            else
+            {
+                Relations.RemoveAll(r => r.RelatedEntity == relationEntityRelated);
+                NotGeneratedTableRelations.RemoveAll(r => r.RelatedEntityName == relationEntityRelated);
+                HiddenTableRelations.RemoveAll(r => r.RelatedEntityName == relationEntityRelated);
+            }
         }
 
 
@@ -451,7 +666,11 @@ namespace CodeGeneratorForm
             checkBoxPermissions.Checked = false;
             checkBoxUserActions.Checked = false;
             checkBoxVersioning.Checked = false;
-            checkBoxBulk.Checked = false; 
+            checkBoxBulk.Checked = false;
+            lblParent.Visible = false;
+            cmboParent.Visible = false;
+            rdioParent.Checked = false;
+            rdioChild.Checked = false;
             txtEntityName.Clear();
             pnlScrollable.Controls.Clear();
             pnlRelations.Controls.Clear();
@@ -721,6 +940,8 @@ namespace CodeGeneratorForm
             content = File.ReadAllText(filePath);
             foreach (var item in this.Relations)
             {
+                if (item.Type == RelationType.UserSingle || item.Type == RelationType.UserSingleNullable || item.Type == RelationType.UserMany)
+                    continue;
                 if (item.Type != RelationType.OneToOneSelfJoin && !content.Contains($"DbSet<{item.RelatedEntity}>"))
                 {
                     MessageBox.Show($"Relation with {item.RelatedEntity} is failed : DbSet of {item.RelatedEntity} dose not found in AppDbContext");
@@ -895,7 +1116,7 @@ namespace CodeGeneratorForm
             {
                 NotGeneratedTableColumns.Add(updatedInfo.GeneralInfo.Name);
             }
-            else if(updatedInfo.HiddenColumn)
+            else if (updatedInfo.HiddenColumn)
             {
                 HiddenTableColumns.Add(updatedInfo.GeneralInfo.Name);
             }
@@ -925,6 +1146,61 @@ namespace CodeGeneratorForm
                 lblBulk.ForeColor = Color.Green;
             else
                 lblBulk.ForeColor = Color.Black;
+        }
+
+        private void btnRelUsers_Click(object sender, EventArgs e)
+        {
+            var solutionDir = txtDir.Text;
+            if (string.IsNullOrWhiteSpace(solutionDir))
+            {
+                MessageBox.Show("Please enter the solution directory first");
+                return;
+            }
+            UserRelationForm userRelationForm = new UserRelationForm();
+            userRelationForm.ShowDialog();
+            var relation = userRelationForm.Relation;
+            if (userRelationForm.IsSaved)
+            {
+                if (relation != null)
+                    Relations.Add(relation);
+            }
+            UpdateRelationDisplay();
+        }
+
+        private void rdioChild_CheckedChanged(object sender, EventArgs e)
+        {
+            if (rdioChild.Checked)
+            {
+                lblParent.Visible = true;
+                cmboParent.Visible = true;
+                LoadExistingEntities();
+            }
+            else
+            {
+                lblParent.Visible = false;
+                cmboParent.Visible = false;
+                cmboParent.Items.Clear();
+            }
+        }
+
+        private void LoadExistingEntities()
+        {
+            try
+            {
+                var metadata = MetadataManager.LoadMetadata(txtDir.Text);
+                if (metadata != null && metadata.Entities != null)
+                {
+                    cmboParent.Items.Clear();
+                    foreach (var entity in metadata.Entities)
+                    {
+                        cmboParent.Items.Add(entity.Name);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading entities: {ex.Message}");
+            }
         }
     }
 }

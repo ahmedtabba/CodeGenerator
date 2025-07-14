@@ -15,6 +15,9 @@ namespace SharedClasses
         OneToManyNullable,
         ManyToOne,
         ManyToOneNullable,
-        ManyToMany
+        ManyToMany,
+        UserSingle,
+        UserSingleNullable,
+        UserMany
     }
 }

@@ -26,6 +26,9 @@ namespace SharedClasses
         public List<(string prop, List<string> enumValues)> EnumProperties { get; set; } = new List<(string prop, List<string> enumValues)>();
         public List<Relation> Relations { get; set; } = new List<Relation>();
         public DateTime GeneratedAt { get; set; }
+        public bool? IsParent { get; set; }
+        public bool? IsChild { get; set; }
+        public string? ParentEntityName { get; set; }
     }
 
     public class ProjectMetadata
