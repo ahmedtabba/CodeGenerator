@@ -1395,6 +1395,694 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
 
             File.WriteAllText(filePath, content);
         }
+        public static void GenerateUpdatePartialCommand(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, bool hasLocalization, List<Relation> relations, bool hasVersioning, bool hasNotification, bool hasUserAction,string? parentEntityName)
+        {
+            string className = $"Update{entityName}Command";
+            string filePath = Path.Combine(path, $"{className}.cs");
+            string x = entityName;
+            string lowerEntityName = entityName.GetCamelCaseName();
+            string entityRepoName = $"_{lowerEntityName}";
+
+            var inheritVersion = hasVersioning ? "VersionRequestOfTBase," : null;
+            var eventVersionCode = !hasVersioning ? null : $@"
+                {lowerEntityName}Event.RollbackedToVersionId = request.RollbackedToVersionId;
+                {lowerEntityName}Event.IsVersionedCommand = request.IsVersionedCommand;
+";
+            string? identityUsing = relations.Any(r => r.Type == RelationType.UserSingle || r.Type == RelationType.UserSingleNullable || r.Type == RelationType.UserMany) ? "using Application.Common.Interfaces.Identity;" : null;
+            var neededUsing = (hasVersioning || hasUserAction || hasNotification) ? $"using Domain.Events.{entityName}Events;using Application.Common.Models.Versioning;" : null;
+            var deepCopyCode = (hasVersioning || hasUserAction || hasNotification) ? $"var old{entityName} = existingObj.DeepCopyJsonDotNet();" : null;
+            var eventCodeCreate = !(hasVersioning || hasNotification || hasUserAction) ? null :
+                $@"
+                var {lowerEntityName}Event = new {entityName}CreatedEvent(objAdd);
+                {eventVersionCode}
+                objAdd.AddDomainEvent({lowerEntityName}Event);
+";
+            var eventCodeEdit = !(hasVersioning || hasNotification || hasUserAction) ? null :
+                $@"
+                var {lowerEntityName}Event = new {entityName}EditedEvent(old{entityName},existingObj);
+                {eventVersionCode}
+                existingObj.AddDomainEvent({lowerEntityName}Event);
+";
+
+            var propList = new List<string>();
+            StringBuilder imageCode = new StringBuilder();
+            StringBuilder videoCode = new StringBuilder();
+            StringBuilder fileCode = new StringBuilder();
+            string? oldImageUrl = string.Empty;
+            string? oldVideoUrl = string.Empty;
+            string? oldFileUrl = string.Empty;
+            StringBuilder oldImageToDeleteCode = new StringBuilder();
+            StringBuilder oldVideoToDeleteCode = new StringBuilder();
+            StringBuilder oldImagesToDeleteCode = new StringBuilder();
+            StringBuilder oldVideosToDeleteCode = new StringBuilder();
+            StringBuilder oldFileToDeleteCode = new StringBuilder();
+            StringBuilder oldFilesToDeleteCode = new StringBuilder();
+            StringBuilder mapperEnum = new StringBuilder();
+            foreach (var prop in properties)
+            {
+                if (prop.Type == "GPG")
+                {
+                    if (prop.Validation != null && prop.Validation.Required)
+                    {
+                        propList.Add($"\t\tpublic FileDto? {prop.Name}File {{ get; set; }}");
+                        propList.Add($"\t\tpublic string? {prop.Name}Url {{ get; set; }}");
+                        oldImageUrl = $"var oldImageUrl = existingObj.{prop.Name};";
+                        imageCode.Append($@"
+                if (request.{prop.Name}File != null)
+                    existingObj.{prop.Name} = await _fileService.UploadFileAsync(request.{prop.Name}File);
+                else
+                    existingObj.{prop.Name} = request.{prop.Name}Url!;
+
+");
+                        oldImageToDeleteCode.Append($@"
+                if (request.{prop.Name}File != null)
+                    await _fileService.DeleteFileAsync(oldImageUrl);
+
+");
+                    }
+                    else
+                    {
+                        propList.Add($"\t\tpublic FileDto? {prop.Name}File {{ get; set; }}");
+                        propList.Add($"\t\tpublic bool? DeleteOld{prop.Name} {{ get; set; }}");
+                        oldImageUrl = $"var oldImageUrl = existingObj.{prop.Name};";
+                        imageCode.Append($@"
+                if (request.{prop.Name}File != null)
+                    existingObj.{prop.Name} = await _fileService.UploadFileAsync(request.{prop.Name}File);
+                if (request.DeleteOld{prop.Name} != null && request.DeleteOld{prop.Name}.Value)
+                    existingObj.{prop.Name} = null;
+
+");
+                        oldImageToDeleteCode.Append($@"
+                if (request.{prop.Name}File != null || (request.DeleteOld{prop.Name} != null && request.DeleteOld{prop.Name}.Value))
+                    if(oldImageUrl != null )
+                    await _fileService.DeleteFileAsync(oldImageUrl);
+
+");
+                    }
+                }
+                else if (prop.Type == "PNGs")
+                {
+                    propList.Add($"\t\tpublic List<FileDto>? {prop.Name}Files {{ get; set; }} = new List<FileDto>();");
+                    propList.Add($"\t\tpublic List<string>? Deleted{prop.Name}URLs {{ get; set; }}");
+                    imageCode.Append($@"
+                if (request.{prop.Name}Files != null && request.{prop.Name}Files.Any())
+                {{
+
+                    //Save old urls
+                    var oldImagesURLs = new List<string>();
+                    foreach (var item in existingObj.{prop.Name})
+                    {{
+                        oldImagesURLs.Add(item);
+                    }}
+                    existingObj.{prop.Name}.Clear();
+                    //Add new photos
+                    foreach (var image in request.{prop.Name}Files)
+                    {{
+                        var imageUrl = await _fileService.UploadFileAsync(image);
+                        // Add the new URL
+                        existingObj.{prop.Name}.Add(imageUrl);
+                    }}
+                    //Add old photos to entity
+                    if (request.Deleted{prop.Name}URLs != null)
+                        foreach (var item in oldImagesURLs)
+                        {{
+                            if (!request.Deleted{prop.Name}URLs.Contains(item))
+                                existingObj.{prop.Name}.Add(item);
+                        }}
+                    else
+                        foreach (var item in oldImagesURLs)
+                        {{
+                            existingObj.{prop.Name}.Add(item);
+                        }}
+                }}
+                else
+                {{
+                    if (request.Deleted{prop.Name}URLs != null && request.Deleted{prop.Name}URLs.Any())
+                    {{
+                        var remainingPhotosURLs = new List<string>();
+                        foreach (var item in existingObj.{prop.Name})
+                        {{
+                            if (!request.Deleted{prop.Name}URLs.Contains(item))
+                            {{
+                                remainingPhotosURLs.Add(item);
+                            }}
+                        }}
+                        existingObj.{prop.Name} = remainingPhotosURLs;
+                    }}
+                }}
+
+");
+                    oldImagesToDeleteCode.Append($@"
+                if(request.Deleted{prop.Name}URLs != null)
+                    foreach (var path in request.Deleted{prop.Name}URLs)
+                    {{
+                        await _fileService.DeleteFileAsync(path);
+                    }}
+
+");
+                }
+                else if (prop.Type == "VD")
+                {
+                    if (prop.Validation != null && prop.Validation.Required)
+                    {
+                        propList.Add($"\t\tpublic FileDto? {prop.Name}File {{ get; set; }}");
+                        propList.Add($"\t\tpublic string? {prop.Name}Url {{ get; set; }}");
+                        oldVideoUrl = $"var oldVideoUrl = existingObj.{prop.Name};";
+                        videoCode.Append($@"
+                if (request.{prop.Name}File != null)
+                    existingObj.{prop.Name} = await _fileService.UploadFileAsync(request.{prop.Name}File);
+                else
+                    existingObj.{prop.Name} = request.{prop.Name}Url!;
+
+");
+                        oldVideoToDeleteCode.Append($@"
+                if (request.{prop.Name}File != null)
+                    await _fileService.DeleteFileAsync(oldVideoUrl);
+
+");
+                    }
+                    else
+                    {
+                        propList.Add($"\t\tpublic FileDto? {prop.Name}File {{ get; set; }}");
+                        propList.Add($"\t\tpublic bool? DeleteOld{prop.Name} {{ get; set; }}");
+                        oldVideoUrl = $"var oldVideoUrl = existingObj.{prop.Name};";
+                        videoCode.Append($@"
+                if (request.{prop.Name}File != null)
+                    existingObj.{prop.Name} = await _fileService.UploadFileAsync(request.{prop.Name}File);
+                if (request.DeleteOld{prop.Name} != null && request.DeleteOld{prop.Name}.Value)
+                    existingObj.{prop.Name} = null;
+
+");
+                        oldVideoToDeleteCode.Append($@"
+                if (request.{prop.Name}File != null || (request.DeleteOld{prop.Name} != null && request.DeleteOld{prop.Name}.Value))
+                    if(oldVideoUrl != null )
+                    await _fileService.DeleteFileAsync(oldVideoUrl);
+
+");
+                    }
+                }
+                else if (prop.Type == "VDs")
+                {
+                    propList.Add($"\t\tpublic List<FileDto>? {prop.Name}Files {{ get; set; }} = new List<FileDto>();");
+                    propList.Add($"\t\tpublic List<string>? Deleted{prop.Name}URLs {{ get; set; }}");
+                    videoCode.Append($@"
+                if (request.{prop.Name}Files != null && request.{prop.Name}Files.Any())
+                {{
+
+                    //Save old urls
+                    var oldVideosURLs = new List<string>();
+                    foreach (var item in existingObj.{prop.Name})
+                    {{
+                        oldVideosURLs.Add(item);
+                    }}
+                    existingObj.{prop.Name}.Clear();
+                    //Add new videos
+                    foreach (var video in request.{prop.Name}Files)
+                    {{
+                        var videoUrl = await _fileService.UploadFileAsync(video);
+                        // Add the new URL
+                        existingObj.{prop.Name}.Add(videoUrl);
+                    }}
+                    //Add old videos to entity
+                    if (request.Deleted{prop.Name}URLs != null)
+                        foreach (var item in oldVideosURLs)
+                        {{
+                            if (!request.Deleted{prop.Name}URLs.Contains(item))
+                                existingObj.{prop.Name}.Add(item);
+                        }}
+                    else
+                        foreach (var item in oldVideosURLs)
+                        {{
+                            existingObj.{prop.Name}.Add(item);
+                        }}
+                }}
+                else
+                {{
+                    if (request.Deleted{prop.Name}URLs != null && request.Deleted{prop.Name}URLs.Any())
+                    {{
+                        var remainingVideosURLs = new List<string>();
+                        foreach (var item in existingObj.{prop.Name})
+                        {{
+                            if (!request.Deleted{prop.Name}URLs.Contains(item))
+                            {{
+                                remainingVideosURLs.Add(item);
+                            }}
+                        }}
+                        existingObj.{prop.Name} = remainingVideosURLs;
+                    }}
+                }}
+
+");
+                    oldVideosToDeleteCode.Append($@"
+                if(request.Deleted{prop.Name}URLs != null)
+                    foreach (var path in request.Deleted{prop.Name}URLs)
+                    {{
+                        await _fileService.DeleteFileAsync(path);
+                    }}
+
+");
+                }
+                else if (prop.Type == "FL")
+                {
+                    if (prop.Validation != null && prop.Validation.Required)
+                    {
+                        propList.Add($"\t\tpublic FileDto? {prop.Name}File {{ get; set; }}");
+                        propList.Add($"\t\tpublic string? {prop.Name}Url {{ get; set; }}");
+                        oldFileUrl = $"var oldFileUrl = existingObj.{prop.Name};";
+                        fileCode.Append($@"
+                if (request.{prop.Name}File != null)
+                    existingObj.{prop.Name} = await _fileService.UploadFileAsync(request.{prop.Name}File);
+                else
+                    existingObj.{prop.Name} = request.{prop.Name}Url!;
+
+");
+                        oldFileToDeleteCode.Append($@"
+                if (request.{prop.Name}File != null)
+                    await _fileService.DeleteFileAsync(oldFileUrl);
+
+");
+                    }
+                    else
+                    {
+                        propList.Add($"\t\tpublic FileDto? {prop.Name}File {{ get; set; }}");
+                        propList.Add($"\t\tpublic bool? DeleteOld{prop.Name} {{ get; set; }}");
+                        oldFileUrl = $"var oldFileUrl = existingObj.{prop.Name};";
+                        fileCode.Append($@"
+                if (request.{prop.Name}File != null)
+                    existingObj.{prop.Name} = await _fileService.UploadFileAsync(request.{prop.Name}File);
+                if (request.DeleteOld{prop.Name} != null && request.DeleteOld{prop.Name}.Value)
+                    existingObj.{prop.Name} = null;
+
+");
+                        oldFileToDeleteCode.Append($@"
+                if (request.{prop.Name}File != null || (request.DeleteOld{prop.Name} != null && request.DeleteOld{prop.Name}.Value))
+                    if(oldVideoUrl != null )
+                    await _fileService.DeleteFileAsync(oldFileUrl);
+
+");
+                    }
+                }
+                else if (prop.Type == "FLs")
+                {
+                    propList.Add($"\t\tpublic List<FileDto>? {prop.Name}Files {{ get; set; }} = new List<FileDto>();");
+                    propList.Add($"\t\tpublic List<string>? Deleted{prop.Name}URLs {{ get; set; }}");
+                    fileCode.Append($@"
+                if (request.{prop.Name}Files != null && request.{prop.Name}Files.Any())
+                {{
+
+                    //Save old urls
+                    var oldFilesURLs = new List<string>();
+                    foreach (var item in existingObj.{prop.Name})
+                    {{
+                        oldFilesURLs.Add(item);
+                    }}
+                    existingObj.{prop.Name}.Clear();
+                    //Add new files
+                    foreach (var file in request.{prop.Name}Files)
+                    {{
+                        var fileUrl = await _fileService.UploadFileAsync(file);
+                        // Add the new URL
+                        existingObj.{prop.Name}.Add(fileUrl);
+                    }}
+                    //Add old files to entity
+                    if (request.Deleted{prop.Name}URLs != null)
+                        foreach (var item in oldFilesURLs)
+                        {{
+                            if (!request.Deleted{prop.Name}URLs.Contains(item))
+                                existingObj.{prop.Name}.Add(item);
+                        }}
+                    else
+                        foreach (var item in oldFilesURLs)
+                        {{
+                            existingObj.{prop.Name}.Add(item);
+                        }}
+                }}
+                else
+                {{
+                    if (request.Deleted{prop.Name}URLs != null && request.Deleted{prop.Name}URLs.Any())
+                    {{
+                        var remainingFilesURLs = new List<string>();
+                        foreach (var item in existingObj.{prop.Name})
+                        {{
+                            if (!request.Deleted{prop.Name}URLs.Contains(item))
+                            {{
+                                remainingFilesURLs.Add(item);
+                            }}
+                        }}
+                        existingObj.{prop.Name} = remainingFilesURLs;
+                    }}
+                }}
+
+");
+                    oldFilesToDeleteCode.Append($@"
+                if(request.Deleted{prop.Name}URLs != null)
+                    foreach (var path in request.Deleted{prop.Name}URLs)
+                    {{
+                        await _fileService.DeleteFileAsync(path);
+                    }}
+
+");
+                }
+                else
+                {
+                    if (enumProps.Any(p => p.prop == prop.Name))
+                    {
+                        if (prop.Validation != null && prop.Validation.Required)
+                        {
+                            propList.Add($"\t\tpublic {entityName}{prop.Name} {prop.Name} {{ get; set; }}");
+                            mapperEnum.Append($".ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => (int)src.{prop.Name}))");
+                            mapperEnum.AppendLine();
+                        }
+                        else
+                        {
+                            propList.Add($"\t\tpublic {entityName}{prop.Name}? {prop.Name} {{ get; set; }}");
+                            mapperEnum.Append($".ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => (int?)src.{prop.Name}))");
+                            mapperEnum.AppendLine();
+                        }
+
+                    }
+                    else
+                        propList.Add($"\t\tpublic {prop.Type} {prop.Name} {{ get; set; }}");
+                }
+
+            }
+            var props = string.Join(Environment.NewLine, propList);
+
+            List<string> relationPropsList = new List<string>();
+            foreach (var relation in relations)
+            {
+
+                string prop = null!;
+
+                switch (relation.Type)
+                {
+                    case RelationType.OneToOneSelfJoin:
+                        prop = $"\t\tpublic Guid? {relation.RelatedEntity}ParentId {{ get; set; }}";
+                        relationPropsList.Add(prop);
+                        break;
+
+                    case RelationType.OneToOne:
+                        prop = $"\t\tpublic Guid {relation.RelatedEntity}Id {{ get; set; }}";
+                        relationPropsList.Add(prop);
+                        break;
+
+                    case RelationType.OneToOneNullable:
+                        prop = $"\t\tpublic Guid? {relation.RelatedEntity}Id {{ get; set; }}";
+                        relationPropsList.Add(prop);
+                        break;
+
+                    case RelationType.OneToMany:
+                        break;
+
+                    case RelationType.OneToManyNullable:
+                        break;
+
+                    case RelationType.ManyToOne:
+                        prop = $"\t\tpublic Guid {relation.RelatedEntity}Id {{ get; set; }}";
+                        relationPropsList.Add(prop);
+                        break;
+
+                    case RelationType.ManyToOneNullable:
+                        prop = $"\t\tpublic Guid? {relation.RelatedEntity}Id {{ get; set; }}";
+                        relationPropsList.Add(prop);
+                        break;
+                    case RelationType.ManyToMany:
+                        prop = $"\t\tpublic List<Guid> {relation.RelatedEntity}Ids {{ get; set; }}";
+                        relationPropsList.Add(prop);
+                        break;
+                    case RelationType.UserSingle:
+                        prop = $"\t\tpublic string {relation.DisplayedProperty}Id {{ get; set; }}";
+                        relationPropsList.Add(prop);
+                        break;
+                    case RelationType.UserSingleNullable:
+                        prop = $"\t\tpublic string? {relation.DisplayedProperty}Id {{ get; set; }}";
+                        relationPropsList.Add(prop);
+                        break;
+                    case RelationType.UserMany:
+                        prop = $"\t\tpublic List<string> {relation.DisplayedProperty.GetPluralName()}Ids {{ get; set; }}";
+                        relationPropsList.Add(prop);
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            relationPropsList.Add($"\t\tpublic Guid {parentEntityName}Id {{ get; set; }}");
+
+            string relationProps = string.Join(Environment.NewLine, relationPropsList);
+
+            string? injectCTORMany1 = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $",I{relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity}Repository {char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository";
+            string? injectCTORMany2 = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $"_{char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository = {char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository;";
+            string? injectCTORMany3 = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $"private readonly I{relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity}Repository _{char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository;";
+            
+            string? injectCTORUserMany1 = !relations.Any(r => r.Type == RelationType.UserMany) ? null : $",I{entityName}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty}Repository {entityName.GetCamelCaseName()}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty}Repository";
+            string? injectCTORUserMany2 = !relations.Any(r => r.Type == RelationType.UserMany) ? null : $"_{entityName.GetCamelCaseName()}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty}Repository = {entityName.GetCamelCaseName()}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty}Repository;";
+            string? injectCTORUserMany3 = !relations.Any(r => r.Type == RelationType.UserMany) ? null : $"private readonly I{entityName}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty}Repository _{entityName.GetCamelCaseName()}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty}Repository;";
+            
+            string? injectCTORIdentity1 = !relations.Any(r => r.Type == RelationType.UserMany) ? null : ",IIdentityService identityService";
+            string? injectCTORIdentity2 = !relations.Any(r => r.Type == RelationType.UserMany) ? null : "_identityService = identityService;";
+            string? injectCTORIdentity3 = !relations.Any(r => r.Type == RelationType.UserMany) ? null : "private readonly IIdentityService _identityService;";
+            
+            string ? relatedEntityManyName = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity;
+            string? relatedEntityManyPlural = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.EndsWith("y") ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[..^1] + "ies" : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity + "s";
+            string? relatedEntityManyRepo = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $"_{char.ToLower(relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[0]) + relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.Substring(1)}Repository";
+            string? relationManyToManyCreateCode = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $@"
+                // Get the new {relatedEntityManyPlural} from the repository
+                var new{relatedEntityManyPlural} = await {relatedEntityManyRepo}.GetAllAsTracking()
+                        .Where(x => request.{relatedEntityManyName}Ids.Contains(x.Id))
+                        .ToListAsync();
+
+                foreach (var item in newBigOnes)
+                    {{
+                        objAdd.{relatedEntityManyPlural}.Add(item);
+
+                    }}";
+            string? relationManyToManyEditCode = !relations.Any(r => r.Type == RelationType.ManyToMany) ? null : $@"
+                // Get the current {relatedEntityManyPlural} and new IDs
+                var current{relatedEntityManyPlural} = existingObj.{relatedEntityManyPlural}.ToList();
+                var new{relatedEntityManyName}Ids = request.{relatedEntityManyName}Ids;
+
+                // Get the new {relatedEntityManyPlural} from the repository
+                var new{relatedEntityManyPlural} = await {relatedEntityManyRepo}.GetAllAsTracking()
+                        .Where(x => new{relatedEntityManyName}Ids.Contains(x.Id))
+                        .ToListAsync();
+
+                // Add new {relatedEntityManyPlural} if not already in the existing collection
+                foreach (var new{relatedEntityManyName} in new{relatedEntityManyPlural})
+                {{
+                    if (!current{relatedEntityManyPlural}.Any(x => x.Id == new{relatedEntityManyName}.Id))
+                    {{
+                        existingObj.{relatedEntityManyPlural}.Add(new{relatedEntityManyName});
+                    }}
+                }}
+
+                // Remove {relatedEntityManyPlural} that are no longer in the updated list
+                foreach (var existing{relatedEntityManyName} in current{relatedEntityManyPlural})
+                {{
+                    if (!new{relatedEntityManyName}Ids.Contains(existing{relatedEntityManyName}.Id))
+                    {{
+                        existingObj.{relatedEntityManyPlural}.Remove(existing{relatedEntityManyName});
+                    }}
+                }}";
+
+            string? relationUserManyCreateCode = !relations.Any(r => r.Type == RelationType.UserMany) ? null : $@"
+            //Handel {relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty.GetPluralName()}
+            var newUsers = await _identityService.GetAllUsers()
+                    .Where(u => request.{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty.GetPluralName()}Ids.Contains(u.Id))
+                    .ToListAsync();
+            foreach (var user in newUsers)
+            {{
+                {entityName}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty} obj = new {entityName}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty}
+                    {{
+                        {entityName} = objAdd,
+                        UserId = user.Id
+                    }};
+                    await _{entityName.GetCamelCaseName()}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty}Repository.AddAsync(obj);
+                    await _unitOfWork.SaveChangesAsync(cancellationToken);
+            }}";
+            string? relationUserManyEditCode = !relations.Any(r => r.Type == RelationType.UserMany) ? null : $@"
+                //Handel {relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty.GetPluralName()}
+
+                var currentUsers = existingObj.{entityName}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty.GetPluralName()}.ToList();
+                var newUsersIds = request.{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty.GetPluralName()}Ids;
+                // Get the new users from the repository
+                var newUsers = await _identityService.GetAllUsers()
+                    .Where(u => newUsersIds.Contains(u.Id))
+                    .ToListAsync();
+                // Add new users if not already in the existing collection
+                foreach (var user in newUsers)
+                {{
+                    if (!currentUsers.Any(u => u.UserId == user.Id))
+                    {{
+                        {entityName}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty} obj = new {entityName}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty}
+                        {{
+                            {entityName} = existingObj,
+                            UserId = user.Id
+                        }};
+                        await _{entityName.GetCamelCaseName()}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty}Repository.AddAsync(obj);
+                        await _unitOfWork.SaveChangesAsync(cancellationToken);
+                    }}
+                }}
+                // Remove users that are no longer in the updated list
+                foreach (var currentUser in currentUsers)
+                {{
+                    if (!newUsersIds.Contains(currentUser.UserId))
+                    {{
+                        existingObj.{entityName}{relations.First(r => r.Type == RelationType.UserMany).DisplayedProperty.GetPluralName()}.Remove(currentUser);
+                    }}
+                }}";
+
+            string? localizationIRepo = hasLocalization ? $",I{entityName}LocalizationRepository {lowerEntityName}LocalizationRepository" : null;
+            string? localizationInjectIRepo = hasLocalization ? $"_{lowerEntityName}LocalizationRepository = {lowerEntityName}LocalizationRepository;" : null;
+            string? localizationFieldIRepo = hasLocalization ? $"private readonly I{entityName}LocalizationRepository _{lowerEntityName}LocalizationRepository;" : null;
+            string? localizationList = hasLocalization ? $"\t\tpublic List<{entityName}LocalizationApp> {entityName}LocalizationApps {{ get; set; }} = new List<{entityName}LocalizationApp>();" : null;
+
+            string? localizationCode = !hasLocalization ? null : $@"
+                //Delete old Localization
+                var oldLocalization = await _{lowerEntityName}LocalizationRepository.GetAllAsTracking()
+                    .Where(v => v.{entityName}Id == existingObj.Id).ToListAsync();
+
+                foreach (var localization in oldLocalization)
+                {{
+                    await _{lowerEntityName}LocalizationRepository.DeleteAsync(localization);
+                    await _unitOfWork.SaveChangesAsync(cancellationToken);
+                }}
+                //Add new Localization
+                foreach (var localization in request.{entityName}LocalizationApps)
+                {{
+                    {entityName}Localization localizationToAdd = new {entityName}Localization
+                    {{
+                        LanguageId = localization.LanguageId,
+                        {entityName}Id = existingObj.Id,
+                        Value = localization.Value,
+                        FieldType = (int)localization.FieldType
+                    }};
+                    await _{lowerEntityName}LocalizationRepository.AddAsync(localizationToAdd);
+                    await _unitOfWork.SaveChangesAsync(cancellationToken);
+                }}
+";
+            string? oldImageUrlLine = hasVersioning ? null : oldImageUrl;
+            string? oldVideoUrlLine = hasVersioning ? null : oldVideoUrl;
+            string? oldFileUrlLine = hasVersioning ? null : oldFileUrl;
+            string? oldImageToDeleteCodeLine = hasVersioning ? null : oldImageToDeleteCode.ToString();
+            string? oldVideoToDeleteCodeLine = hasVersioning ? null : oldVideoToDeleteCode.ToString();
+            string? oldFileToDeleteCodeLine = hasVersioning ? null : oldFileToDeleteCode.ToString();
+            string? oldImagesToDeleteCodeLine = hasVersioning ? null : oldImagesToDeleteCode.ToString();
+            string? oldVideosToDeleteCodeLine = hasVersioning ? null : oldVideosToDeleteCode.ToString();
+            string? oldFilesToDeleteCodeLine = hasVersioning ? null : oldFilesToDeleteCode.ToString();
+
+            string GetMethod = relations.Any() ? $"Get{entityName}" : "GetByIdAsync";
+
+            string content = $@"
+using Microsoft.Extensions.Logging;
+using System;
+using Application.Common.Models.Assets;
+using Application.Common.Interfaces.Assets;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Application.Common.Interfaces.Db;
+using Application.Common.Interfaces.IRepositories;
+using Domain.Entities;
+using Domain.Enums;
+using Application.Common.Models.Localization;
+using Application.Common.Extensions;
+{neededUsing}
+{identityUsing}
+
+namespace Application.{entityPlural}.Commands.Update{entityName}
+{{
+    public class {className} : {inheritVersion} IRequest 
+    {{
+        public Guid {entityName}Id {{ get; set; }}
+        {props}
+        {localizationList}
+        {relationProps}
+        public class Mapping : Profile
+        {{
+            public Mapping()
+            {{
+                CreateMap<{className}, {entityName}>()
+                {mapperEnum}    
+                ;
+            }}
+        }}
+    }}
+
+    public class {className}Handler : IRequestHandler<{className}>
+    {{
+        private readonly ILogger<{className}Handler> _logger;
+        private readonly IMapper _mapper;
+        private readonly I{entityName}Repository {entityRepoName}Repository;
+        private readonly IUnitOfWorkAsync _unitOfWork;
+        private readonly IFileService _fileService;
+        {localizationFieldIRepo}
+        {injectCTORMany3}
+        {injectCTORUserMany3}
+        {injectCTORIdentity3}
+
+        public {className}Handler(ILogger<{className}Handler> logger,
+                                            IMapper mapper,
+                                            IUnitOfWorkAsync unitOfWork,
+                                            IFileService fileService,
+                                            I{entityName}Repository repository{localizationIRepo}{injectCTORMany1}{injectCTORUserMany1}{injectCTORIdentity1})
+                                            
+        {{
+            _logger = logger;
+            _mapper = mapper;
+            {entityRepoName}Repository = repository;
+            _fileService = fileService;
+            _unitOfWork = unitOfWork;
+            {localizationInjectIRepo}
+            {injectCTORMany2}
+            {injectCTORUserMany2}
+            {injectCTORIdentity2}
+        }}
+        public async Task Handle({className} request, CancellationToken cancellationToken)
+        {{
+            try
+            {{
+                await _unitOfWork.BeginTransactionAsync();
+                if (request.{entityName}Id == Guid.Empty)
+                {{
+                    var objAdd = _mapper.Map<{entityName}>(request);
+{relationManyToManyCreateCode}
+{relationUserManyCreateCode}
+                    await {entityRepoName}Repository.AddAsync(objAdd);
+
+                    {eventCodeCreate}
+                    await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                    await _unitOfWork.CommitAsync();
+                }}
+                else
+                {{
+                    var existingObj = await {entityRepoName}Repository.{GetMethod}(request.{entityName}Id);
+                    var old{entityName} = existingObj.DeepCopyJsonDotNet();
+                    _mapper.Map(request, existingObj);
+{relationManyToManyEditCode}
+{relationUserManyEditCode}
+                    {eventCodeEdit}
+                    await {entityRepoName}Repository.UpdateAsync(existingObj);
+                    await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                    await _unitOfWork.CommitAsync();
+                }}
+            }}
+            catch (Exception)
+            {{
+                await _unitOfWork.RollbackAsync();
+                throw;
+            }}
+        }}
+    }}
+}}
+
+";
+
+            File.WriteAllText(filePath, content);
+        }
         public static void GenerateUpdateBulkCommand(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, bool hasLocalization, List<Relation> relations, bool hasVersioning, bool hasNotification, bool hasUserAction)
         {
             string className = $"UpdateBulk{entityName}Command";
@@ -2440,14 +3128,15 @@ namespace Application.{entityPlural}.Commands.DeleteBulk{entityName}
             File.WriteAllText(filePath, content);
         }
 
-        public static void GenerateGetByIdQuery(string entityName, string entityPlural, string path, bool hasLocalization, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, List<Relation> relations)
+        public static void GenerateGetByIdQuery(string entityName, string entityPlural, string path, bool hasLocalization, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, List<Relation> relations, string? parentEntityName = null)
         {
             var folderPath = Path.Combine(path, $"Get{entityName}");
             Directory.CreateDirectory(folderPath);
 
             GenerateGetByIdDto(entityName, entityPlural, folderPath, properties, enumProps, relations);
-            GenerateGetByIdQueryFile(entityName, entityPlural, folderPath, hasLocalization,relations);
-            GenerateGetByIdValidator(entityName, entityPlural, folderPath);
+            GenerateGetByIdQueryFile(entityName, entityPlural, folderPath, hasLocalization,relations,parentEntityName);
+            if(parentEntityName == null)
+                GenerateGetByIdValidator(entityName, entityPlural, folderPath);
         }
         static void GenerateGetByIdDto(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, List<Relation> relations)
         {
@@ -2550,7 +3239,7 @@ namespace Application.{entityPlural}.Queries.Get{entityName}Query
 }}";
             File.WriteAllText(filePath, content);
         }
-        static void GenerateGetByIdQueryFile(string entityName, string entityPlural, string path, bool hasLocalization,List<Relation> relations)
+        static void GenerateGetByIdQueryFile(string entityName, string entityPlural, string path, bool hasLocalization,List<Relation> relations,string? parentEnityName = null)
         {
             string fileName = $"Get{entityName}Query.cs";
             string filePath = Path.Combine(path, fileName);
@@ -2606,6 +3295,8 @@ namespace Application.{entityPlural}.Queries.Get{entityName}Query
             foreach (var user in users)
             {{
                 dto.{rel.DisplayedProperty.GetPluralName()}Names.Add(user.FullName);
+                dto.{rel.DisplayedProperty.GetPluralName()}Ids.Add(user.Id);
+
             }}";
                             UserRelationCode.Append(code);
                             break;
@@ -2614,6 +3305,11 @@ namespace Application.{entityPlural}.Queries.Get{entityName}Query
                     }
                 }
             }
+            string? childCode = parentEnityName == null ? null : $@"
+            if ({entityName.ToLower()} == null)
+            {{
+                return dto;
+            }}";
             string content = $@"
 using Microsoft.Extensions.Logging;
 using Application.Common.Interfaces.IRepositories;
@@ -2651,7 +3347,9 @@ namespace Application.{entityPlural}.Queries.Get{entityName}Query
         public async Task<Get{entityName}Dto> Handle(Get{entityName}Query request, CancellationToken cancellationToken)
         {{
             var {entityName.ToLower()} = await {entityRepoName}Repository.{getMethod}(request.{entityName}Id);//TODO:AfterGenerateCode: add method to repository to get object include Navigations if existed
-            var dto = _mapper.Map<Get{entityName}Dto>({entityName.ToLower()});
+            Get{entityName}Dto dto = new Get{entityName}Dto();
+{childCode}
+            dto = _mapper.Map<Get{entityName}Dto>({entityName.ToLower()});
             {UserRelationCode}
             {localizationCode}
             return dto;
@@ -3356,6 +4054,8 @@ namespace Application.{entityPlural}.Queries.Get{entityPlural}WithPagination
 }}";
             File.WriteAllText(filePath, content);
         }
+        
+        
         public static void GenerateBaseDto(string entityName, string entityPlural, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, string solutionDir, List<Relation> relations, bool hasLocalization)
         {
             var filePath = Path.Combine(solutionDir, "Application", entityPlural, "Queries", $"{entityName}BaseDto.cs");

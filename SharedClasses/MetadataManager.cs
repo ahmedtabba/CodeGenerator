@@ -14,10 +14,10 @@ namespace SharedClasses
             bool hasLocalization, bool hasPermissions, bool hasVersioning, bool hasNotification,
             bool hasUserAction, bool bulk,
             (List<(string Type, string Name, PropertyValidation Validation)>, List<string>, List<(string prop, List<string> enumValues)>) properties,
-            List<Relation> relations)
+            List<Relation> relations, bool? isParent = null, bool? isChild = null, string? parentName = null)
         {
             var metaFilePath = Path.Combine(projectPath, MetaFileName);
-            
+
             try
             {
                 // Create backup of existing file if it exists
@@ -38,15 +38,18 @@ namespace SharedClasses
                     HasNotification = hasNotification,
                     HasUserAction = hasUserAction,
                     HasBulk = bulk,
-                    Properties = properties.Item1.Select(p => new PropertyMetadata 
-                    { 
-                        Type = p.Type, 
-                        Name = p.Name, 
-                        Validation = p.Validation 
+                    Properties = properties.Item1.Select(p => new PropertyMetadata
+                    {
+                        Type = p.Type,
+                        Name = p.Name,
+                        Validation = p.Validation
                     }).ToList(),
                     LocalizedProperties = properties.Item2,
                     EnumProperties = properties.Item3,
                     Relations = relations,
+                    IsChild = isChild,
+                    IsParent = isParent,
+                    ParentEntityName = parentName,
                     GeneratedAt = DateTime.UtcNow
                 };
 
@@ -170,4 +173,4 @@ namespace SharedClasses
             return LoadOrCreateMetadata(metaFilePath, projectPath);
         }
     }
-} 
+}

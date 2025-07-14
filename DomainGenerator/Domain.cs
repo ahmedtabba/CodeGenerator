@@ -8,14 +8,14 @@ namespace DomainGenerator
 {
     public static class Domain
     {
-        public static void GenerateEntityClass(string entityName, string path, (List<(string Type, string Name, PropertyValidation Validation)>,List<string> localizedProps, List<(string prop, List<string> enumValues)>) properties, bool hasLocalization, List<Relation> relations)
+        public static void GenerateEntityClass(string entityName, string path, (List<(string Type, string Name, PropertyValidation Validation)>, List<string> localizedProps, List<(string prop, List<string> enumValues)>) properties, bool hasLocalization, List<Relation> relations,bool bulk, bool? isChild = null, string? parentEntityName = null)
         {
             string fileName = $"{entityName}.cs";
             string filePath = Path.Combine(path, fileName);
             var propList = new List<string>();
-            foreach(var prop in properties.Item1)
+            foreach (var prop in properties.Item1)
             {
-                switch(prop.Type) 
+                switch (prop.Type)
                 {
                     case "GPG":
                         if (prop.Validation != null && prop.Validation.Required)
@@ -56,18 +56,18 @@ namespace DomainGenerator
             }
             var tempProps = string.Join(Environment.NewLine, propList);
 
-    //        var tempProps = string.Join(Environment.NewLine, properties.Item1.Select(p =>
-    //    (p.Type == "PNGs")
-    //     ? $"        public {p.Type} {p.Name} {{ get; set; }} = new {p.Type}();" 
-    //     : (p.Type == "GPG" && p.Validation == null)
-    //     ? $"        public {p.Type}? {p.Name} {{ get; set; }}"
-    //     : $"        public {p.Type} {p.Name} {{ get; set; }}"
-    //));
+            //        var tempProps = string.Join(Environment.NewLine, properties.Item1.Select(p =>
+            //    (p.Type == "PNGs")
+            //     ? $"        public {p.Type} {p.Name} {{ get; set; }} = new {p.Type}();" 
+            //     : (p.Type == "GPG" && p.Validation == null)
+            //     ? $"        public {p.Type}? {p.Name} {{ get; set; }}"
+            //     : $"        public {p.Type} {p.Name} {{ get; set; }}"
+            //));
 
             var props = tempProps.Replace("GPG", "string").Replace("PNGs", "List<string>").Replace("VDs", "List<string>").Replace("VD", "string").Replace("FLs", "List<string>").Replace("FL", "string");
             //var propsList = properties.Item1.Any(p => p.Type == "VD") ? properties.Item1.Any(p => p.Type == "VD" && p.Validation != null) ? props.Replace("VD", "string") : props.Replace("VD", "string?") : props;
             string content = null!;
-            if (!hasLocalization) 
+            if (!hasLocalization)
             {
                 content = $@"using Domain.Common;
 using System;
@@ -107,15 +107,16 @@ namespace Domain.Entities
 }}";
 
                 File.WriteAllText(filePath, content);
-                GenerateEntityLocalizationClass(entityName, path,properties.Item2);
+                GenerateEntityLocalizationClass(entityName, path, properties.Item2);
                 UpdateLanguageClass($"{entityName}Localization", path);
             }
 
             if (properties.Item3.Any())
                 GenerateEntityEnums(entityName, properties.Item3, path);
             if (relations.Count > 0)
-                UpdateRelations(entityName,relations, path);
-
+                UpdateRelations(entityName, relations, path);
+            if (isChild != null)
+                UpdateParentChildRelation(entityName,parentEntityName,path,bulk);
 
         }
         static void GenerateEntityEnums(string entityName, List<(string prop, List<string> enumValues)> enumProps, string path)
@@ -142,7 +143,7 @@ namespace Domain.Enums
 ";
                 File.WriteAllText(fileEnumPath, enumContent);
             }
-            
+
         }
         static void GenerateEntityLocalizationClass(string entityName, string path, List<string> localizedProp)
         {
@@ -206,7 +207,7 @@ namespace Domain.Enums
             File.WriteAllText(fileLocalizationEnumPath, localizationEnumContent);
         }
 
-        static void UpdateLanguageClass(string entityName,string domainPath)
+        static void UpdateLanguageClass(string entityName, string domainPath)
         {
             string languagePath = Path.Combine(domainPath, "Language.cs");
             if (!File.Exists(languagePath))
@@ -228,12 +229,12 @@ namespace Domain.Enums
             }
         }
 
-        static void UpdateRelations(string entityName, List<Relation> relations,string domainPath)
+        static void UpdateRelations(string entityName, List<Relation> relations, string domainPath)
         {
             string entityPlural = entityName.EndsWith("y") ? entityName[..^1] + "ies" : entityName + "s";
             string fileEntityPath = Path.Combine(domainPath, $"{entityName}.cs");
             string contentEntity = File.ReadAllText(fileEntityPath);
-            int insertEntityIndex = contentEntity.LastIndexOf("}") -3;
+            int insertEntityIndex = contentEntity.LastIndexOf("}") - 3;
             string? contentRelatedEntity = null;
             int insertRelatedEntityIndex = 0;
             string entityRelatedPlural = null;
@@ -291,13 +292,13 @@ namespace Domain.Enums
                         break;
                     case RelationType.ManyToOneNullable:
                         contentRelatedEntity = contentRelatedEntity.Insert(insertRelatedEntityIndex, "\n" + "\t\t" + $"public virtual ICollection<{entityName}> {entityPlural} {{ get; set; }} = new List<{entityName}>();" + "\n\t");
-                        contentEntity = contentEntity.Insert(insertEntityIndex, "\n" + "\t\t"+$"public virtual {relation.RelatedEntity}? {relation.RelatedEntity} {{ get; set; }}" + "\n" + "\t\t"+$"public Guid? {relation.RelatedEntity}Id {{ get; set; }}" + "\n\t");
+                        contentEntity = contentEntity.Insert(insertEntityIndex, "\n" + "\t\t" + $"public virtual {relation.RelatedEntity}? {relation.RelatedEntity} {{ get; set; }}" + "\n" + "\t\t" + $"public Guid? {relation.RelatedEntity}Id {{ get; set; }}" + "\n\t");
                         File.WriteAllText(fileRelatedEntityPath, contentRelatedEntity);
                         File.WriteAllText(fileEntityPath, contentEntity);
                         break;
                     case RelationType.ManyToMany:
-                        contentRelatedEntity = contentRelatedEntity.Insert(insertRelatedEntityIndex, "\n" + "\t\t"+ $"public virtual ICollection<{entityName}> {entityPlural} {{ get; set; }} = new List<{entityName}>();" + "\n\t");
-                        contentEntity = contentEntity.Insert(insertEntityIndex, "\n" + "\t\t"+$"public virtual ICollection<{relation.RelatedEntity}> {entityRelatedPlural} {{ get; set; }} = new List<{relation.RelatedEntity}>();"+"\n\t");
+                        contentRelatedEntity = contentRelatedEntity.Insert(insertRelatedEntityIndex, "\n" + "\t\t" + $"public virtual ICollection<{entityName}> {entityPlural} {{ get; set; }} = new List<{entityName}>();" + "\n\t");
+                        contentEntity = contentEntity.Insert(insertEntityIndex, "\n" + "\t\t" + $"public virtual ICollection<{relation.RelatedEntity}> {entityRelatedPlural} {{ get; set; }} = new List<{relation.RelatedEntity}>();" + "\n\t");
                         File.WriteAllText(fileRelatedEntityPath, contentRelatedEntity);
                         File.WriteAllText(fileEntityPath, contentEntity);
                         break;
@@ -313,11 +314,40 @@ namespace Domain.Enums
                         contentEntity = contentEntity.Insert(insertEntityIndex, "\n" + "\t\t" + $"public virtual ICollection<{entityName}{relation.DisplayedProperty}> {entityName}{relation.DisplayedProperty.GetPluralName()} {{ get; set; }} = new List<{entityName}{relation.DisplayedProperty}>();" + "\n\t");
                         File.WriteAllText(fileEntityPath, contentEntity);
                         break;
-                    default: 
+                    default:
                         break;
                 }
 
             }
+        }
+        static void UpdateParentChildRelation(string childEntityName, string parentEntityName, string domainPath,bool bulk)
+        {
+            string entityPlural = childEntityName.GetPluralName();
+            string fileChildPath = Path.Combine(domainPath, $"{childEntityName}.cs");
+            string contentChild = File.ReadAllText(fileChildPath);
+            int insertChildIndex = contentChild.LastIndexOf("}") - 3;
+            var fileParentPath = Path.Combine(domainPath, $"{parentEntityName}.cs");
+            if (fileParentPath != null && !File.Exists(fileParentPath))
+            {
+                //Console.WriteLine($"⚠️ {relation.RelatedEntity}.cs not found.");
+                return;
+            }
+            var contentParent = File.ReadAllText(fileParentPath);
+            // Add before the last closing brace
+            var insertParentIndex = contentParent.LastIndexOf("}") - 3;
+            if (bulk)
+            {
+                contentParent = contentParent.Insert(insertParentIndex, "\n" + "\t\t" + $"public virtual ICollection<{childEntityName}> {entityPlural} {{ get; set; }} = new List<{childEntityName}>();" + "\n\t");
+                contentChild = contentChild.Insert(insertChildIndex, "\n" + "\t\t" + $"public virtual {parentEntityName} {parentEntityName} {{ get; set; }}" + "\n" + "\t\t" + $"public Guid {parentEntityName}Id {{ get; set; }}" + "\n\t");
+            }
+            else
+            {
+                contentParent = contentParent.Insert(insertParentIndex, "\n" + "\t\t" + $"public virtual {childEntityName}? {childEntityName} {{ get; set; }}" + "\n\t");
+                contentChild = contentChild.Insert(insertChildIndex, "\n" + "\t\t" + $"public virtual {parentEntityName} {parentEntityName} {{ get; set; }}" + "\n" + "\t\t" + $"public Guid {parentEntityName}Id {{ get; set; }}" + "\n\t");
+            }
+
+            File.WriteAllText(fileParentPath, contentParent);
+            File.WriteAllText(fileChildPath, contentChild);
         }
     }
 

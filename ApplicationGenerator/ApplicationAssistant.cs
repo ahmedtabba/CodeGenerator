@@ -12,7 +12,7 @@ namespace ApplicationGenerator
 {
     public static class ApplicationAssistant
     {
-        public static void GenerateVersionNeeds(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<Relation> relations)
+        public static void GenerateVersionNeeds(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<Relation> relations, string? parentEntityName = null)
         {
             string versionEntityTypePath = Path.Combine(path, "..", "Enums", "VersionEntityType.cs");
             if (!File.Exists(versionEntityTypePath))
@@ -129,6 +129,10 @@ namespace ApplicationGenerator
                 }
 
             }
+            if (parentEntityName != null)//case child entity , not bulk
+            {
+                propList.Add($"\t\tpublic Guid {parentEntityName}Id {{ get; set; }}");
+            }
             var tempList = string.Join(Environment.NewLine, propList);
             var props = tempList.Replace("GPG", "string").Replace("PNGs", "List<string>").Replace("VDs", "List<string>").Replace("VD", "string").Replace("FLs", "List<string>").Replace("FL", "string");
 
@@ -154,7 +158,7 @@ namespace Application.Common.Models.Versioning
             #endregion
         }
 
-        public static void GenerateEvents(string entityName, string path,bool hasVersioning,bool bulk)
+        public static void GenerateEvents(string entityName, string path, bool hasVersioning)
         {
             string x = entityName;
             string lowerEntityName = char.ToLower(x[0]) + x.Substring(1);
@@ -174,18 +178,12 @@ namespace Application.Common.Models.Versioning
         public bool IsVersionedCommand {{ get; set; }} = false;
 ";
             string eventCreateClassName = $"{entityName}CreatedEvent";
-            string eventCreateClassNameBulk = $"{entityName}CreatedBulkEvent";
             string eventEditClassName = $"{entityName}EditedEvent";
-            string eventEditClassNameBulk = $"{entityName}EditedBulkEvent";
             string eventDeletedClassName = $"{entityName}DeletedEvent";
-            string eventDeletedClassNameBulk = $"{entityName}DeletedBulkEvent";
             string eventDirectory = Path.Combine(path, "..", "Events", $"{entityName}Events");
             string eventCreatePath = Path.Combine(path, "..", "Events", $"{entityName}Events", $"{eventCreateClassName}.cs");
-            string eventCreateBulkPath = Path.Combine(path, "..", "Events", $"{entityName}Events", $"{eventCreateClassNameBulk}.cs");
             string eventEditPath = Path.Combine(path, "..", "Events", $"{entityName}Events", $"{eventEditClassName}.cs");
-            string eventEditBulkPath = Path.Combine(path, "..", "Events", $"{entityName}Events", $"{eventEditClassNameBulk}.cs");
             string eventDeletePath = Path.Combine(path, "..", "Events", $"{entityName}Events", $"{eventDeletedClassName}.cs");
-            string eventDeleteBulkPath = Path.Combine(path, "..", "Events", $"{entityName}Events", $"{eventDeletedClassNameBulk}.cs");
 
             Directory.CreateDirectory(eventDirectory);
 
@@ -241,7 +239,98 @@ namespace Domain.Events.{entityName}Events
             File.WriteAllText(eventCreatePath, createContent);
             File.WriteAllText(eventEditPath, editContent);
             File.WriteAllText(eventDeletePath, deletedContent);
-            if (bulk)
+        }
+
+        public static void GenerateChildEvents(string entityName, string path, bool hasVersioning, bool bulk)
+        {
+            string x = entityName;
+            string lowerEntityName = char.ToLower(x[0]) + x.Substring(1);
+            string entityPlural = entityName.EndsWith("y") ? entityName[..^1] + "ies" : entityName + "s";
+            string lowerEntityPlural = char.ToLower(entityPlural[0]) + entityPlural.Substring(1);
+            string inheritEvent = hasVersioning ? "BaseEvent, IBaseVersionInfo" : "BaseEvent";
+            string? baseVersionInfoProp = !hasVersioning ? null : $@"
+        public Type EntityType {{ get; set; }} = null!;
+        public string? RollbackedToVersionId {{ get; set; }}
+        public dynamic OldEntity {{ get; set; }} = null!;
+        public dynamic NewEntity {{ get; set; }} = null!;
+        public int ChangeType {{ get; set; }}// Added ,Modified ,Deleted
+        public string? ExternalVersioningReasonId {{ get; set; }}
+        public int? ExternalVersioningReasonType {{ get; set; }}
+        public int? VersionOperation {{ get; set; }}
+        public bool ToBePublished {{ get; set; }} = true;
+        public bool IsVersionedCommand {{ get; set; }} = false;
+";
+            string eventCreateClassName = $"{entityName}CreatedEvent";
+            string eventCreateClassNameBulk = $"{entityName}CreatedBulkEvent";
+            string eventEditClassName = $"{entityName}EditedEvent";
+            string eventEditClassNameBulk = $"{entityName}EditedBulkEvent";
+            string eventDeletedClassName = $"{entityName}DeletedEvent";
+            string eventDeletedClassNameBulk = $"{entityName}DeletedBulkEvent";
+            string eventDirectory = Path.Combine(path, "..", "Events", $"{entityName}Events");
+            string eventCreatePath = Path.Combine(path, "..", "Events", $"{entityName}Events", $"{eventCreateClassName}.cs");
+            string eventCreateBulkPath = Path.Combine(path, "..", "Events", $"{entityName}Events", $"{eventCreateClassNameBulk}.cs");
+            string eventEditPath = Path.Combine(path, "..", "Events", $"{entityName}Events", $"{eventEditClassName}.cs");
+            string eventEditBulkPath = Path.Combine(path, "..", "Events", $"{entityName}Events", $"{eventEditClassNameBulk}.cs");
+            string eventDeletePath = Path.Combine(path, "..", "Events", $"{entityName}Events", $"{eventDeletedClassName}.cs");
+            string eventDeleteBulkPath = Path.Combine(path, "..", "Events", $"{entityName}Events", $"{eventDeletedClassNameBulk}.cs");
+
+            Directory.CreateDirectory(eventDirectory);
+            if (!bulk)
+            {
+                var createContent = $@"using System;
+
+namespace Domain.Events.{entityName}Events
+{{
+    public class {entityName}CreatedEvent :{inheritEvent}
+    {{
+        public {entityName}CreatedEvent({entityName} {lowerEntityName})
+        {{
+            {entityName} = {lowerEntityName};
+        }}
+        public {entityName} {entityName} {{ get; }}
+{baseVersionInfoProp}
+    }}              
+}}
+";
+
+                var editContent = $@"using System;
+
+namespace Domain.Events.{entityName}Events
+{{
+    public class {entityName}EditedEvent : {inheritEvent}
+    {{
+        public {entityName}EditedEvent({entityName} old{entityName}, {entityName} new{entityName})
+        {{
+            Old{entityName} = old{entityName};
+            New{entityName} = new{entityName};
+        }}
+        public {entityName} Old{entityName} {{ get; }}
+        public {entityName} New{entityName} {{ get; }}
+{baseVersionInfoProp}
+    }}              
+}}
+";
+
+                var deletedContent = $@"using System;
+
+namespace Domain.Events.{entityName}Events
+{{
+    public class {entityName}DeletedEvent :{inheritEvent}
+    {{
+        public {entityName}DeletedEvent({entityName} {lowerEntityName})
+        {{
+            {entityName} = {lowerEntityName};
+        }}
+        public {entityName} {entityName} {{ get; }}
+{baseVersionInfoProp}
+    }}              
+}}
+";
+                File.WriteAllText(eventCreatePath, createContent);
+                File.WriteAllText(eventEditPath, editContent);
+                File.WriteAllText(eventDeletePath, deletedContent);
+            }
+            else
             {
                 var createBulkContent = $@"using System;
 
@@ -258,6 +347,7 @@ namespace Domain.Events.{entityName}Events
     }}              
 }}
 ";
+
                 var editBulkContent = $@"using System;
 
 namespace Domain.Events.{entityName}Events
@@ -328,7 +418,7 @@ namespace Domain.Events.{entityName}Events
                 //Console.WriteLine("❌ NotificationConsistent.cs not found.");
                 return;
             }
-            
+
             string content = File.ReadAllText(notificationConsistentPath);
             string className = $"public class {entityPlural}";
             string consistentClass = $@"
@@ -427,29 +517,41 @@ namespace Domain.Events.{entityName}Events
             #endregion
         }
 
-        public static void GenerateHandlers(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<Relation> relations,bool versioning, bool userActon, bool notification,bool bulk)
+        public static void GenerateHandlers(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<Relation> relations, bool versioning, bool userActon, bool notification, bool bulk, bool? isChild = null, string? parentEntityName = null)
         {
             string entityPlural = entityName.EndsWith("y") ? entityName[..^1] + "ies" : entityName + "s";
             string handlersDirectory = Path.Combine(path, "..", "..", "Application", $"{entityPlural}", "EventHandlers");
             Directory.CreateDirectory(handlersDirectory);
-
-            GenerateCreatedHandler(entityName,entityPlural,path,properties,relations,versioning,userActon,notification);
-            GenerateUpdateHandler(entityName, entityPlural, path, properties, relations, versioning, userActon, notification);
-            GenerateDeleteHandler(entityName, entityPlural, path, properties, relations, versioning, userActon, notification);
-            if (bulk)
+            if (isChild == null)
             {
-                GenerateCreatedBulkHandler(entityName, entityPlural, path, properties, relations, versioning, userActon, notification);
-                GenerateUpdatedBulkHandler(entityName, entityPlural, path, properties, relations, versioning, userActon, notification);
-                GenerateDeleteBulkHandler(entityName, entityPlural, path, properties, relations, versioning, userActon, notification);
+                GenerateCreatedHandler(entityName, entityPlural, path, properties, relations, versioning, userActon, notification);
+                GenerateUpdateHandler(entityName, entityPlural, path, properties, relations, versioning, userActon, notification);
+                GenerateDeleteHandler(entityName, entityPlural, path, properties, relations, versioning, userActon, notification);
             }
+            else
+            {
+                if (!bulk)
+                {
+                    GenerateCreatedHandler(entityName, entityPlural, path, properties, relations, versioning, userActon, notification,parentEntityName);
+                    GenerateUpdateHandler(entityName, entityPlural, path, properties, relations, versioning, userActon, notification, parentEntityName);
+                    GenerateDeleteHandler(entityName, entityPlural, path, properties, relations, versioning, userActon, notification, parentEntityName);
+                }
+                else
+                {
+                    GenerateCreatedBulkHandler(entityName, entityPlural, path, properties, relations, versioning, userActon, notification, parentEntityName);
+                    GenerateUpdatedBulkHandler(entityName, entityPlural, path, properties, relations, versioning, userActon, notification, parentEntityName);
+                    GenerateDeleteBulkHandler(entityName, entityPlural, path, properties, relations, versioning, userActon, notification,parentEntityName);
+                }
+            }
+
         }
-    
-        static void GenerateCreatedHandler (string entityName,string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<Relation> relations, bool versioning, bool userActon, bool notification)
+
+        static void GenerateCreatedHandler(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<Relation> relations, bool versioning, bool userActon, bool notification,string? parentEntityName = null)
         {
             string handlerCreateClassName = $"Created{entityName}EventHandler";
             string handlerCreatePath = Path.Combine(path, "..", "..", "Application", $"{entityPlural}", "EventHandlers", $"{handlerCreateClassName}.cs");
             string? HandleVersioning = !versioning ? null : $"var versionId = await HandleVersioning(notification);";
-            string? HandleUserActon = !userActon ? null 
+            string? HandleUserActon = !userActon ? null
                 : !versioning ? "await HandleUserAction(notification);"
                 : $@"
             if (!notification.IsVersionedCommand)
@@ -458,7 +560,7 @@ namespace Domain.Events.{entityName}Events
 
             var propList = GetVersionDTOProp(properties, relations);
             string? manyEntityRelated = relations.Any(r => r.Type == RelationType.ManyToMany) ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity : null;
-            string? manyDisplayProp = relations.Any(r => r.Type == RelationType.ManyToMany) ? relations.First(r => r.Type == RelationType.ManyToMany).DisplayedProperty: null ;
+            string? manyDisplayProp = relations.Any(r => r.Type == RelationType.ManyToMany) ? relations.First(r => r.Type == RelationType.ManyToMany).DisplayedProperty : null;
             StringBuilder versioningDTOBuilder = new StringBuilder();
             foreach (var item in propList)
             {
@@ -501,10 +603,14 @@ namespace Domain.Events.{entityName}Events
                 else
                     versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{item},");
             }
+            if (parentEntityName != null)
+            {
+                versioningDTOBuilder.AppendLine($"\t\t\t\t{parentEntityName}Id = obj.{parentEntityName}Id,");
+            }
             var propListUser = GetVersionDTOUserProp(relations);
             if (propListUser.Any())
             {
-                foreach(var item in propListUser)
+                foreach (var item in propListUser)
                 {
                     if (item.EndsWith("Ids"))
                     {
@@ -557,6 +663,9 @@ $@"
             notificationConsistent = NotificationConsistent.{entityPlural}.Add;
             messageBuilder.Append("" has been added 🎉🎉"");
 ";
+
+            string? parentNotification = parentEntityName == null ? null : $" for {parentEntityName}";
+
             string? HandleNotificationMethod = !notification ? null : $@"
         private async Task HandleNotification({entityName}CreatedEvent notification, CancellationToken cancellationToken, List<string> specificNotifiedUsers = null)
         {{
@@ -565,7 +674,7 @@ $@"
             string notificationConsistent;
 
             StringBuilder messageBuilder = new StringBuilder(""{entityName} : "");
-            messageBuilder.Append(notification.{entityName}.Id); //TODO:AfterGenerateCode:Replace Id with the proper property
+            messageBuilder.Append(notification.{entityName}.Id {parentNotification}); //TODO:AfterGenerateCode:Replace Id with the proper property
             {HandleNotificationMethodVersionCase}
 
             signalRMessage = await _userNotificationService.Push(NotificationObjectTypes.{entityName}, notification.{entityName}.Id,
@@ -639,7 +748,7 @@ namespace Application.{entityPlural}.EventHandlers
             File.WriteAllText(handlerCreatePath, handlerCreateContent);
         }
 
-        static void GenerateCreatedBulkHandler(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<Relation> relations, bool versioning, bool userActon, bool notification)
+        static void GenerateCreatedBulkHandler(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<Relation> relations, bool versioning, bool userActon, bool notification, string? parentEntityName)
         {
             string handlerCreateClassName = $"CreatedBulk{entityName}EventHandler";
             string handlerCreatePath = Path.Combine(path, "..", "..", "Application", $"{entityPlural}", "EventHandlers", $"{handlerCreateClassName}.cs");
@@ -651,22 +760,74 @@ namespace Application.{entityPlural}.EventHandlers
                 await HandleUserAction(notification, versionId);";
             string? HandleNotification = !notification ? null : $"await HandleNotification(notification, cancellationToken);";
 
-            string aggregator = relations.First(r => r.Type == RelationType.ManyToOne || r.Type == RelationType.ManyToOneNullable).RelatedEntity;
-            string nullableAggregatorNot = relations.First(r => r.Type == RelationType.ManyToOne || r.Type == RelationType.ManyToOneNullable).Type == RelationType.ManyToOne ?
-                                           $"notification.{entityPlural}[0].{aggregator}Id" : $"notification.{entityPlural}[0].{aggregator}Id.Value";
+            string aggregator = parentEntityName;
+            //string nullableAggregatorNot = relations.First(r => r.Type == RelationType.ManyToOne || r.Type == RelationType.ManyToOneNullable).Type == RelationType.ManyToOne ?
+            //                               $"notification.{entityPlural}[0].{aggregator}Id" : $"notification.{entityPlural}[0].{aggregator}Id.Value";
             var propList = GetVersionDTOProp(properties, relations);
+            string? manyEntityRelated = relations.Any(r => r.Type == RelationType.ManyToMany) ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity : null;
+            string? manyDisplayProp = relations.Any(r => r.Type == RelationType.ManyToMany) ? relations.First(r => r.Type == RelationType.ManyToMany).DisplayedProperty : null;
             StringBuilder versioningDTOBuilder = new StringBuilder();
             foreach (var item in propList)
             {
                 if (item.EndsWith("Ids"))
                 {
-                    var temp = item.Remove(item.Length - 3);
-                    string? relatedEntityManyPlural = relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.EndsWith("y") ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[..^1] + "ies" : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity + "s";
-                    var tempPlural = temp.EndsWith("y") ? temp[..^1] + "ies" : temp + "s";
-                    versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{tempPlural}.Select(x => x.Id).ToList(),");
+                    string? relatedEntityManyPlural = manyEntityRelated!.GetPluralName();
+                    //oldVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = oldObj.{relatedEntityManyPlural}.Select(x => x.Id).ToList(),");
+                    versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{relatedEntityManyPlural}.Select(x => x.Id).ToList(),");
+                }
+                else if (manyDisplayProp != null && item == (manyEntityRelated + manyDisplayProp.GetPluralName()))
+                {
+                    string? relatedEntityManyPlural = manyEntityRelated!.GetPluralName();
+                    //oldVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = oldObj.{relatedEntityManyPlural}.Select(x => x.{manyDisplayProp}).ToList(),");
+                    versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{relatedEntityManyPlural}.Select(x => x.{manyDisplayProp}).ToList(),");
+                }
+                else if (!item.EndsWith("Id") && relations.Any(r => item.Contains(r.RelatedEntity)))
+                {
+                    Relation rel = relations.First(r => item.Contains(r.RelatedEntity));
+                    switch (rel.Type)
+                    {
+                        case RelationType.OneToOneSelfJoin:
+                            versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{rel.RelatedEntity}Parent != null ? item.{rel.RelatedEntity}Parent.{rel.DisplayedProperty} : null,");
+                            break;
+                        case RelationType.OneToOne:
+                            versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{rel.RelatedEntity}.{rel.DisplayedProperty},");
+                            break;
+                        case RelationType.OneToOneNullable:
+                            versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{rel.RelatedEntity} != null ? item.{rel.RelatedEntity}.{rel.DisplayedProperty} : null,");
+                            break;
+                        case RelationType.ManyToOne:
+                            versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{rel.RelatedEntity}.{rel.DisplayedProperty},");
+                            break;
+                        case RelationType.ManyToOneNullable:
+                            versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{rel.RelatedEntity} != null ? item.{rel.RelatedEntity}.{rel.DisplayedProperty} : null,");
+                            break;
+                        default:
+                            break;
+                    }
                 }
                 else
                     versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{item},");
+
+                if (parentEntityName != null)
+                {
+                    versioningDTOBuilder.AppendLine($"\t\t\t\t{parentEntityName}Id = item.{parentEntityName}Id,");
+                }
+            }
+            var propListUser = GetVersionDTOUserProp(relations);
+            if (propListUser.Any())
+            {
+                foreach (var item in propListUser)
+                {
+                    if (item.EndsWith("Ids"))
+                    {
+                        var temp = item.Remove(item.Length - 3);
+                        versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{entityName}{temp}.Select(x => x.UserId).ToList(),");
+                    }
+                    else
+                    {
+                        versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{item},");
+                    }
+                }
             }
 
             string? HandleVersioningMethod = !versioning ? null : $@"
@@ -723,7 +884,7 @@ $@"
             messageBuilder.Append(notification.{entityPlural}[0].{aggregator}Id); //TODO:AfterGenerateCode:Replace Id with the proper property
             {HandleNotificationMethodVersionCase}
 
-            signalRMessage = await _userNotificationService.Push(NotificationObjectTypes.{entityName}, {nullableAggregatorNot},
+            signalRMessage = await _userNotificationService.Push(NotificationObjectTypes.{entityName}, {aggregator}.Id,
                                                                  notificationConsistent, notificationMessage: messageBuilder.ToString(),
                                                                  cancellationToken, specificNotifiedUsers);
 
@@ -794,7 +955,7 @@ namespace Application.{entityPlural}.EventHandlers
             File.WriteAllText(handlerCreatePath, handlerCreateBulkContent);
         }
 
-        static void GenerateUpdateHandler(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<Relation> relations, bool versioning, bool userActon, bool notification)
+        static void GenerateUpdateHandler(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<Relation> relations, bool versioning, bool userActon, bool notification, string? parentEntityName = null)
         {
             string handlerUpdateClassName = $"Updated{entityName}EventHandler";
             string handlerUpdatePath = Path.Combine(path, "..", "..", "Application", $"{entityPlural}", "EventHandlers", $"{handlerUpdateClassName}.cs");
@@ -847,6 +1008,10 @@ namespace Application.{entityPlural}.EventHandlers
                 }
                 else
                     oldVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = oldObj.{item},");
+            }
+            if (parentEntityName != null)
+            {
+                oldVersioningDTOBuilder.AppendLine($"\t\t\t\t{parentEntityName}Id = oldObj.{parentEntityName}Id,");
             }
             var propListUser = GetVersionDTOUserProp(relations);
             if (propListUser.Any())
@@ -905,6 +1070,12 @@ namespace Application.{entityPlural}.EventHandlers
                 else
                     newVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = newObj.{item},");
             }
+
+            if (parentEntityName != null)
+            {
+                newVersioningDTOBuilder.AppendLine($"\t\t\t\t{parentEntityName}Id = newObj.{parentEntityName}Id,");
+            }
+
             if (propListUser.Any())
             {
                 foreach (var item in propListUser)
@@ -968,7 +1139,7 @@ $@"
             notificationConsistent = NotificationConsistent.{entityPlural}.Edit;
             messageBuilder.Append("" has been modified"");
 ";
-
+            string? parentNotification = parentEntityName == null ? null : $" for {parentEntityName}";
             string? HandleNotificationMethod = !notification ? null : $@"
         private async Task HandleNotification({entityName}EditedEvent notification, CancellationToken cancellationToken, List<string> specificNotifiedUsers = null)
         {{
@@ -977,7 +1148,7 @@ $@"
             string notificationConsistent;
 
             StringBuilder messageBuilder = new StringBuilder(""{entityName} : "");
-            messageBuilder.Append(notification.Old{entityName}.Id); //TODO:AfterGenerateCode:Replace Id with the proper property
+            messageBuilder.Append(notification.Old{entityName}.Id {parentNotification}); //TODO:AfterGenerateCode:Replace Id with the proper property
             {HandleNotificationMethodVersionCase}
 
             signalRMessage = await _userNotificationService.Push(NotificationObjectTypes.{entityName}, notification.Old{entityName}.Id,
@@ -1051,7 +1222,7 @@ namespace Application.{entityPlural}.EventHandlers
 ";
             File.WriteAllText(handlerUpdatePath, handlerUpdateContent);
         }
-        static void GenerateUpdatedBulkHandler(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<Relation> relations, bool versioning, bool userActon, bool notification)
+        static void GenerateUpdatedBulkHandler(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<Relation> relations, bool versioning, bool userActon, bool notification, string? parentEntityName)
         {
             string handlerUpdatedClassName = $"UpdatedBulk{entityName}EventHandler";
             string handlerUpdatePath = Path.Combine(path, "..", "..", "Application", $"{entityPlural}", "EventHandlers", $"{handlerUpdatedClassName}.cs");
@@ -1063,22 +1234,75 @@ namespace Application.{entityPlural}.EventHandlers
                 await HandleUserAction(notification, versionId);";
             string? HandleNotification = !notification ? null : $"await HandleNotification(notification, cancellationToken);";
 
-            string aggregator = relations.First(r => r.Type == RelationType.ManyToOne || r.Type == RelationType.ManyToOneNullable).RelatedEntity;
-            string nullableAggregatorNot = relations.First(r => r.Type == RelationType.ManyToOne || r.Type == RelationType.ManyToOneNullable).Type == RelationType.ManyToOne ?
-                                           $"notification.Old{entityPlural}[0].{aggregator}Id" : $"notification.Old{entityPlural}[0].{aggregator}Id.Value";
+            string aggregator = parentEntityName;
+            //string nullableAggregatorNot = relations.First(r => r.Type == RelationType.ManyToOne || r.Type == RelationType.ManyToOneNullable).Type == RelationType.ManyToOne ?
+            //                               $"notification.Old{entityPlural}[0].{aggregator}Id" : $"notification.Old{entityPlural}[0].{aggregator}Id.Value";
             var propList = GetVersionDTOProp(properties, relations);
+
+            string? manyEntityRelated = relations.Any(r => r.Type == RelationType.ManyToMany) ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity : null;
+            string? manyDisplayProp = relations.Any(r => r.Type == RelationType.ManyToMany) ? relations.First(r => r.Type == RelationType.ManyToMany).DisplayedProperty : null;
             StringBuilder versioningDTOBuilder = new StringBuilder();
             foreach (var item in propList)
             {
                 if (item.EndsWith("Ids"))
                 {
-                    var temp = item.Remove(item.Length - 3);
-                    string? relatedEntityManyPlural = relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.EndsWith("y") ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[..^1] + "ies" : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity + "s";
-                    var tempPlural = temp.EndsWith("y") ? temp[..^1] + "ies" : temp + "s";
-                    versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{tempPlural}.Select(x => x.Id).ToList(),");
+                    string? relatedEntityManyPlural = manyEntityRelated!.GetPluralName();
+                    //oldVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = oldObj.{relatedEntityManyPlural}.Select(x => x.Id).ToList(),");
+                    versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{relatedEntityManyPlural}.Select(x => x.Id).ToList(),");
+                }
+                else if (manyDisplayProp != null && item == (manyEntityRelated + manyDisplayProp.GetPluralName()))
+                {
+                    string? relatedEntityManyPlural = manyEntityRelated!.GetPluralName();
+                    //oldVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = oldObj.{relatedEntityManyPlural}.Select(x => x.{manyDisplayProp}).ToList(),");
+                    versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{relatedEntityManyPlural}.Select(x => x.{manyDisplayProp}).ToList(),");
+                }
+                else if (!item.EndsWith("Id") && relations.Any(r => item.Contains(r.RelatedEntity)))
+                {
+                    Relation rel = relations.First(r => item.Contains(r.RelatedEntity));
+                    switch (rel.Type)
+                    {
+                        case RelationType.OneToOneSelfJoin:
+                            versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{rel.RelatedEntity}Parent != null ? item.{rel.RelatedEntity}Parent.{rel.DisplayedProperty} : null,");
+                            break;
+                        case RelationType.OneToOne:
+                            versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{rel.RelatedEntity}.{rel.DisplayedProperty},");
+                            break;
+                        case RelationType.OneToOneNullable:
+                            versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{rel.RelatedEntity} != null ? item.{rel.RelatedEntity}.{rel.DisplayedProperty} : null,");
+                            break;
+                        case RelationType.ManyToOne:
+                            versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{rel.RelatedEntity}.{rel.DisplayedProperty},");
+                            break;
+                        case RelationType.ManyToOneNullable:
+                            versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{rel.RelatedEntity} != null ? item.{rel.RelatedEntity}.{rel.DisplayedProperty} : null,");
+                            break;
+                        default:
+                            break;
+                    }
                 }
                 else
                     versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{item},");
+
+                if (parentEntityName != null)
+                {
+                    versioningDTOBuilder.AppendLine($"\t\t\t\t{parentEntityName}Id = item.{parentEntityName}Id,");
+                }
+            }
+            var propListUser = GetVersionDTOUserProp(relations);
+            if (propListUser.Any())
+            {
+                foreach (var item in propListUser)
+                {
+                    if (item.EndsWith("Ids"))
+                    {
+                        var temp = item.Remove(item.Length - 3);
+                        versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{entityName}{temp}.Select(x => x.UserId).ToList(),");
+                    }
+                    else
+                    {
+                        versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{item},");
+                    }
+                }
             }
 
             string? HandleVersioningMethod = !versioning ? null : $@"
@@ -1114,7 +1338,7 @@ namespace Application.{entityPlural}.EventHandlers
             notification.OldEntity = oldVersioningDTOs;
             notification.NewEntity = newVersioningDTOs;
 
-            return await _versioningService.AddVersion<{entityName}VersioningDTO>((VersionChangeType)notification.ChangeType, oldObjects[0].{aggregator}Id.ToString(),
+            return await _versioningService.AddVersion<{entityName}VersioningDTO>((VersionChangeType)notification.ChangeType, notification.AggregatorId.ToString(),
                                                                         VersionEntityType.{entityName}, userId: null!, (List<{entityName}VersioningDTO>)notification.OldEntity,
                                                                        (List<{entityName}VersioningDTO>)notification.NewEntity, notification.RollbackedToVersionId);
         }}
@@ -1144,10 +1368,10 @@ $@"
             string notificationConsistent;
 
             StringBuilder messageBuilder = new StringBuilder(""List of {entityName} for {aggregator} : "");
-            messageBuilder.Append(notification.Old{entityPlural}[0].{aggregator}Id); //TODO:AfterGenerateCode:Replace Id with the proper property
+            messageBuilder.Append(notification.AggregatorId); //TODO:AfterGenerateCode:Replace Id with the proper property
             {HandleNotificationMethodVersionCase}
 
-            signalRMessage = await _userNotificationService.Push(NotificationObjectTypes.{entityName}, {nullableAggregatorNot},
+            signalRMessage = await _userNotificationService.Push(NotificationObjectTypes.{entityName}, notification.AggregatorId,
                                                                  notificationConsistent, notificationMessage: messageBuilder.ToString(),
                                                                  cancellationToken, specificNotifiedUsers);
 
@@ -1160,9 +1384,9 @@ $@"
         private async Task HandleUserAction({entityName}EditedBulkEvent notification, string? versionId = null)
         {{
             if (versionId != null)
-                await _userActionService.AddUserAction(UserActionType.UpdateBulk, UserActionEntityType.{entityName}, notification.Old{entityPlural}[0].{aggregator}Id.ToString(), versionId);
+                await _userActionService.AddUserAction(UserActionType.UpdateBulk, UserActionEntityType.{entityName}, notification.AggregatorId.ToString(), versionId);
             else
-                await _userActionService.AddUserAction(UserActionType.UpdateBulk, UserActionEntityType.{entityName}, notification.Old{entityPlural}[0].{aggregator}Id.ToString());
+                await _userActionService.AddUserAction(UserActionType.UpdateBulk, UserActionEntityType.{entityName}, notification.AggregatorId.ToString());
         }}
 ";
 
@@ -1218,7 +1442,7 @@ namespace Application.{entityPlural}.EventHandlers
             File.WriteAllText(handlerUpdatePath, handlerUpdatedBulkContent);
         }
 
-        static void GenerateDeleteHandler(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<Relation> relations, bool versioning, bool userActon, bool notification)
+        static void GenerateDeleteHandler(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<Relation> relations, bool versioning, bool userActon, bool notification, string? parentEntityName = null)
         {
             string handlerDeleteClassName = $"Deleted{entityName}EventHandler";
             string handlerDeletePath = Path.Combine(path, "..", "..", "Application", $"{entityPlural}", "EventHandlers", $"{handlerDeleteClassName}.cs");
@@ -1274,6 +1498,10 @@ namespace Application.{entityPlural}.EventHandlers
                 }
                 else
                     versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{item},");
+            }
+            if (parentEntityName != null)
+            {
+                versioningDTOBuilder.AppendLine($"\t\t\t\t{parentEntityName}Id = obj.{parentEntityName}Id,");
             }
             var propListUser = GetVersionDTOUserProp(relations);
             if (propListUser.Any())
@@ -1331,6 +1559,9 @@ $@"
             notificationConsistent = NotificationConsistent.{entityPlural}.Delete;
             messageBuilder.Append("" has been deleted"");
 ";
+
+            string? parentNotification = parentEntityName == null ? null : $" for {parentEntityName}";
+
             string? HandleNotificationMethod = !notification ? null : $@"
         private async Task HandleNotification({entityName}DeletedEvent notification, CancellationToken cancellationToken, List<string> specificNotifiedUsers = null)
         {{
@@ -1339,7 +1570,7 @@ $@"
             string notificationConsistent;
 
             StringBuilder messageBuilder = new StringBuilder(""{entityName} : "");
-            messageBuilder.Append(notification.{entityName}.Id); //TODO:AfterGenerateCode:Replace Id with the proper property
+            messageBuilder.Append(notification.{entityName}.Id {parentNotification}); //TODO:AfterGenerateCode:Replace Id with the proper property
             {HandleNotificationMethodVersionCase}
 
             signalRMessage = await _userNotificationService.Push(NotificationObjectTypes.{entityName}, notification.{entityName}.Id,
@@ -1412,7 +1643,7 @@ namespace Application.{entityPlural}.EventHandlers
 ";
             File.WriteAllText(handlerDeletePath, handlerDeleteContent);
         }
-        static void GenerateDeleteBulkHandler(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<Relation> relations, bool versioning, bool userActon, bool notification)
+        static void GenerateDeleteBulkHandler(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<Relation> relations, bool versioning, bool userActon, bool notification, string? parentEntityName)
         {
             string handlerDeleteClassName = $"DeletedBulk{entityName}EventHandler";
             string handlerDeletePath = Path.Combine(path, "..", "..", "Application", $"{entityPlural}", "EventHandlers", $"{handlerDeleteClassName}.cs");
@@ -1424,23 +1655,75 @@ namespace Application.{entityPlural}.EventHandlers
                 await HandleUserAction(notification, versionId);";
             string? HandleNotification = !notification ? null : $"await HandleNotification(notification, cancellationToken);";
 
-            string aggregator = relations.First(r => r.Type == RelationType.ManyToOne || r.Type == RelationType.ManyToOneNullable).RelatedEntity;
-            string nullableAggregatorNot = relations.First(r => r.Type == RelationType.ManyToOne || r.Type == RelationType.ManyToOneNullable).Type == RelationType.ManyToOne ?
-                                           $"notification.Old{entityPlural}[0].{aggregator}Id" : $"notification.Old{entityPlural}[0].{aggregator}Id.Value";
-            
+            string aggregator = parentEntityName;
+            //string nullableAggregatorNot = relations.First(r => r.Type == RelationType.ManyToOne || r.Type == RelationType.ManyToOneNullable).Type == RelationType.ManyToOne ?
+            //                               $"notification.Old{entityPlural}[0].{aggregator}Id" : $"notification.Old{entityPlural}[0].{aggregator}Id.Value";
+
             var propList = GetVersionDTOProp(properties, relations);
+            string? manyEntityRelated = relations.Any(r => r.Type == RelationType.ManyToMany) ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity : null;
+            string? manyDisplayProp = relations.Any(r => r.Type == RelationType.ManyToMany) ? relations.First(r => r.Type == RelationType.ManyToMany).DisplayedProperty : null;
             StringBuilder versioningDTOBuilder = new StringBuilder();
             foreach (var item in propList)
             {
                 if (item.EndsWith("Ids"))
                 {
-                    var temp = item.Remove(item.Length - 3);
-                    string? relatedEntityManyPlural = relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity.EndsWith("y") ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity[..^1] + "ies" : relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity + "s";
-                    var tempPlural = temp.EndsWith("y") ? temp[..^1] + "ies" : temp + "s";
-                    versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{tempPlural}.Select(x => x.Id).ToList(),");
+                    string? relatedEntityManyPlural = manyEntityRelated!.GetPluralName();
+                    //oldVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = oldObj.{relatedEntityManyPlural}.Select(x => x.Id).ToList(),");
+                    versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{relatedEntityManyPlural}.Select(x => x.Id).ToList(),");
+                }
+                else if (manyDisplayProp != null && item == (manyEntityRelated + manyDisplayProp.GetPluralName()))
+                {
+                    string? relatedEntityManyPlural = manyEntityRelated!.GetPluralName();
+                    //oldVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = oldObj.{relatedEntityManyPlural}.Select(x => x.{manyDisplayProp}).ToList(),");
+                    versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{relatedEntityManyPlural}.Select(x => x.{manyDisplayProp}).ToList(),");
+                }
+                else if (!item.EndsWith("Id") && relations.Any(r => item.Contains(r.RelatedEntity)))
+                {
+                    Relation rel = relations.First(r => item.Contains(r.RelatedEntity));
+                    switch (rel.Type)
+                    {
+                        case RelationType.OneToOneSelfJoin:
+                            versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{rel.RelatedEntity}Parent != null ? item.{rel.RelatedEntity}Parent.{rel.DisplayedProperty} : null,");
+                            break;
+                        case RelationType.OneToOne:
+                            versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{rel.RelatedEntity}.{rel.DisplayedProperty},");
+                            break;
+                        case RelationType.OneToOneNullable:
+                            versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{rel.RelatedEntity} != null ? item.{rel.RelatedEntity}.{rel.DisplayedProperty} : null,");
+                            break;
+                        case RelationType.ManyToOne:
+                            versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{rel.RelatedEntity}.{rel.DisplayedProperty},");
+                            break;
+                        case RelationType.ManyToOneNullable:
+                            versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{rel.RelatedEntity} != null ? item.{rel.RelatedEntity}.{rel.DisplayedProperty} : null,");
+                            break;
+                        default:
+                            break;
+                    }
                 }
                 else
                     versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{item},");
+
+                if (parentEntityName != null)
+                {
+                    versioningDTOBuilder.AppendLine($"\t\t\t\t{parentEntityName}Id = item.{parentEntityName}Id,");
+                }
+            }
+            var propListUser = GetVersionDTOUserProp(relations);
+            if (propListUser.Any())
+            {
+                foreach (var item in propListUser)
+                {
+                    if (item.EndsWith("Ids"))
+                    {
+                        var temp = item.Remove(item.Length - 3);
+                        versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{entityName}{temp}.Select(x => x.UserId).ToList(),");
+                    }
+                    else
+                    {
+                        versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{item},");
+                    }
+                }
             }
 
             string? HandleVersioningMethod = !versioning ? null : $@"
@@ -1569,7 +1852,7 @@ namespace Application.{entityPlural}.EventHandlers
 ";
             File.WriteAllText(handlerDeletePath, handlerDeleteBulkContent);
         }
-        static List<string> GetVersionDTOProp(List<(string Type, string Name, PropertyValidation Validation)> properties,List<Relation> relations)
+        static List<string> GetVersionDTOProp(List<(string Type, string Name, PropertyValidation Validation)> properties, List<Relation> relations)
         {
             List<string> propList = new List<string>();
             properties.ForEach(p => propList.Add(p.Name));

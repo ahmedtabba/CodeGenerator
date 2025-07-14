@@ -21,14 +21,14 @@ namespace ApiGenerator
         \{: Matches the opening brace literally
         The RegexOptions.Multiline | RegexOptions.IgnoreCase ensures we handle multi-line code and case variations correctly.
          */
-        public static void GenerateNeededDtos(string entityName, string entityPlural, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, string solutionDir,bool hasLocalization,List<Relation> relations,bool bulk)
+        public static void GenerateNeededDtos(string entityName, string entityPlural, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, string solutionDir,bool hasLocalization,List<Relation> relations, bool bulk, string? parentEntityName = null)
         {
             var dtoPath = Path.Combine(solutionDir, "Api", "NeededDto", entityName);
             Directory.CreateDirectory(dtoPath);
             var hasImages = properties.Any(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD" || p.Type == "VDs" || p.Type == "FL" || p.Type == "FLs");
             if (hasLocalization)
                 GenerateLocalizationDto(entityName, dtoPath);
-            if (hasLocalization || hasImages || enumProps.Any())
+            if ((hasLocalization || hasImages || enumProps.Any()) && parentEntityName == null)
                 GenerateCreateCommandDto(entityName, dtoPath,properties,enumProps,entityPlural,relations,hasLocalization,hasImages);
             if (bulk)
             {
@@ -37,8 +37,9 @@ namespace ApiGenerator
                 GenerateSingleUpdatedEntityDto(entityName, dtoPath, properties, enumProps, hasLocalization, hasImages, entityPlural, relations);
                 GenerateUpdateBulkCommandDto(entityName, dtoPath, properties, enumProps, entityPlural, relations, hasLocalization, hasImages);
             }
-            GenerateUpdateCommandDto(entityName, dtoPath, properties,enumProps,hasLocalization,hasImages,entityPlural,relations);
-            GenerateGetWithPaginationQueryDto(entityName, entityPlural, dtoPath,hasLocalization);
+            GenerateUpdateCommandDto(entityName, dtoPath, properties,enumProps,hasLocalization,hasImages,entityPlural,relations,parentEntityName);
+            if (parentEntityName == null)
+                GenerateGetWithPaginationQueryDto(entityName, entityPlural, dtoPath,hasLocalization);
         }
 
         static void GenerateCreateCommandDto(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, string entityPlural,List<Relation> relations,bool hasLocalization,bool hasImages)
@@ -204,7 +205,7 @@ namespace Api.NeededDto.{entityName}
             File.WriteAllText(filePath, content);
         }
 
-        static void GenerateUpdateCommandDto(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, bool hasLocalization,bool hasImages,string entityPlural,List<Relation> relations)
+        static void GenerateUpdateCommandDto(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, bool hasLocalization,bool hasImages,string entityPlural,List<Relation> relations,string? parentEntityName = null)
         {
             string fileName = $"Update{entityName}CommandDto.cs";
             string filePath = Path.Combine(path, fileName);
@@ -352,6 +353,7 @@ namespace Api.NeededDto.{entityName}
                 .Where(p => p.Type != "GPG" && p.Type != "PNGs" && p.Type != "VD" && p.Type != "VDs" && p.Type != "FL" && p.Type != "FLs")
                 .Select(p => $"        public {p.Type} {p.Name} {{ get; set; }}"));
 
+            string? childProp = parentEntityName == null ? null : $"        public Guid {entityName}Id{{ get; set;}} = Guid.Empty;";
             string content = $@"using AutoMapper;
 using Application.{entityPlural}.Commands.Update{entityName};
 using Api.Utilities;
@@ -361,6 +363,7 @@ namespace Api.NeededDto.{entityName}
 {{
     public class Update{entityName}CommandDto
     {{
+{childProp}
 {props}
 {localizationProp}
 {ImageProp}
@@ -475,8 +478,12 @@ namespace Api.NeededDto.{entityName}
         }
 
 
-        public static void AddRoutesToApiRoutes(string entityName, string entityPlural, string solutionDir,bool hasLocalization,bool bulk)
+        public static void AddRoutesToApiRoutes(string entityName, string entityPlural, string solutionDir,bool hasLocalization,bool bulk,string? parentEntityName = null)
         {
+            if (parentEntityName != null)
+            {
+                return;
+            }
             string filePath = Path.Combine(solutionDir, "Api", "Utilities", "ApiRoutes.cs");
 
             if (!File.Exists(filePath))
@@ -488,12 +495,7 @@ namespace Api.NeededDto.{entityName}
             string content = File.ReadAllText(filePath);
             string className = $"public static class {entityName}";
             string? GetWithLocalizationRoute = hasLocalization? $"public const string GetWithLocalization = Base + \"/{entityPlural.ToLower()}/{{{entityName.ToLower()}Id}}/localization\";" : null;
-            string? bulkRouts = !bulk ? null :
-                $@"
-            public const string CreateBulk = Base + ""/{entityPlural.ToLower()}/bulk"";            
-            public const string UpdateBulk = Base + ""/{entityPlural.ToLower()}/bulk"";
-            public const string DeleteBulk = Base + ""/{entityPlural.ToLower()}/bulk"";
-";
+            
             string routeClass = $@"
         public static class {entityName}
         {{
@@ -503,7 +505,6 @@ namespace Api.NeededDto.{entityName}
             public const string Update = Base + ""/{entityPlural.ToLower()}/{{{entityName.ToLower()}Id}}"";
             public const string Delete = Base + ""/{entityPlural.ToLower()}/{{{entityName.ToLower()}Id}}"";
             {GetWithLocalizationRoute}
-            {bulkRouts}
         }}";
 
             var matches = ClassPattern.Matches(content);
@@ -548,7 +549,7 @@ namespace Api.NeededDto.{entityName}
             string? GetWithLocalizationPermission = null!;
             string? DeletePermission = null!;
             string fromType = "[FromBody]";
-            var hasImages = properties.Any(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD");
+            var hasImages = properties.Any(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD" || p.Type == "VDs" || p.Type == "FL" || p.Type == "FLs");
             if (hasPermissions)
             {
                 createPermission = $"[Permission(RoleConsistent.{entityName}.Add)]";
@@ -820,6 +821,152 @@ namespace Api.Controllers
         }}
 
         {bulkEndpoints}
+    }}
+}}";
+
+            File.WriteAllText(filePath, content);
+            //Console.WriteLine($"✅ {controllerName} created.");
+        }
+        public static void GeneratePartialController(string entityName, string entityPlural, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, string solutionDir,bool hasLocalization,bool hasPermissions)
+        {
+            var controllerName = $"{entityPlural}Controller.cs";
+            var filePath = Path.Combine(solutionDir, "Api", "Controllers", controllerName);
+            string? UpdatePermission = null!;
+            string? GetPermission = null!;
+            string? GetWithLocalizationPermission = null!;
+            string fromType = "[FromBody]";
+            var hasImages = properties.Any(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD" || p.Type == "VDs" || p.Type == "FL" || p.Type == "FLs");
+            if (hasPermissions)
+            {
+                UpdatePermission = $"[Permission(RoleConsistent.{entityName}.Edit)]";
+                GetPermission = $"[Permission(RoleConsistent.{entityName}.Browse)]";
+                GetWithLocalizationPermission = $"[Permission(RoleConsistent.{entityName}.BrowseWithLocalization)]";
+            }
+            var lowerEntity = entityName.ToLower();
+            var pluralLower = entityPlural.ToLower();
+            if (hasImages)
+                fromType = "[FromForm]";
+            
+            string? localizationCode1 = !hasLocalization ? null : $@"
+                Language language = null!;
+                if (dto.LanguageCode != null)
+                {{
+                    language = await _languageRepository.GetLanguageByCodeAsync(dto.LanguageCode);
+                    if (language == null)
+                        throw new Exception(""Language is not found"");
+                }}
+";
+            string? localizationCode2 = !hasLocalization ? null : $"query.LanguageId = language != null ? language.Id : null;";
+            string getParam = !hasLocalization ? $"[FromRoute] Get{entityName}Query query" : $"[FromRoute] Guid {lowerEntity}Id, [FromQuery] string? languageCode";
+            string getCode = !hasLocalization ? $"return Ok(await _sender.Send(query));" : $@"
+                Language language = null!;
+                if (languageCode != null)
+                {{
+                    language = await _languageRepository.GetLanguageByCodeAsync(languageCode);
+                    if (language == null)
+                        throw new Exception(""Language is not found"");
+                }}
+
+                Get{entityName}Query query = new Get{entityName}Query
+                {{
+                    LanguageId = language != null ? language.Id : null,
+                    {entityName}Id = {lowerEntity}Id
+                }};
+                return Ok(await _sender.Send(query));
+";
+            string? getWithLocalizationEndpoint = !hasLocalization ? null : $@"
+        [Route(ApiRoutes.{entityName}.GetWithLocalization)]
+        [HttpGet]
+        {GetWithLocalizationPermission}
+        public async Task<IActionResult> Get{entityName}WithLocalization([FromRoute] Get{entityName}WithLocalizationQuery query)
+        {{
+            try
+            {{
+                return Ok(await _sender.Send(query));
+            }}
+            catch (Exception ex)
+            {{
+                List<string> messages = JsonParser.ParseMessages(ex.Message);
+                return BadRequest(new {{ Errors = messages }});
+            }}
+        }}
+"; 
+            //string filledProperties = string.Join(Environment.NewLine, properties.Select(p =>
+            //    $"                    {p.Name} = dto.{p.Name},"));
+            string? usingLocalizationQuery = hasLocalization ? $"using Application.{entityPlural}.Queries.Get{entityName}WithLocalization;" : null ;
+            string content = $@"using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
+using Api.Helpers;
+using Application.Common.Interfaces.IRepositories;
+using Api.NeededDto.{entityName};
+using Api.Utilities;
+using Application.{entityPlural}.Commands.Update{entityName};
+using Application.{entityPlural}.Queries.Get{entityName}Query;
+{usingLocalizationQuery}
+using Infrastructure.Utilities;
+using AutoMapper;
+using Domain.Entities;
+
+namespace Api.Controllers
+{{
+    [ApiController]
+    public class {entityPlural}Controller : ControllerBase
+    {{
+        private readonly ILogger<{entityPlural}Controller> _logger;
+        private readonly ISender _sender;
+        private readonly IMapper _mapper;
+        private readonly ILanguageRepository _languageRepository;
+
+        public {entityPlural}Controller(ILogger<{entityPlural}Controller> logger, ISender sender,IMapper mapper,ILanguageRepository languageRepository)
+        {{
+            _logger = logger;
+            _sender = sender;
+            _mapper = mapper;
+            _languageRepository = languageRepository;
+        }}
+
+        [Route(ApiRoutes.{entityName}.Get)]
+        [HttpGet]
+        {GetPermission}
+        public async Task<IActionResult> Get({getParam})
+        {{
+            try
+            {{
+                {getCode}
+            }}
+            catch (ValidationException ex)
+            {{
+                List<string> messages = JsonParser.ParseMessages(ex.Message);
+                return BadRequest(new {{ Errors = messages }});
+            }}
+            catch (Exception ex)
+            {{
+                List<string> messages = JsonParser.ParseMessages(ex.Message);
+                return BadRequest(new {{ Errors = messages }});
+            }}
+        }}
+
+        {getWithLocalizationEndpoint}
+
+        [Route(ApiRoutes.{entityName}.Update)]
+        [HttpPut]
+        {UpdatePermission}
+        public async Task<IActionResult> Update({fromType} Update{entityName}CommandDto dto)
+        {{
+            try
+            {{
+                var command = _mapper.Map<Update{entityName}Command>(dto);
+                await _sender.Send(command);
+                return NoContent();
+            }}
+            catch (Exception ex)
+            {{
+                List<string> messages = JsonParser.ParseMessages(ex.Message);
+                return BadRequest(new {{ Errors = messages }});
+            }}
+        }}
     }}
 }}";
 
