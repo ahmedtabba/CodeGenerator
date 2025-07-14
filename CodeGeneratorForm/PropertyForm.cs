@@ -101,6 +101,11 @@ namespace CodeGeneratorForm
 
         private void btnSave_Click(object sender, EventArgs e)
         {
+            if (cmboType.SelectedItem == null)
+            {
+                MessageBox.Show("Choose Property type !!");
+                return;
+            }
             //(List<(string Type, string Name, PropertyValidation Validation)> properties, List<string> localizedProp, List<(string prop, List<string> enumValues)> propEnums) result;
             (string Type, string Name, PropertyValidation Validation) property = new();
             //Fill Localized

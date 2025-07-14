@@ -84,7 +84,7 @@ class Program
         {
             Infrastructure.GeneratePermission(entityName, domainPath, hasLocalization);
         }
-        Domain.GenerateEntityClass(entityName, domainPath, properties, hasLocalization, relations);
+        //Domain.GenerateEntityClass(entityName, domainPath, properties, hasLocalization, relations);
 
         //GenerateEntityLocalizationClass(entityName, domainPath);
         Infrastructure.UpdateAppDbContext(entityName, domainPath);
@@ -101,7 +101,7 @@ class Program
                     ("Guid",$"{entityName}Id",new PropertyValidation()),
                     ("Guid",$"{relation.RelatedEntity}Id",new PropertyValidation())
                 };
-                Domain.GenerateEntityClass($"{entityName}{relation.RelatedEntity}", domainPath, (props,new List<string>(),new List<(string,List<string>)>()), false, new List<Relation>());
+                //Domain.GenerateEntityClass($"{entityName}{relation.RelatedEntity}", domainPath, (props,new List<string>(),new List<(string,List<string>)>()), false, new List<Relation>());
                 Infrastructure.UpdateAppDbContext($"{entityName}{relation.RelatedEntity}", domainPath);
                 Application.GenerateIRepositoryInterface($"{entityName}{relation.RelatedEntity}", repoInterfacePath);
                 Infrastructure.GenerateRepository($"{entityName}{relation.RelatedEntity}", repoPath);
@@ -128,7 +128,7 @@ class Program
             Infrastructure.UpdateLocalizationService(entityName, domainPath,properties.localizedProp);
         if (hasNotification || hasVersioning || hasUserAction)
         {
-            ApplicationAssistant.GenerateEvents(entityName, domainPath, hasVersioning,bulk);
+            //ApplicationAssistant.GenerateEvents(entityName, domainPath, hasVersioning,bulk);
             ApplicationAssistant.GenerateHandlers(entityName, domainPath,properties.Item1,relations,hasVersioning,hasUserAction,hasNotification,bulk);
         }
         Application.GenerateCreateCommand(entityName, entityPlural, createCommandPath, properties.Item1, properties.propEnums, hasLocalization,relations,hasVersioning,hasNotification,hasUserAction);
