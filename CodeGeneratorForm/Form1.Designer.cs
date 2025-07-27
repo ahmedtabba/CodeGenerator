@@ -56,6 +56,7 @@
             pnlRelations = new Panel();
             btnRelUsers = new Button();
             panel1 = new Panel();
+            btnClearPartial = new Button();
             rdioChild = new RadioButton();
             rdioParent = new RadioButton();
             cmboParent = new ComboBox();
@@ -245,7 +246,7 @@
             // 
             // btnProperty
             // 
-            btnProperty.Location = new Point(10, 190);
+            btnProperty.Location = new Point(10, 201);
             btnProperty.Name = "btnProperty";
             btnProperty.Size = new Size(90, 25);
             btnProperty.TabIndex = 6;
@@ -256,7 +257,7 @@
             // label8
             // 
             label8.AutoSize = true;
-            label8.Location = new Point(9, 172);
+            label8.Location = new Point(9, 183);
             label8.Name = "label8";
             label8.Size = new Size(102, 15);
             label8.TabIndex = 7;
@@ -304,7 +305,7 @@
             // 
             pnlScrollable.AutoScroll = true;
             pnlScrollable.BorderStyle = BorderStyle.FixedSingle;
-            pnlScrollable.Location = new Point(151, 190);
+            pnlScrollable.Location = new Point(151, 201);
             pnlScrollable.Name = "pnlScrollable";
             pnlScrollable.Size = new Size(609, 210);
             pnlScrollable.TabIndex = 0;
@@ -312,7 +313,7 @@
             // label5
             // 
             label5.AutoSize = true;
-            label5.Location = new Point(139, 172);
+            label5.Location = new Point(139, 183);
             label5.Name = "label5";
             label5.Size = new Size(60, 15);
             label5.TabIndex = 61;
@@ -340,12 +341,23 @@
             // panel1
             // 
             panel1.BorderStyle = BorderStyle.FixedSingle;
+            panel1.Controls.Add(btnClearPartial);
             panel1.Controls.Add(rdioChild);
             panel1.Controls.Add(rdioParent);
             panel1.Location = new Point(9, 119);
             panel1.Name = "panel1";
-            panel1.Size = new Size(136, 28);
+            panel1.Size = new Size(136, 51);
             panel1.TabIndex = 64;
+            // 
+            // btnClearPartial
+            // 
+            btnClearPartial.Location = new Point(15, 23);
+            btnClearPartial.Name = "btnClearPartial";
+            btnClearPartial.Size = new Size(99, 23);
+            btnClearPartial.TabIndex = 67;
+            btnClearPartial.Text = "Clear selection";
+            btnClearPartial.UseVisualStyleBackColor = true;
+            btnClearPartial.Click += btnClearPartial_Click;
             // 
             // rdioChild
             // 
@@ -369,6 +381,7 @@
             rdioParent.TabStop = true;
             rdioParent.Text = "Parent";
             rdioParent.UseVisualStyleBackColor = true;
+            rdioParent.CheckedChanged += rdioParent_CheckedChanged;
             // 
             // cmboParent
             // 
@@ -458,5 +471,6 @@
         private RadioButton rdioParent;
         private ComboBox cmboParent;
         private Label lblParent;
+        private Button btnClearPartial;
     }
 }

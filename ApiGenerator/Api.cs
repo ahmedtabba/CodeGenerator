@@ -10,7 +10,7 @@ namespace ApiGenerator
     public static class Api
     {
         private static readonly Regex ClassPattern = new Regex(
-    @"public\s+class\s+(\w+)\s*\{",
+    @"public static\s+class\s+(\w+)\s*\{",
     RegexOptions.Multiline | RegexOptions.IgnoreCase);
         /*
          public: Matches the keyword literally
@@ -21,7 +21,7 @@ namespace ApiGenerator
         \{: Matches the opening brace literally
         The RegexOptions.Multiline | RegexOptions.IgnoreCase ensures we handle multi-line code and case variations correctly.
          */
-        public static void GenerateNeededDtos(string entityName, string entityPlural, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, string solutionDir,bool hasLocalization,List<Relation> relations, bool bulk, string? parentEntityName = null)
+        public static void GenerateNeededDtos(string entityName, string entityPlural, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, string solutionDir, bool hasLocalization, List<Relation> relations, bool bulk, string? parentEntityName = null)
         {
             var dtoPath = Path.Combine(solutionDir, "Api", "NeededDto", entityName);
             Directory.CreateDirectory(dtoPath);
@@ -29,33 +29,34 @@ namespace ApiGenerator
             if (hasLocalization)
                 GenerateLocalizationDto(entityName, dtoPath);
             if ((hasLocalization || hasImages || enumProps.Any()) && parentEntityName == null)
-                GenerateCreateCommandDto(entityName, dtoPath,properties,enumProps,entityPlural,relations,hasLocalization,hasImages);
+                GenerateCreateCommandDto(entityName, dtoPath, properties, enumProps, entityPlural, relations, hasLocalization, hasImages);
             if (bulk)
             {
-                GenerateSingleEntityDto(entityName, dtoPath, properties, enumProps, entityPlural, relations, hasLocalization, hasImages);
-                GenerateCreateBulkCommandDto(entityName, dtoPath, properties, enumProps, entityPlural, relations, hasLocalization, hasImages);
-                GenerateSingleUpdatedEntityDto(entityName, dtoPath, properties, enumProps, hasLocalization, hasImages, entityPlural, relations);
-                GenerateUpdateBulkCommandDto(entityName, dtoPath, properties, enumProps, entityPlural, relations, hasLocalization, hasImages);
+                //GenerateSingleEntityDto(entityName, dtoPath, properties, enumProps, entityPlural, relations, hasLocalization, hasImages);
+                //GenerateCreateBulkCommandDto(entityName, dtoPath, properties, enumProps, entityPlural, relations, hasLocalization, hasImages);
+                GenerateSingleUpdatedEntityDto(entityName, dtoPath, properties, enumProps, hasLocalization, hasImages, entityPlural, relations, parentEntityName);
+                GenerateUpdateBulkCommandDto(entityName, dtoPath, properties, enumProps, entityPlural, relations, hasLocalization, hasImages, parentEntityName);
             }
-            GenerateUpdateCommandDto(entityName, dtoPath, properties,enumProps,hasLocalization,hasImages,entityPlural,relations,parentEntityName);
+            else
+                GenerateUpdateCommandDto(entityName, dtoPath, properties, enumProps, hasLocalization, hasImages, entityPlural, relations, parentEntityName);
             if (parentEntityName == null)
-                GenerateGetWithPaginationQueryDto(entityName, entityPlural, dtoPath,hasLocalization);
+                GenerateGetWithPaginationQueryDto(entityName, entityPlural, dtoPath, hasLocalization);
         }
 
-        static void GenerateCreateCommandDto(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, string entityPlural,List<Relation> relations,bool hasLocalization,bool hasImages)
+        static void GenerateCreateCommandDto(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, string entityPlural, List<Relation> relations, bool hasLocalization, bool hasImages)
         {
             string fileName = $"Create{entityName}CommandDto.cs";
             string filePath = Path.Combine(path, fileName);
             string? localizationProp = hasLocalization ? $"\t\tpublic {entityName}LocalizationDto[] {entityName}LocalizationDtos {{ get; set; }} = [];" : null;
             string? localizationMapp = hasLocalization ? $".ForMember(dest => dest.{entityName}LocalizationApps, opt => opt.MapFrom(src => src.{entityName}LocalizationDtos.To{entityName}LocalizationAppList()))" : null;
-            
-            string? ImageProp = properties.Any(p => p.Type == "GPG") ? 
-                properties.First(t => t.Type == "GPG").Validation !=null ? $"\t\tpublic IFormFile {properties.First(t => t.Type == "GPG").Name}FormFile {{ get; set;}}" : $"\t\tpublic IFormFile? {properties.First(t => t.Type == "GPG").Name}FormFile {{ get; set;}}"
-                :null;
+
+            string? ImageProp = properties.Any(p => p.Type == "GPG") ?
+                properties.First(t => t.Type == "GPG").Validation != null ? $"\t\tpublic IFormFile {properties.First(t => t.Type == "GPG").Name}FormFile {{ get; set;}}" : $"\t\tpublic IFormFile? {properties.First(t => t.Type == "GPG").Name}FormFile {{ get; set;}}"
+                : null;
 
             string? ImageMapp = properties.Any(p => p.Type == "GPG") ?
-                properties.First(t => t.Type == "GPG").Validation != null 
-                ? $".ForMember(dest => dest.{properties.First(t => t.Type == "GPG").Name}File, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "GPG").Name}FormFile.ToFileDto()))" 
+                properties.First(t => t.Type == "GPG").Validation != null
+                ? $".ForMember(dest => dest.{properties.First(t => t.Type == "GPG").Name}File, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "GPG").Name}FormFile.ToFileDto()))"
                 : $".ForMember(dest => dest.{properties.First(t => t.Type == "GPG").Name}File, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "GPG").Name}FormFile != null ? src.{properties.First(t => t.Type == "GPG").Name}FormFile.ToFileDto(): null))"
                 : null;
 
@@ -205,44 +206,65 @@ namespace Api.NeededDto.{entityName}
             File.WriteAllText(filePath, content);
         }
 
-        static void GenerateUpdateCommandDto(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, bool hasLocalization,bool hasImages,string entityPlural,List<Relation> relations,string? parentEntityName = null)
+        static void GenerateUpdateCommandDto(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, bool hasLocalization, bool hasImages, string entityPlural, List<Relation> relations, string? parentEntityName = null)
         {
             string fileName = $"Update{entityName}CommandDto.cs";
             string filePath = Path.Combine(path, fileName);
             string? localizationProp = hasLocalization ? $"\t\tpublic {entityName}LocalizationDto[] {entityName}LocalizationDtos {{ get; set; }} = [];" : null;
             string? localizationMapp = hasLocalization ? $".ForMember(dest => dest.{entityName}LocalizationApps, opt => opt.MapFrom(src => src.{entityName}LocalizationDtos.To{entityName}LocalizationAppList()))" : null;
-            
+
             string? ImageProp = properties.Any(p => p.Type == "GPG") ?
                  $"\t\tpublic IFormFile? {properties.First(t => t.Type == "GPG").Name}FormFile {{ get; set;}}"
                 : null;
             string? DeleteImageOrOldUrlProp = properties.Any(p => p.Type == "GPG") ?
-                properties.First(t => t.Type == "GPG").Validation == null ? $"\t\tpublic bool? DeleteOld{properties.First(t => t.Type == "GPG").Name} {{ get; set; }}"
+                properties.First(t => t.Type == "GPG").Validation == null ? $"\t\tpublic bool? Delete{properties.First(t => t.Type == "GPG").Name} {{ get; set; }}"
                 : $"\t\tpublic string? {properties.First(t => t.Type == "GPG").Name}Url {{ get; set; }}"
                 : null;
             string? ImageMapp = properties.Any(p => p.Type == "GPG") ?
                 $".ForMember(dest => dest.{properties.First(t => t.Type == "GPG").Name}File, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "GPG").Name}FormFile != null ? src.{properties.First(t => t.Type == "GPG").Name}FormFile.ToFileDto(): null))"
                 : null;
 
+            string? imageMapp2 = properties.Any(p => p.Type == "GPG") ?
+                properties.First(t => t.Type == "GPG").Validation != null
+                //? $".ForMember(dest => dest.{properties.First(t => t.Type == "GPG").Name}Url, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "GPG").Name}Url))"
+                ? null
+                : $".ForMember(dest => dest.DeleteOld{properties.First(t => t.Type == "GPG").Name}, opt => opt.MapFrom(src => src.Delete{properties.First(t => t.Type == "GPG").Name}))"
+                : null;
+
             string? videoProp = properties.Any(p => p.Type == "VD") ?
                  $"\t\tpublic IFormFile? {properties.First(t => t.Type == "VD").Name}FormFile {{ get; set;}}"
                 : null;
             string? deleteVideoOrOldUrlProp = properties.Any(p => p.Type == "VD") ?
-                properties.First(t => t.Type == "VD").Validation == null ? $"\t\tpublic bool? DeleteOld{properties.First(t => t.Type == "VD").Name} {{ get; set; }}"
+                properties.First(t => t.Type == "VD").Validation == null ? $"\t\tpublic bool? Delete{properties.First(t => t.Type == "VD").Name} {{ get; set; }}"
                 : $"\t\tpublic string? {properties.First(t => t.Type == "VD").Name}Url {{ get; set; }}"
                 : null;
             string? videoMapp = properties.Any(p => p.Type == "VD") ?
                 $".ForMember(dest => dest.{properties.First(t => t.Type == "VD").Name}File, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "VD").Name}FormFile != null ? src.{properties.First(t => t.Type == "VD").Name}FormFile.ToFileDto(): null))"
                 : null;
 
+            string? videoMapp2 = properties.Any(p => p.Type == "VD") ?
+                properties.First(t => t.Type == "VD").Validation != null
+                //? $".ForMember(dest => dest.{properties.First(t => t.Type == "VD").Name}Url, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "VD").Name}Url))"
+                ? null
+                : $".ForMember(dest => dest.DeleteOld{properties.First(t => t.Type == "VD").Name}, opt => opt.MapFrom(src => src.Delete{properties.First(t => t.Type == "VD").Name}))"
+                : null;
+
             string? fileProp = properties.Any(p => p.Type == "FL") ?
                  $"\t\tpublic IFormFile? {properties.First(t => t.Type == "FL").Name}FormFile {{ get; set;}}"
                 : null;
             string? deleteFileOrOldUrlProp = properties.Any(p => p.Type == "FL") ?
-                properties.First(t => t.Type == "FL").Validation == null ? $"\t\tpublic bool? DeleteOld{properties.First(t => t.Type == "FL").Name} {{ get; set; }}"
+                properties.First(t => t.Type == "FL").Validation == null ? $"\t\tpublic bool? Delete{properties.First(t => t.Type == "FL").Name} {{ get; set; }}"
                 : $"\t\tpublic string? {properties.First(t => t.Type == "FL").Name}Url {{ get; set; }}"
                 : null;
             string? fileMapp = properties.Any(p => p.Type == "FL") ?
                 $".ForMember(dest => dest.{properties.First(t => t.Type == "FL").Name}File, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "FL").Name}FormFile != null ? src.{properties.First(t => t.Type == "FL").Name}FormFile.ToFileDto(): null))"
+                : null;
+
+            string? fileMapp2 = properties.Any(p => p.Type == "FL") ?
+                properties.First(t => t.Type == "FL").Validation != null
+                //? $".ForMember(dest => dest.{properties.First(t => t.Type == "FL").Name}Url, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "FL").Name}Url))"
+                ? null
+                : $".ForMember(dest => dest.DeleteOld{properties.First(t => t.Type == "FL").Name}, opt => opt.MapFrom(src => src.Delete{properties.First(t => t.Type == "FL").Name}))"
                 : null;
 
             string? ListImageProp = properties.Any(p => p.Type == "PNGs") ?
@@ -331,7 +353,7 @@ namespace Api.NeededDto.{entityName}
             }
             var filtersPropsList = string.Join(Environment.NewLine, filtersProps);
 
-            string? mapper =  $@"
+            string? mapper = $@"
         public class Mapping : Profile
         {{
             public Mapping()
@@ -339,8 +361,11 @@ namespace Api.NeededDto.{entityName}
                 CreateMap<Update{entityName}CommandDto, Update{entityName}Command>()
                     {localizationMapp}
                     {ImageMapp}
+                    {imageMapp2}
                     {videoMapp}
+                    {videoMapp2}
                     {fileMapp}
+                    {fileMapp2}
                     {ListImageMapp}
                     {ListVideoMapp}
                     {ListFileMapp}
@@ -425,18 +450,18 @@ namespace Api.NeededDto.{entityName}
             }}
     
             return res;
-        }}" 
-        +$"\n\t\t//Add Extension Here";
+        }}"
+        + $"\n\t\t//Add Extension Here";
 
             var lines = File.ReadAllLines(extensionsPath).ToList();
             var index1 = lines.FindIndex(line => line.Contains("//Add Extension Here"));
             var index2 = lines.FindIndex(line => line.Contains("//Add Using Here"));
 
-            if (index1 >= 0 || index2 >=0)
+            if (index1 >= 0 || index2 >= 0)
             {
-                if(index1 >= 0)
+                if (index1 >= 0)
                     lines[index1] = extension;
-                if(index2 >= 0)
+                if (index2 >= 0)
                     lines[index2] = usingExtension;
                 File.WriteAllLines(extensionsPath, lines);
                 //Console.WriteLine("✅ Api Extensions updated.");
@@ -478,12 +503,8 @@ namespace Api.NeededDto.{entityName}
         }
 
 
-        public static void AddRoutesToApiRoutes(string entityName, string entityPlural, string solutionDir,bool hasLocalization,bool bulk,string? parentEntityName = null)
+        public static void AddRoutesToApiRoutes(string entityName, string entityPlural, string solutionDir, bool hasLocalization, bool bulk,bool? isParent = null, string? parentEntityName = null)
         {
-            if (parentEntityName != null)
-            {
-                return;
-            }
             string filePath = Path.Combine(solutionDir, "Api", "Utilities", "ApiRoutes.cs");
 
             if (!File.Exists(filePath))
@@ -491,11 +512,46 @@ namespace Api.NeededDto.{entityName}
                 //Console.WriteLine("❌ ApiRoutes.cs not found.");
                 return;
             }
-
             string content = File.ReadAllText(filePath);
+
+            if (parentEntityName != null)
+            {
+
+                // Find the Food class position
+                string parentClassName = $"public static class {parentEntityName}";
+                int IndexParent = content.IndexOf(parentClassName);
+
+                // Define the new routes to add
+                string[] newRoutes = !bulk ? new[]
+                {
+            $"\t\t\tpublic const string Get{entityName} = Base + \"/{parentEntityName.GetCamelCaseName().GetPluralName()}/{{{parentEntityName.GetCamelCaseName()}Id}}/{parentEntityName.GetCamelCaseName()}{entityName}\";",
+            $"\t\t\tpublic const string Update{entityName} = Base + \"/{parentEntityName.GetCamelCaseName().GetPluralName()}/{{{parentEntityName.GetCamelCaseName()}Id}}/{parentEntityName.GetCamelCaseName()}{entityName}\";"
+}
+                : new[]
+                {
+            $"\t\t\tpublic const string Get{entityName.GetPluralName()} = Base + \"/{parentEntityName.GetCamelCaseName().GetPluralName()}/{{{parentEntityName.GetCamelCaseName()}Id}}/{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}\";",
+            $"\t\t\tpublic const string Update{entityName.GetPluralName()} = Base + \"/{parentEntityName.GetCamelCaseName().GetPluralName()}/{{{parentEntityName.GetCamelCaseName()}Id}}/{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}\";"
+};
+
+                // Find the closing bracket of the Food class
+                int closeBracketInd = content.IndexOf("//Add Child Route Here", IndexParent) -1 ;
+                if (closeBracketInd < 0)
+                {
+                    //Console.WriteLine("❌ Failed to find insertion point in ApiRoutes.cs");
+                    return;
+                }
+                else
+                {
+                    content = content.Insert(closeBracketInd, "\n" + string.Join(Environment.NewLine, newRoutes) + "\n\t\t\t");
+                    File.WriteAllText(filePath, content);
+                }
+                return;
+            }
+            string? childAddLine = isParent != null ? "//Add Child Route Here" : null;
+
             string className = $"public static class {entityName}";
-            string? GetWithLocalizationRoute = hasLocalization? $"public const string GetWithLocalization = Base + \"/{entityPlural.ToLower()}/{{{entityName.ToLower()}Id}}/localization\";" : null;
-            
+            string? GetWithLocalizationRoute = hasLocalization ? $"public const string GetWithLocalization = Base + \"/{entityPlural.ToLower()}/{{{entityName.ToLower()}Id}}/localization\";" : null;
+
             string routeClass = $@"
         public static class {entityName}
         {{
@@ -505,6 +561,7 @@ namespace Api.NeededDto.{entityName}
             public const string Update = Base + ""/{entityPlural.ToLower()}/{{{entityName.ToLower()}Id}}"";
             public const string Delete = Base + ""/{entityPlural.ToLower()}/{{{entityName.ToLower()}Id}}"";
             {GetWithLocalizationRoute}
+            {childAddLine}
         }}";
 
             var matches = ClassPattern.Matches(content);
@@ -539,7 +596,7 @@ namespace Api.NeededDto.{entityName}
         }
 
 
-        public static void GenerateController(string entityName, string entityPlural, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, string solutionDir,bool hasLocalization,bool hasPermissions,bool bulk)
+        public static void GenerateController(string entityName, string entityPlural, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, string solutionDir, bool hasLocalization, bool hasPermissions, bool bulk)
         {
             var controllerName = $"{entityPlural}Controller.cs";
             var filePath = Path.Combine(solutionDir, "Api", "Controllers", controllerName);
@@ -574,7 +631,7 @@ namespace Api.NeededDto.{entityName}
                 if (hasImages)
                     fromType = "[FromForm]";
             }
-            
+
             string? localizationCode1 = !hasLocalization ? null : $@"
                 Language language = null!;
                 if (dto.LanguageCode != null)
@@ -618,7 +675,7 @@ namespace Api.NeededDto.{entityName}
                 return BadRequest(new {{ Errors = messages }});
             }}
         }}
-"; 
+";
 
             string? bulkEndpoints = !bulk ? null :
                 $@"
@@ -677,7 +734,7 @@ namespace Api.NeededDto.{entityName}
 ";
             //string filledProperties = string.Join(Environment.NewLine, properties.Select(p =>
             //    $"                    {p.Name} = dto.{p.Name},"));
-            string? usingLocalizationQuery = hasLocalization ? $"using Application.{entityPlural}.Queries.Get{entityName}WithLocalization;" : null ;
+            string? usingLocalizationQuery = hasLocalization ? $"using Application.{entityPlural}.Queries.Get{entityName}WithLocalization;" : null;
             string? usingBulk = bulk ? $"using Application.{entityPlural}.Commands.CreateBulk{entityName};using Application.{entityPlural}.Commands.UpdateBulk{entityName};using Application.{entityPlural}.Commands.DeleteBulk{entityName};" : null;
             string content = $@"using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -827,7 +884,7 @@ namespace Api.Controllers
             File.WriteAllText(filePath, content);
             //Console.WriteLine($"✅ {controllerName} created.");
         }
-        public static void GeneratePartialController(string entityName, string entityPlural, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, string solutionDir,bool hasLocalization,bool hasPermissions)
+        public static void GeneratePartialController(string entityName, string entityPlural, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, string solutionDir, bool hasLocalization, bool hasPermissions, string? parentEntityName)
         {
             var controllerName = $"{entityPlural}Controller.cs";
             var filePath = Path.Combine(solutionDir, "Api", "Controllers", controllerName);
@@ -846,7 +903,7 @@ namespace Api.Controllers
             var pluralLower = entityPlural.ToLower();
             if (hasImages)
                 fromType = "[FromForm]";
-            
+
             string? localizationCode1 = !hasLocalization ? null : $@"
                 Language language = null!;
                 if (dto.LanguageCode != null)
@@ -890,10 +947,10 @@ namespace Api.Controllers
                 return BadRequest(new {{ Errors = messages }});
             }}
         }}
-"; 
+";
             //string filledProperties = string.Join(Environment.NewLine, properties.Select(p =>
             //    $"                    {p.Name} = dto.{p.Name},"));
-            string? usingLocalizationQuery = hasLocalization ? $"using Application.{entityPlural}.Queries.Get{entityName}WithLocalization;" : null ;
+            string? usingLocalizationQuery = hasLocalization ? $"using Application.{entityPlural}.Queries.Get{entityName}WithLocalization;" : null;
             string content = $@"using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
@@ -927,7 +984,7 @@ namespace Api.Controllers
             _languageRepository = languageRepository;
         }}
 
-        [Route(ApiRoutes.{entityName}.Get)]
+        [Route(ApiRoutes.{parentEntityName}.Get{entityName})]
         [HttpGet]
         {GetPermission}
         public async Task<IActionResult> Get({getParam})
@@ -950,14 +1007,168 @@ namespace Api.Controllers
 
         {getWithLocalizationEndpoint}
 
-        [Route(ApiRoutes.{entityName}.Update)]
+        [Route(ApiRoutes.{parentEntityName}.Update{entityName})]
         [HttpPut]
         {UpdatePermission}
-        public async Task<IActionResult> Update({fromType} Update{entityName}CommandDto dto)
+        public async Task<IActionResult> Update([FromRoute] Guid {parentEntityName.GetCamelCaseName()}Id,{fromType} Update{entityName}CommandDto dto)
         {{
             try
             {{
                 var command = _mapper.Map<Update{entityName}Command>(dto);
+                command.{parentEntityName}Id = {parentEntityName.GetCamelCaseName()}Id;
+                await _sender.Send(command);
+                return NoContent();
+            }}
+            catch (Exception ex)
+            {{
+                List<string> messages = JsonParser.ParseMessages(ex.Message);
+                return BadRequest(new {{ Errors = messages }});
+            }}
+        }}
+    }}
+}}";
+
+            File.WriteAllText(filePath, content);
+            //Console.WriteLine($"✅ {controllerName} created.");
+        }
+        public static void GenerateBulkController(string entityName, string entityPlural, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, string solutionDir, bool hasLocalization, bool hasPermissions, string? parentEntityName)
+        {
+            var controllerName = $"{entityPlural}Controller.cs";
+            var filePath = Path.Combine(solutionDir, "Api", "Controllers", controllerName);
+            string? UpdatePermission = null!;
+            string? GetPermission = null!;
+            string? GetWithLocalizationPermission = null!;
+            string aggregator = parentEntityName;
+            string fromType = "[FromBody]";
+            var hasImages = properties.Any(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD" || p.Type == "VDs" || p.Type == "FL" || p.Type == "FLs");
+            if (hasPermissions)
+            {
+                UpdatePermission = $"[Permission(RoleConsistent.{entityName}.Edit)]";
+                GetPermission = $"[Permission(RoleConsistent.{entityName}.Browse)]";
+                GetWithLocalizationPermission = $"[Permission(RoleConsistent.{entityName}.BrowseWithLocalization)]";
+            }
+            var lowerEntity = entityName.ToLower();
+            var pluralLower = entityPlural.ToLower();
+            if (hasImages)
+                fromType = "[FromForm]";
+
+            string? localizationCode1 = !hasLocalization ? null : $@"
+                Language language = null!;
+                if (dto.LanguageCode != null)
+                {{
+                    language = await _languageRepository.GetLanguageByCodeAsync(dto.LanguageCode);
+                    if (language == null)
+                        throw new Exception(""Language is not found"");
+                }}
+";
+            string? localizationCode2 = !hasLocalization ? null : $"query.LanguageId = language != null ? language.Id : null;";
+            string getParam = !hasLocalization ? $"[FromRoute] GetBulk{entityPlural}Query query" : $"[FromRoute] Guid {aggregator}Id, [FromQuery] string? languageCode";
+            string getCode = !hasLocalization ? $"return Ok(await _sender.Send(query));" : $@"
+                Language language = null!;
+                if (languageCode != null)
+                {{
+                    language = await _languageRepository.GetLanguageByCodeAsync(languageCode);
+                    if (language == null)
+                        throw new Exception(""Language is not found"");
+                }}
+
+                Get{entityName}Query query = new Get{entityName}Query
+                {{
+                    LanguageId = language != null ? language.Id : null,
+                    {entityName}Id = {lowerEntity}Id
+                }};
+                return Ok(await _sender.Send(query));
+";
+            string? getWithLocalizationEndpoint = !hasLocalization ? null : $@"
+        [Route(ApiRoutes.{entityName}.GetWithLocalization)]
+        [HttpGet]
+        {GetWithLocalizationPermission}
+        public async Task<IActionResult> Get{entityName}WithLocalization([FromRoute] Get{entityName}WithLocalizationQuery query)
+        {{
+            try
+            {{
+                return Ok(await _sender.Send(query));
+            }}
+            catch (Exception ex)
+            {{
+                List<string> messages = JsonParser.ParseMessages(ex.Message);
+                return BadRequest(new {{ Errors = messages }});
+            }}
+        }}
+";
+            //string filledProperties = string.Join(Environment.NewLine, properties.Select(p =>
+            //    $"                    {p.Name} = dto.{p.Name},"));
+            string? usingLocalizationQuery = hasLocalization ? $"using Application.{entityPlural}.Queries.Get{entityName}WithLocalization;" : null;
+            string param = hasImages ? $"bulk{entityPlural}" : "arr";
+            string content = $@"using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
+using Api.Helpers;
+using Application.Common.Interfaces.IRepositories;
+using Api.NeededDto.{entityName};
+using Api.Utilities;
+using Application.{entityPlural}.Commands.UpdateBulk{entityName};
+using Application.{entityPlural}.Queries.GetBulk{entityPlural};
+{usingLocalizationQuery}
+using Infrastructure.Utilities;
+using AutoMapper;
+using Domain.Entities;
+
+namespace Api.Controllers
+{{
+    [ApiController]
+    public class {entityPlural}Controller : ControllerBase
+    {{
+        private readonly ILogger<{entityPlural}Controller> _logger;
+        private readonly ISender _sender;
+        private readonly IMapper _mapper;
+        private readonly ILanguageRepository _languageRepository;
+
+        public {entityPlural}Controller(ILogger<{entityPlural}Controller> logger, ISender sender,IMapper mapper,ILanguageRepository languageRepository)
+        {{
+            _logger = logger;
+            _sender = sender;
+            _mapper = mapper;
+            _languageRepository = languageRepository;
+        }}
+
+        [Route(ApiRoutes.{parentEntityName}.Get{entityPlural})]
+        [HttpGet]
+        {GetPermission}
+        public async Task<IActionResult> Get({getParam})
+        {{
+            try
+            {{
+                {getCode}
+            }}
+            catch (ValidationException ex)
+            {{
+                List<string> messages = JsonParser.ParseMessages(ex.Message);
+                return BadRequest(new {{ Errors = messages }});
+            }}
+            catch (Exception ex)
+            {{
+                List<string> messages = JsonParser.ParseMessages(ex.Message);
+                return BadRequest(new {{ Errors = messages }});
+            }}
+        }}
+
+        {getWithLocalizationEndpoint}
+
+        [Route(ApiRoutes.{parentEntityName}.Update{entityPlural})]
+        [HttpPut]
+        {UpdatePermission}
+        public async Task<IActionResult> Update([FromRoute] Guid {parentEntityName.GetCamelCaseName()}Id, {fromType} SingleUpdated{entityName}Dto[] {param})
+        {{
+            try
+            {{
+                UpdateBulk{entityName}CommandDto dto = new UpdateBulk{entityName}CommandDto
+                {{
+                    {parentEntityName}{entityName.GetPluralName()} = {param},
+                    {parentEntityName}Id = {parentEntityName.GetCamelCaseName()}Id
+                }};
+                var command = _mapper.Map<UpdateBulk{entityName}Command>(dto);
                 await _sender.Send(command);
                 return NoContent();
             }}
@@ -1085,7 +1296,7 @@ namespace Api.NeededDto.{entityName}
             tempProps.RemoveAll(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD" || enumProps.Any(t => t.prop == p.Name));
 
             string? localizationMapp = hasLocalization ? $"{entityName}LocalizationApps = obj.{entityName}LocalizationDtos.To{entityName}LocalizationAppList()," : null;
-            
+
             string? ImageMapp = properties.Any(p => p.Type == "GPG") ?
                 properties.First(t => t.Type == "GPG").Validation != null
                 ? $"{properties.First(t => t.Type == "GPG").Name}File = obj.{properties.First(t => t.Type == "GPG").Name}FormFile.ToFileDto(),"
@@ -1101,7 +1312,7 @@ namespace Api.NeededDto.{entityName}
             string? ListImageMapp = properties.Any(p => p.Type == "PNGs") ?
                 $"{properties.First(t => t.Type == "PNGs").Name}Files = obj.{properties.First(t => t.Type == "PNGs").Name}FormFiles.ToFileDtoList(),"
                 : null;
-            
+
             StringBuilder mapperEnum = new StringBuilder();
             foreach (var prop in properties)
             {
@@ -1132,7 +1343,7 @@ namespace Api.NeededDto.{entityName}
             {
                 if (relation.RelatedEntity != aggregator)
                 {
-                    if(relation.Type ==  RelationType.OneToOne || relation.Type ==  RelationType.OneToOneNullable
+                    if (relation.Type == RelationType.OneToOne || relation.Type == RelationType.OneToOneNullable
                         || relation.Type == RelationType.ManyToOne || relation.Type == RelationType.ManyToOneNullable)
 
                         relationsProps.Add($"{relation.RelatedEntity}Id = obj.{relation.RelatedEntity}Id,");
@@ -1181,7 +1392,7 @@ namespace Api.NeededDto.{entityName}
             File.WriteAllText(filePath, content);
         }
 
-        static void GenerateSingleUpdatedEntityDto(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, bool hasLocalization, bool hasImages, string entityPlural, List<Relation> relations)
+        static void GenerateSingleUpdatedEntityDto(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, bool hasLocalization, bool hasImages, string entityPlural, List<Relation> relations, string? parentEntityName)
         {
             string fileName = $"SingleUpdated{entityName}Dto.cs";
             string filePath = Path.Combine(path, fileName);
@@ -1190,16 +1401,24 @@ namespace Api.NeededDto.{entityName}
                  $"\t\tpublic IFormFile? {properties.First(t => t.Type == "GPG").Name}FormFile {{ get; set;}}"
                 : null;
             string? DeleteImageOrOldUrlProp = properties.Any(p => p.Type == "GPG") ?
-                properties.First(t => t.Type == "GPG").Validation == null ? $"\t\tpublic bool? DeleteOld{properties.First(t => t.Type == "GPG").Name} {{ get; set; }}"
-                : $"\t\tpublic string? Old{properties.First(t => t.Type == "GPG").Name}Url {{ get; set; }}"
+                properties.First(t => t.Type == "GPG").Validation == null ? $"\t\tpublic bool? Delete{properties.First(t => t.Type == "GPG").Name} {{ get; set; }}"
+                : $"\t\tpublic string? {properties.First(t => t.Type == "GPG").Name}Url {{ get; set; }}"
                 : null;
 
             string? videoProp = properties.Any(p => p.Type == "VD") ?
                  $"\t\tpublic IFormFile? {properties.First(t => t.Type == "VD").Name}FormFile {{ get; set;}}"
                 : null;
             string? deleteVideoOrOldUrlProp = properties.Any(p => p.Type == "VD") ?
-                properties.First(t => t.Type == "VD").Validation == null ? $"\t\tpublic bool? DeleteOld{properties.First(t => t.Type == "VD").Name} {{ get; set; }}"
-                : $"\t\tpublic string? Old{properties.First(t => t.Type == "VD").Name}Url {{ get; set; }}"
+                properties.First(t => t.Type == "VD").Validation == null ? $"\t\tpublic bool? Delete{properties.First(t => t.Type == "VD").Name} {{ get; set; }}"
+                : $"\t\tpublic string? {properties.First(t => t.Type == "VD").Name}Url {{ get; set; }}"
+                : null;
+
+            string? fileProp = properties.Any(p => p.Type == "FL") ?
+                 $"\t\tpublic IFormFile? {properties.First(t => t.Type == "FL").Name}FormFile {{ get; set;}}"
+                : null;
+            string? deleteFileOrOldUrlProp = properties.Any(p => p.Type == "FL") ?
+                properties.First(t => t.Type == "FL").Validation == null ? $"\t\tpublic bool? Delete{properties.First(t => t.Type == "FL").Name} {{ get; set; }}"
+                : $"\t\tpublic string? {properties.First(t => t.Type == "FL").Name}Url {{ get; set; }}"
                 : null;
 
             string? ListImageProp = properties.Any(p => p.Type == "PNGs") ?
@@ -1208,6 +1427,22 @@ namespace Api.NeededDto.{entityName}
 
             string? DeletedOldImagesListProp = properties.Any(p => p.Type == "PNGs") ?
                 $"\t\tpublic List<string>? Deleted{properties.First(t => t.Type == "PNGs").Name}URLs {{ get; set; }}"
+                : null;
+
+            string? listVideoProp = properties.Any(p => p.Type == "VDs") ?
+                $"\t\tpublic List<IFormFile> {properties.First(t => t.Type == "VDs").Name}FormFiles {{ get; set;}} = new List<IFormFile>();"
+                : null;
+
+            string? deletedOldVideosListProp = properties.Any(p => p.Type == "VDs") ?
+                $"\t\tpublic List<string>? Deleted{properties.First(t => t.Type == "VDs").Name}URLs {{ get; set; }}"
+                : null;
+
+            string? listFileProp = properties.Any(p => p.Type == "FLs") ?
+                $"\t\tpublic List<IFormFile> {properties.First(t => t.Type == "FLs").Name}FormFiles {{ get; set;}} = new List<IFormFile>();"
+                : null;
+
+            string? deletedOldFilesListProp = properties.Any(p => p.Type == "FLs") ?
+                $"\t\tpublic List<string>? Deleted{properties.First(t => t.Type == "FLs").Name}URLs {{ get; set; }}"
                 : null;
 
             StringBuilder mapperEnum = new StringBuilder();
@@ -1249,12 +1484,22 @@ namespace Api.NeededDto.{entityName}
                         relationsProps.Add($"\t\tpublic Guid? {relation.RelatedEntity}Id {{  get; set; }}");
                         break;
                     case RelationType.ManyToMany:
-                        relationsProps.Add($"\t\tpublic List<Guid> {relation.RelatedEntity}Ids {{  get; set; }}");
+                        relationsProps.Add($"\t\tpublic List<Guid> {relation.RelatedEntity.GetPluralName()}Ids {{  get; set; }}");
+                        break;
+                    case RelationType.UserSingle:
+                        relationsProps.Add($"\t\tpublic string {relation.DisplayedProperty}Id {{  get; set; }}\n");
+                        break;
+                    case RelationType.UserSingleNullable:
+                        relationsProps.Add($"\t\tpublic string? {relation.DisplayedProperty}Id {{  get; set; }}\n");
+                        break;
+                    case RelationType.UserMany:
+                        relationsProps.Add($"\t\tpublic List<string> {relation.DisplayedProperty.GetPluralName()}Ids {{  get; set; }}\n");
                         break;
                     default:
                         break;
                 }
             }
+            relationsProps.Add($"\t\tpublic Guid {parentEntityName}Id {{  get; set; }}");
             var relationsPropsList = string.Join(Environment.NewLine, relationsProps);
 
             string? mapper = $@"
@@ -1269,7 +1514,7 @@ namespace Api.NeededDto.{entityName}
         }}
 ";
             var props = string.Join(Environment.NewLine, properties
-                .Where(p => p.Type != "GPG" && p.Type != "PNGs" && p.Type != "VD")
+                .Where(p => p.Type != "GPG" && p.Type != "PNGs" && p.Type != "VD" && p.Type != "VDs" && p.Type != "FL" && p.Type != "FLs")
                 .Select(p => $"        public {p.Type} {p.Name} {{ get; set; }}"));
 
             string content = $@"using AutoMapper;
@@ -1288,8 +1533,14 @@ namespace Api.NeededDto.{entityName}
 {DeleteImageOrOldUrlProp}
 {videoProp}
 {deleteVideoOrOldUrlProp}
+{fileProp}
+{deleteFileOrOldUrlProp}
 {ListImageProp}
 {DeletedOldImagesListProp}
+{listVideoProp}
+{deletedOldVideosListProp}
+{listFileProp}
+{deletedOldFilesListProp}
 {relationsPropsList}
 {mapper}
 
@@ -1304,27 +1555,27 @@ namespace Api.NeededDto.{entityName}
             File.WriteAllText(filePath, content);
         }
 
-        static void GenerateUpdateBulkCommandDto(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, string entityPlural, List<Relation> relations, bool hasLocalization, bool hasImages)
+        static void GenerateUpdateBulkCommandDto(string entityName, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, string entityPlural, List<Relation> relations, bool hasLocalization, bool hasImages, string? parentEntityName)
         {
             string fileName = $"UpdateBulk{entityName}CommandDto.cs";
             string filePath = Path.Combine(path, fileName);
-            string aggregator = relations.First(r => r.Type == RelationType.ManyToOne || r.Type == RelationType.ManyToOneNullable).RelatedEntity;
-            string aggregatorField = relations.First(r => r.Type == RelationType.ManyToOne || r.Type == RelationType.ManyToOneNullable).Type == RelationType.ManyToOne ? $"public Guid {aggregator}Id {{ get; set; }}" : $"public Guid? {aggregator}Id {{ get; set; }}";
+            string aggregator = parentEntityName;
+            string aggregatorField = $"public Guid {aggregator}Id {{ get; set; }}";
 
             List<(string Type, string Name, PropertyValidation Validation)> tempProps = new List<(string Type, string Name, PropertyValidation Validation)>();
             properties.ForEach(tempProps.Add);
-            tempProps.RemoveAll(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD" || enumProps.Any(t => t.prop == p.Name));
+            tempProps.RemoveAll(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD" || p.Type == "VDs" || p.Type == "FL" || p.Type == "FLs" || enumProps.Any(t => t.prop == p.Name));
 
             string? localizationMapp = hasLocalization ? $"{entityName}LocalizationApps = obj.{entityName}LocalizationDtos.To{entityName}LocalizationAppList()," : null;
 
-            string? ImageMapp1 = properties.Any(p => p.Type == "GPG") 
+            string? ImageMapp1 = properties.Any(p => p.Type == "GPG")
                 ? $"{properties.First(t => t.Type == "GPG").Name}File = obj.{properties.First(t => t.Type == "GPG").Name}FormFile != null ? obj.{properties.First(t => t.Type == "GPG").Name}FormFile.ToFileDto() : null,"
                 : null;
 
             string? ImageMapp2 = properties.Any(p => p.Type == "GPG") ?
                 properties.First(t => t.Type == "GPG").Validation != null
-                ? $"Old{properties.First(t => t.Type == "GPG").Name}Url = obj.Old{properties.First(t => t.Type == "GPG").Name}Url,"
-                : $"DeleteOld{properties.First(t => t.Type == "GPG").Name} = obj.DeleteOld{properties.First(t => t.Type == "GPG").Name},"
+                ? $"Old{properties.First(t => t.Type == "GPG").Name}Url = obj.{properties.First(t => t.Type == "GPG").Name}Url,"
+                : $"DeleteOld{properties.First(t => t.Type == "GPG").Name} = obj.Delete{properties.First(t => t.Type == "GPG").Name},"
                 : null;
 
             string? videoMapp1 = properties.Any(p => p.Type == "VD")
@@ -1333,8 +1584,18 @@ namespace Api.NeededDto.{entityName}
 
             string? videoMapp2 = properties.Any(p => p.Type == "VD") ?
                 properties.First(t => t.Type == "VD").Validation != null
-                ? $"Old{properties.First(t => t.Type == "VD").Name}Url = obj.Old{properties.First(t => t.Type == "VD").Name}Url,"
-                : $"DeleteOld{properties.First(t => t.Type == "VD").Name} = obj.DeleteOld{properties.First(t => t.Type == "VD").Name},"
+                ? $"Old{properties.First(t => t.Type == "VD").Name}Url = obj.{properties.First(t => t.Type == "VD").Name}Url,"
+                : $"DeleteOld{properties.First(t => t.Type == "VD").Name} = obj.Delete{properties.First(t => t.Type == "VD").Name},"
+                : null;
+
+            string? fileMapp1 = properties.Any(p => p.Type == "FL")
+                ? $"{properties.First(t => t.Type == "FL").Name}File = obj.{properties.First(t => t.Type == "FL").Name}FormFile != null ? obj.{properties.First(t => t.Type == "FL").Name}FormFile.ToFileDto() : null,"
+                : null;
+
+            string? fileMapp2 = properties.Any(p => p.Type == "FL") ?
+                properties.First(t => t.Type == "FL").Validation != null
+                ? $"Old{properties.First(t => t.Type == "FL").Name}Url = obj.{properties.First(t => t.Type == "FL").Name}Url,"
+                : $"DeleteOld{properties.First(t => t.Type == "FL").Name} = obj.Delete{properties.First(t => t.Type == "FL").Name},"
                 : null;
 
             string? ListImageMapp1 = properties.Any(p => p.Type == "PNGs") ?
@@ -1343,6 +1604,22 @@ namespace Api.NeededDto.{entityName}
 
             string? ListImageMapp2 = properties.Any(p => p.Type == "PNGs") ?
                 $"Deleted{properties.First(t => t.Type == "PNGs").Name}URLs = obj.Deleted{properties.First(t => t.Type == "PNGs").Name}URLs,"
+                : null;
+
+            string? listVideoMapp1 = properties.Any(p => p.Type == "VDs") ?
+                $"{properties.First(t => t.Type == "VDs").Name}Files = obj.{properties.First(t => t.Type == "VDs").Name}FormFiles.ToFileDtoList(),"
+                : null;
+
+            string? listVideoMapp2 = properties.Any(p => p.Type == "VDs") ?
+                $"Deleted{properties.First(t => t.Type == "VDs").Name}URLs = obj.Deleted{properties.First(t => t.Type == "VDs").Name}URLs,"
+                : null;
+
+            string? listFileMapp1 = properties.Any(p => p.Type == "FLs") ?
+                $"{properties.First(t => t.Type == "FLs").Name}Files = obj.{properties.First(t => t.Type == "FLs").Name}FormFiles.ToFileDtoList(),"
+                : null;
+
+            string? listFileMapp2 = properties.Any(p => p.Type == "FLs") ?
+                $"Deleted{properties.First(t => t.Type == "FLs").Name}URLs = obj.Deleted{properties.First(t => t.Type == "FLs").Name}URLs,"
                 : null;
 
             StringBuilder mapperEnum = new StringBuilder();
@@ -1383,13 +1660,18 @@ namespace Api.NeededDto.{entityName}
                     if (relation.Type == RelationType.OneToOneSelfJoin)
                         relationsProps.Add($"{relation.RelatedEntity}ParentId = obj.{relation.RelatedEntity}ParentId,");
 
-
                     if (relation.Type == RelationType.ManyToMany)
-                        relationsProps.Add($"{relation.RelatedEntity}Ids = obj.{relation.RelatedEntity}Ids,");
+                        relationsProps.Add($"{relation.RelatedEntity}Ids = obj.{relation.RelatedEntity.GetPluralName()}Ids,");
+
+                    if (relation.Type == RelationType.UserSingle || relation.Type == RelationType.UserSingleNullable)
+                        relationsProps.Add($"{relation.DisplayedProperty}Id = obj.{relation.DisplayedProperty}Id,");
+
+                    if (relation.Type == RelationType.UserMany)
+                        relationsProps.Add($"{relation.DisplayedProperty.GetPluralName()}Ids = obj.{relation.DisplayedProperty.GetPluralName()}Ids,");
                 }
             }
-            string relPropMapper = string.Join(Environment.NewLine, relationsProps);
-            string content = $@"using AutoMapper;
+                string relPropMapper = string.Join(Environment.NewLine, relationsProps);
+                string content = $@"using AutoMapper;
 using Application.{entityPlural}.Commands.UpdateBulk{entityName};
 using Api.Utilities;
 using Domain.Enums;
@@ -1398,7 +1680,7 @@ namespace Api.NeededDto.{entityName}
 {{
     public class UpdateBulk{entityName}CommandDto
     {{
-        public SingleUpdated{entityName}Dto[] Bulk{entityPlural} {{ get; set; }} = [];
+        public SingleUpdated{entityName}Dto[] {parentEntityName}{entityPlural} {{ get; set; }} = [];
         {aggregatorField}
         public class Mapping : Profile
         {{
@@ -1406,7 +1688,7 @@ namespace Api.NeededDto.{entityName}
             {{
                 CreateMap<UpdateBulk{entityName}CommandDto, UpdateBulk{entityName}Command>()
             .ForMember(dest => dest.Bulk{entityPlural}, opt => opt.MapFrom(src =>
-                src.Bulk{entityPlural}.Select(obj => new SingleUpdated{entityName}
+                src.{parentEntityName}{entityPlural}.Select(obj => new SingleUpdated{entityName}
                 {{
                     {aggregator}Id = src.{aggregator}Id,
                     {entityName}Id = obj.{entityName}Id,
@@ -1414,8 +1696,14 @@ namespace Api.NeededDto.{entityName}
                     {ImageMapp2}
                     {videoMapp1}
                     {videoMapp2}
+                    {fileMapp1}
+                    {fileMapp2}
                     {ListImageMapp1}
                     {ListImageMapp2}
+                    {listVideoMapp1}
+                    {listVideoMapp2}
+                    {listFileMapp1}
+                    {listFileMapp2}
                     {mapperEnum}
                     {otherProps}
                     {relPropMapper}
@@ -1426,8 +1714,9 @@ namespace Api.NeededDto.{entityName}
     }}
 
 }}";
-            File.WriteAllText(filePath, content);
-        }
+                File.WriteAllText(filePath, content);
+            
 
+        }
     }
 }
