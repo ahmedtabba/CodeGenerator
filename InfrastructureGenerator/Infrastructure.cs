@@ -70,13 +70,14 @@ namespace InfrastructureGenerator
             }
         }
 
-        public static void GenerateRepository(string entityName, string path, List<Relation>? relations = null)
+        public static void GenerateRepository(string entityName, string path, List<Relation>? relations = null, string? parentEntityName = null)
         {
             string fileName = $"{entityName}Repository.cs";
             string filePath = Path.Combine(path, fileName);
             string entityPlural = entityName.EndsWith("y") ? entityName[..^1] + "ies" : entityName + "s";
             string? GetOneWithInclude = null;
             string? GetAllWithInclude = null;
+            string? GetOneByParentWithInclude = null!;
             if (relations != null && relations.Any())
             {
                 List<string> includeLines = new List<string>();
@@ -117,20 +118,43 @@ namespace InfrastructureGenerator
                             break;
                     }
                 }
-                GetOneWithInclude = $@"
+                string idSearch = $"{parentEntityName}Id";
+                if (includeLines.Any())
+                {
+                    GetOneWithInclude = $@"
         public async Task<{entityName}> Get{entityName}(Guid id)
         {{
             return await DbContext.{entityPlural}.
-                {string.Join(".",includeLines)}
+                {string.Join(".", includeLines)}
                 .SingleOrDefaultAsync(x => x.Id == id);
         }}";
 
-                GetAllWithInclude = $@"
+                    GetAllWithInclude = $@"
         public IQueryable<{entityName}> Get{entityPlural}()
         {{
             return DbContext.{entityPlural}.
                 {string.Join(".", includeLines)}
                 .AsQueryable();
+        }}";
+
+                    GetOneByParentWithInclude = parentEntityName == null ? null : $@"
+        public async Task<{entityName}> Get{entityName}ByParent(Guid id)
+        {{
+            return await DbContext.{entityPlural}.
+                {string.Join(".", includeLines)}
+                .SingleOrDefaultAsync(x => x.{idSearch} == id);
+        }}";
+                }
+    
+            }
+            else if(parentEntityName != null)
+            {
+                string idSearch = $"{parentEntityName}Id";
+                GetOneByParentWithInclude = parentEntityName == null ? null : $@"
+        public async Task<{entityName}> Get{entityName}ByParent(Guid id)
+        {{
+            return await DbContext.{entityPlural}
+                .SingleOrDefaultAsync(x => x.{idSearch} == id);
         }}";
             }
                 string content = $@"
@@ -154,7 +178,7 @@ namespace Infrastructure.Repositories
         }}
 {GetOneWithInclude}
 {GetAllWithInclude}
-
+{GetOneByParentWithInclude}
        //Add necessary functions here if needed
     }}
 }}

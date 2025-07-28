@@ -135,7 +135,6 @@ namespace ApplicationGenerator
             }
             var tempList = string.Join(Environment.NewLine, propList);
             var props = tempList.Replace("GPG", "string").Replace("PNGs", "List<string>").Replace("VDs", "List<string>").Replace("VD", "string").Replace("FLs", "List<string>").Replace("FL", "string");
-
             var dtoContent = $@"using System;
 using Application.Common.Interfaces.Services.Versioning;
 using Application.Utilities.Attributes;
@@ -338,10 +337,12 @@ namespace Domain.Events.{entityName}Events
 {{
     public class {entityName}CreatedBulkEvent : {inheritEvent}
     {{
-        public {entityName}CreatedBulkEvent(List<{entityName}> {lowerEntityPlural})
+        public {entityName}CreatedBulkEvent(List<{entityName}> {lowerEntityPlural}, Guid aggregatorId)
         {{
+            AggregatorId = aggregatorId;
             {entityPlural} = {lowerEntityPlural};
         }}
+        public Guid AggregatorId {{ get; }}
         public List<{entityName}> {entityPlural} {{ get; }}
 {baseVersionInfoProp}
     }}              
@@ -354,11 +355,13 @@ namespace Domain.Events.{entityName}Events
 {{
     public class {entityName}EditedBulkEvent : {inheritEvent}
     {{
-        public {entityName}EditedBulkEvent(List<{entityName}> old{entityPlural}, List<{entityName}> new{entityPlural})
+        public {entityName}EditedBulkEvent(List<{entityName}> old{entityPlural}, List<{entityName}> new{entityPlural}, Guid aggregatorId)
         {{
+            AggregatorId = aggregatorId;
             Old{entityPlural} = old{entityPlural};
             New{entityPlural} = new{entityPlural};
         }}
+        public Guid AggregatorId {{ get; }}
         public List<{entityName}> Old{entityPlural} {{ get; }}
         public List<{entityName}> New{entityPlural} {{ get; }}
 {baseVersionInfoProp}
@@ -371,10 +374,12 @@ namespace Domain.Events.{entityName}Events
 {{
     public class {entityName}DeletedBulkEvent : {inheritEvent}
     {{
-        public {entityName}DeletedBulkEvent(List<{entityName}> {lowerEntityPlural})
+        public {entityName}DeletedBulkEvent(List<{entityName}> {lowerEntityPlural}, Guid aggregatorId)
         {{
+            AggregatorId = aggregatorId;
             {entityPlural} = {lowerEntityPlural};
         }}
+        public Guid AggregatorId {{ get; }}
         public List<{entityName}> {entityPlural} {{ get; }}
 {baseVersionInfoProp}
     }}              
@@ -807,11 +812,11 @@ namespace Application.{entityPlural}.EventHandlers
                 }
                 else
                     versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{item},");
+            }
 
-                if (parentEntityName != null)
-                {
-                    versioningDTOBuilder.AppendLine($"\t\t\t\t{parentEntityName}Id = item.{parentEntityName}Id,");
-                }
+            if (parentEntityName != null)
+            {
+                versioningDTOBuilder.AppendLine($"\t\t\t\t{parentEntityName}Id = item.{parentEntityName}Id,");
             }
             var propListUser = GetVersionDTOUserProp(relations);
             if (propListUser.Any())
@@ -851,7 +856,7 @@ namespace Application.{entityPlural}.EventHandlers
             notification.OldEntity = null!;
             notification.NewEntity = versioningDTOs;
 
-            return await _versioningService.AddVersion<{entityName}VersioningDTO>((VersionChangeType)notification.ChangeType, objects[0].{aggregator}Id.ToString(),
+            return await _versioningService.AddVersion<{entityName}VersioningDTO>((VersionChangeType)notification.ChangeType, notification.AggregatorId.ToString(),
                                                                         VersionEntityType.{entityName}, userId: null!, (List<{entityName}VersioningDTO>)notification.OldEntity,
                                                                        (List<{entityName}VersioningDTO>)notification.NewEntity, notification.RollbackedToVersionId);
         }}
@@ -881,10 +886,10 @@ $@"
             string notificationConsistent;
 
             StringBuilder messageBuilder = new StringBuilder(""List of {entityName} for {aggregator} : "");
-            messageBuilder.Append(notification.{entityPlural}[0].{aggregator}Id); //TODO:AfterGenerateCode:Replace Id with the proper property
+            messageBuilder.Append(notification.AggregatorId); //TODO:AfterGenerateCode:Replace Id with the proper property
             {HandleNotificationMethodVersionCase}
 
-            signalRMessage = await _userNotificationService.Push(NotificationObjectTypes.{entityName}, {aggregator}.Id,
+            signalRMessage = await _userNotificationService.Push(NotificationObjectTypes.{entityName}, notification.AggregatorId,
                                                                  notificationConsistent, notificationMessage: messageBuilder.ToString(),
                                                                  cancellationToken, specificNotifiedUsers);
 
@@ -897,9 +902,9 @@ $@"
         private async Task HandleUserAction({entityName}CreatedBulkEvent notification, string? versionId = null)
         {{
             if (versionId != null)
-                await _userActionService.AddUserAction(UserActionType.CreateBulk, UserActionEntityType.{entityName}, notification.{entityPlural}[0].{aggregator}Id.ToString(), versionId);
+                await _userActionService.AddUserAction(UserActionType.CreateBulk, UserActionEntityType.{entityName}, notification.AggregatorId.ToString(), versionId);
             else
-                await _userActionService.AddUserAction(UserActionType.CreateBulk, UserActionEntityType.{entityName}, notification.{entityPlural}[0].{aggregator}Id.ToString());
+                await _userActionService.AddUserAction(UserActionType.CreateBulk, UserActionEntityType.{entityName}, notification.AggregatorId.ToString());
         }}
 ";
 
@@ -1283,10 +1288,10 @@ namespace Application.{entityPlural}.EventHandlers
                 else
                     versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{item},");
 
-                if (parentEntityName != null)
-                {
-                    versioningDTOBuilder.AppendLine($"\t\t\t\t{parentEntityName}Id = item.{parentEntityName}Id,");
-                }
+            }
+            if (parentEntityName != null)
+            {
+                versioningDTOBuilder.AppendLine($"\t\t\t\t{parentEntityName}Id = item.{parentEntityName}Id,");
             }
             var propListUser = GetVersionDTOUserProp(relations);
             if (propListUser.Any())
@@ -1703,11 +1708,11 @@ namespace Application.{entityPlural}.EventHandlers
                 }
                 else
                     versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{item},");
+            }
 
-                if (parentEntityName != null)
-                {
-                    versioningDTOBuilder.AppendLine($"\t\t\t\t{parentEntityName}Id = item.{parentEntityName}Id,");
-                }
+            if (parentEntityName != null)
+            {
+                versioningDTOBuilder.AppendLine($"\t\t\t\t{parentEntityName}Id = item.{parentEntityName}Id,");
             }
             var propListUser = GetVersionDTOUserProp(relations);
             if (propListUser.Any())
@@ -1748,7 +1753,7 @@ namespace Application.{entityPlural}.EventHandlers
             notification.OldEntity = versioningDTOs;
             notification.NewEntity = null!;
 
-            return await _versioningService.AddVersion<{entityName}VersioningDTO>((VersionChangeType)notification.ChangeType, objects[0].{aggregator}Id.ToString(),
+            return await _versioningService.AddVersion<{entityName}VersioningDTO>((VersionChangeType)notification.ChangeType, notification.AggregatorId.ToString(),
                                                                         VersionEntityType.{entityName}, userId: null!, (List<{entityName}VersioningDTO>)notification.OldEntity,
                                                                        (List<{entityName}VersioningDTO>)notification.NewEntity, notification.RollbackedToVersionId);
         }}
@@ -1779,10 +1784,10 @@ $@"
             string notificationConsistent;
 
             StringBuilder messageBuilder = new StringBuilder(""List of {entityName} for {aggregator}: "");
-            messageBuilder.Append(notification.{entityPlural}[0].{aggregator}.Id); //TODO:AfterGenerateCode:Replace Id with the proper property
+            messageBuilder.Append(notification.AggregatorId); //TODO:AfterGenerateCode:Replace Id with the proper property
             {HandleNotificationMethodVersionCase}
 
-            signalRMessage = await _userNotificationService.Push(NotificationObjectTypes.{entityName}, notification.{entityPlural}[0].{aggregator}.Id,
+            signalRMessage = await _userNotificationService.Push(NotificationObjectTypes.{entityName}, notification.AggregatorId,
                                                                  notificationConsistent, notificationMessage: messageBuilder.ToString(),
                                                                  cancellationToken, specificNotifiedUsers);
 
@@ -1795,9 +1800,9 @@ $@"
         private async Task HandleUserAction({entityName}DeletedBulkEvent notification, string? versionId = null)
         {{
             if (versionId != null)
-                await _userActionService.AddUserAction(UserActionType.DeleteBulk, UserActionEntityType.{entityName}, notification.{entityPlural}[0].{aggregator}.Id.ToString(), versionId);
+                await _userActionService.AddUserAction(UserActionType.DeleteBulk, UserActionEntityType.{entityName}, notification.AggregatorId.ToString(), versionId);
             else
-                await _userActionService.AddUserAction(UserActionType.DeleteBulk, UserActionEntityType.{entityName}, notification.{entityPlural}[0].{aggregator}.Id.ToString());
+                await _userActionService.AddUserAction(UserActionType.DeleteBulk, UserActionEntityType.{entityName}, notification.AggregatorId.ToString());
         }}
 ";
 

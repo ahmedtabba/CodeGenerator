@@ -115,17 +115,19 @@ namespace CodeGeneratorForm
             }
 
             string entityPlural = entityName.GetPluralName();
+         
             bool hasAssets = properties.PropertiesList.Any(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD" || p.Type == "VDs" || p.Type == "FL" || p.Type == "FLs");
-
+         
             if (!hasAssets)
             {
                 if (isChild == null)
                     VueJsHelper.GenerateStoreFile(entityName, properties, NotGeneratedTableColumns, HiddenTableColumns, Relations, VueJsHelper.VueJsSolutionPath, isParent);
             }
             else
-                VueJsHelper.GenerateStoreFileWithAssets(entityName, properties, NotGeneratedTableColumns, HiddenTableColumns, Relations, VueJsHelper.VueJsSolutionPath);
+                if (isChild == null)
+                VueJsHelper.GenerateStoreFileWithAssets(entityName, properties, NotGeneratedTableColumns, HiddenTableColumns, Relations, VueJsHelper.VueJsSolutionPath, isParent);
 
-            if (isChild == null )
+            if (isChild == null)
             {
                 VueJsHelper.UpdateConstantsJs(entityName, VueJsHelper.VueJsSolutionPath);
                 VueJsHelper.UpdateRouterIndexJs(entityName, VueJsHelper.VueJsSolutionPath);
@@ -133,15 +135,25 @@ namespace CodeGeneratorForm
             }
             else
             {
-                if(bulk)
-                    VueJsHelper.GeneratePartialBulkStoreFile(entityName, properties, NotGeneratedTableColumns, HiddenTableColumns, Relations, VueJsHelper.VueJsSolutionPath, parentEntityName!);
+                if (bulk)
+                {
+                    if (!hasAssets)
+                        VueJsHelper.GeneratePartialBulkStoreFile(entityName, properties, NotGeneratedTableColumns, HiddenTableColumns, Relations, VueJsHelper.VueJsSolutionPath, parentEntityName!);
+                    else
+                        VueJsHelper.GeneratePartialBulkStoreFileWithAssets(entityName, properties, NotGeneratedTableColumns, HiddenTableColumns, Relations, VueJsHelper.VueJsSolutionPath, parentEntityName!);
+                }
                 else
-                    VueJsHelper.GeneratePartialStoreFile(entityName, properties, NotGeneratedTableColumns, HiddenTableColumns, Relations, VueJsHelper.VueJsSolutionPath, parentEntityName!);
+                {
+                    if (!hasAssets)
+                        VueJsHelper.GeneratePartialStoreFile(entityName, properties, NotGeneratedTableColumns, HiddenTableColumns, Relations, VueJsHelper.VueJsSolutionPath, parentEntityName!);
+                    else
+                        VueJsHelper.GeneratePartialStoreFileWithAssets(entityName, properties, NotGeneratedTableColumns, HiddenTableColumns, Relations, VueJsHelper.VueJsSolutionPath, parentEntityName!);
+                }
             }
             if (isChild == null) // parent or normal entity, GenerateTableView is the same
             {
-                VueJsHelper.GenerateTableView(entityName, VueJsHelper.VueJsSolutionPath, properties.PropertiesList, properties.EnumProps, NotGeneratedTableColumns, HiddenTableColumns, Relations,isParent);
-                if (isParent == null )
+                VueJsHelper.GenerateTableView(entityName, VueJsHelper.VueJsSolutionPath, properties.PropertiesList, properties.EnumProps, NotGeneratedTableColumns, HiddenTableColumns, Relations, isParent);
+                if (isParent == null)
                     VueJsHelper.GenerateSingleView(entityName, VueJsHelper.VueJsSolutionPath, properties.PropertiesList, properties.EnumProps, Relations, hasAssets);
                 else
                 {
@@ -154,7 +166,12 @@ namespace CodeGeneratorForm
                 if (!bulk)
                     VueJsHelper.GeneratePartialFormView(entityName, VueJsHelper.VueJsSolutionPath, properties.PropertiesList, properties.EnumProps, Relations, hasAssets, parentEntityName);
                 else
-                    VueJsHelper.GeneratePartialBulkView(entityName, VueJsHelper.VueJsSolutionPath, properties.PropertiesList, properties.EnumProps,NotGeneratedTableColumns,HiddenTableColumns, Relations, parentEntityName);
+                {
+                    if (!hasAssets)
+                        VueJsHelper.GeneratePartialBulkView(entityName, VueJsHelper.VueJsSolutionPath, properties.PropertiesList, properties.EnumProps, NotGeneratedTableColumns, HiddenTableColumns, Relations, parentEntityName);
+                    else
+                        VueJsHelper.GeneratePartialBulkViewWithAssets(entityName, VueJsHelper.VueJsSolutionPath, properties.PropertiesList, properties.EnumProps, NotGeneratedTableColumns, HiddenTableColumns, Relations, parentEntityName);
+                }
 
             }
             // Save metadata before generating code
@@ -166,7 +183,7 @@ namespace CodeGeneratorForm
                     (properties.PropertiesList,
                     properties.LocalizedProp,
                     properties.EnumProps),
-                    Relations,isParent,isChild,parentEntityName);
+                    Relations, isParent, isChild, parentEntityName);
             }
             catch (Exception ex)
             {
@@ -184,6 +201,8 @@ namespace CodeGeneratorForm
             var updateBulkCommandPath = Path.Combine(solutionDir, "Application", entityPlural, "Commands", $"UpdateBulk{entityName}");
             //var deleteBulkCommandPath = Path.Combine(solutionDir, "Application", entityPlural, "Commands", $"DeleteBulk{entityName}");
             var queryPath = Path.Combine(solutionDir, "Application", entityPlural, "Queries");
+
+
             if (isChild == null)
             {
                 Directory.CreateDirectory(domainPath);
@@ -200,7 +219,7 @@ namespace CodeGeneratorForm
             {
                 Directory.CreateDirectory(updateCommandPath);
             }
-                
+
 
             try
             {
@@ -208,7 +227,7 @@ namespace CodeGeneratorForm
                 {
                     Infrastructure.GeneratePermission(entityName, domainPath, hasLocalization);
                 }
-                Domain.GenerateEntityClass(entityName, domainPath, (properties.PropertiesList, properties.LocalizedProp, properties.EnumProps), hasLocalization, Relations,bulk,isChild,parentEntityName);
+                Domain.GenerateEntityClass(entityName, domainPath, (properties.PropertiesList, properties.LocalizedProp, properties.EnumProps), hasLocalization, Relations, bulk, isChild, parentEntityName);
                 //GenerateEntityLocalizationClass(entityName, domainPath);
                 Infrastructure.UpdateAppDbContext(entityName, domainPath);
                 if (hasLocalization)
@@ -247,13 +266,14 @@ namespace CodeGeneratorForm
                 }
 
                 Infrastructure.GenerateConfiguration(entityName, domainPath, relatedEntitiesList);
-       
-                Application.GenerateIRepositoryInterface(entityName, repoInterfacePath, Relations);
+
+                Application.GenerateIRepositoryInterface(entityName, repoInterfacePath, Relations, parentEntityName);
                 if (hasLocalization)
                     Application.GenerateIRepositoryInterface($@"{entityName}Localization", repoInterfacePath);
-                Infrastructure.GenerateRepository(entityName, repoPath, Relations);
+                Infrastructure.GenerateRepository(entityName, repoPath, Relations, parentEntityName);
                 if (hasLocalization)
                     Infrastructure.GenerateRepository($@"{entityName}Localization", repoPath);
+
                 Infrastructure.UpdateDependencyInjection(entityName, domainPath);
                 if (hasLocalization)
                     Infrastructure.UpdateDependencyInjection($@"{entityName}Localization", domainPath);
@@ -265,7 +285,7 @@ namespace CodeGeneratorForm
                     }
                     else
                     {
-                        ApplicationAssistant.GenerateVersionNeeds(entityName, domainPath, properties.PropertiesList, Relations,parentEntityName);
+                        ApplicationAssistant.GenerateVersionNeeds(entityName, domainPath, properties.PropertiesList, Relations, parentEntityName);
                     }
                 }
                 if (hasNotification)
@@ -279,11 +299,11 @@ namespace CodeGeneratorForm
                     if (isChild == null)
                         ApplicationAssistant.GenerateEvents(entityName, domainPath, hasVersioning);
                     else
-                        ApplicationAssistant.GenerateChildEvents(entityName, domainPath, hasVersioning,bulk);
-                    
-                    ApplicationAssistant.GenerateHandlers(entityName, domainPath, properties.PropertiesList, Relations, hasVersioning, hasUserAction, hasNotification, bulk,isChild,parentEntityName);
+                        ApplicationAssistant.GenerateChildEvents(entityName, domainPath, hasVersioning, bulk);
+
+                    ApplicationAssistant.GenerateHandlers(entityName, domainPath, properties.PropertiesList, Relations, hasVersioning, hasUserAction, hasNotification, bulk, isChild, parentEntityName);
                 }
-                if(isChild == null)
+                if (isChild == null)
                 {
                     Application.GenerateCreateCommand(entityName, entityPlural, createCommandPath, properties.PropertiesList, properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction);
                     Application.GenerateCreateCommandValidator(entityName, entityPlural, createCommandPath, properties.PropertiesList, Relations);
@@ -292,46 +312,48 @@ namespace CodeGeneratorForm
                     Application.GenerateUpdateCommandValidator(entityName, entityPlural, updateCommandPath, properties.PropertiesList, Relations);
 
 
-                    Application.GenerateDeleteCommand(entityName, entityPlural, deleteCommandPath, properties.PropertiesList, Relations, hasVersioning, hasNotification, hasUserAction);
+                    Application.GenerateDeleteCommand(entityName, entityPlural, deleteCommandPath, properties.PropertiesList, Relations, hasVersioning, hasNotification, hasUserAction,isParent);
                     Application.GenerateDeleteCommandValidator(entityName, entityPlural, deleteCommandPath, properties.PropertiesList, Relations);
                 }
                 else
                 {
                     if (!bulk)
                     {
-                        Application.GenerateUpdatePartialCommand(entityName, entityPlural, updateCommandPath, properties.PropertiesList, properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction,parentEntityName);
+                        Application.GenerateUpdatePartialCommand(entityName, entityPlural, updateCommandPath, properties.PropertiesList, properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction, parentEntityName);
                         //Application.GenerateUpdatePartialCommandValidator(entityName, entityPlural, updateCommandPath, properties.PropertiesList, Relations);
                     }
                     else
                     {
-
+                        Application.GenerateSingleUpdateEntity(entityName, entityPlural, updateBulkCommandPath, properties.PropertiesList, properties.EnumProps, hasLocalization, Relations, parentEntityName);
+                        Application.GenerateUpdateBulkCommand(entityName, entityPlural, updateBulkCommandPath, properties.PropertiesList, properties.EnumProps, hasLocalization, Relations, hasVersioning, hasNotification, hasUserAction, parentEntityName);
                     }
                 }
                 var childNotBulk = isChild != null && !bulk;
                 if ((isChild == null && isParent == null) || isParent != null || childNotBulk)
-                    Application.GenerateGetByIdQuery(entityName, entityPlural, queryPath, hasLocalization, properties.PropertiesList, properties.EnumProps, Relations,parentEntityName);
+                    Application.GenerateGetByIdQuery(entityName, entityPlural, queryPath, hasLocalization, properties.PropertiesList, properties.EnumProps, Relations, isParent,parentEntityName);
                 else
                 {
                     //Bulk case
+                    Application.GenerateGetBulkQuery(entityName, entityPlural, queryPath, hasLocalization, properties.PropertiesList, properties.EnumProps, Relations, parentEntityName);
                 }
                 if ((isChild == null && isParent == null) || isParent != null)
-                    Application.GenerateGetWithPaginationQuery(entityName, entityPlural, queryPath, hasLocalization, properties.PropertiesList, properties.EnumProps, Relations);
-                
-                Application.GenerateBaseDto(entityName, entityPlural, properties.PropertiesList, properties.EnumProps, solutionDir, Relations, hasLocalization);
+                    Application.GenerateGetAllQuery(entityName, entityPlural, queryPath, hasLocalization, properties.PropertiesList, properties.EnumProps, Relations, parentEntityName);
+
+                Application.GenerateBaseDto(entityName, entityPlural, properties.PropertiesList, properties.EnumProps, solutionDir, Relations, hasLocalization, bulk,parentEntityName);
 
                 if (hasLocalization)
                     Application.GenerateGetWithLocalizationQuery(entityName, entityPlural, queryPath, properties.PropertiesList, properties.EnumProps, Relations);
 
                 Api.GenerateNeededDtos(entityName, entityPlural, properties.PropertiesList, properties.EnumProps, solutionDir, hasLocalization, Relations, bulk, parentEntityName);
-
-                Api.AddRoutesToApiRoutes(entityName, entityPlural, solutionDir, hasLocalization, bulk,parentEntityName);
+                Api.AddRoutesToApiRoutes(entityName, entityPlural, solutionDir, hasLocalization, bulk, isParent, parentEntityName);
                 if ((isChild == null && isParent == null) || isParent != null)
                     Api.GenerateController(entityName, entityPlural, properties.PropertiesList, properties.EnumProps, solutionDir, hasLocalization, hasPermissions, bulk);
                 else if (!bulk)
-                    Api.GeneratePartialController(entityName, entityPlural, properties.PropertiesList, properties.EnumProps, solutionDir, hasLocalization, hasPermissions);
+                    Api.GeneratePartialController(entityName, entityPlural, properties.PropertiesList, properties.EnumProps, solutionDir, hasLocalization, hasPermissions, parentEntityName);
                 else
                 {
                     //Bulk case
+                    Api.GenerateBulkController(entityName, entityPlural, properties.PropertiesList, properties.EnumProps, solutionDir, hasLocalization, hasPermissions, parentEntityName);
                 }
             }
             catch (Exception ex)
@@ -668,6 +690,8 @@ namespace CodeGeneratorForm
             checkBoxVersioning.Checked = false;
             checkBoxBulk.Checked = false;
             lblParent.Visible = false;
+            cmboParent.Items.Clear();
+            cmboParent.Text = string.Empty;
             cmboParent.Visible = false;
             rdioParent.Checked = false;
             rdioChild.Checked = false;
@@ -1201,6 +1225,19 @@ namespace CodeGeneratorForm
             {
                 MessageBox.Show($"Error loading entities: {ex.Message}");
             }
+        }
+
+        private void btnClearPartial_Click(object sender, EventArgs e)
+        {
+            rdioParent.Checked = false;
+            rdioChild.Checked = false;
+            cmboParent.Items.Clear();
+            cmboParent.Text = string.Empty;
+        }
+
+        private void rdioParent_CheckedChanged(object sender, EventArgs e)
+        {
+
         }
     }
 }
