@@ -35,6 +35,7 @@
             cmboRelType = new ComboBox();
             lblRelType = new Label();
             lblPropName = new Label();
+            lblHint = new Label();
             SuspendLayout();
             // 
             // txtRelProp
@@ -71,9 +72,9 @@
             // btnSave
             // 
             btnSave.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            btnSave.Location = new Point(39, 120);
+            btnSave.Location = new Point(39, 134);
             btnSave.Name = "btnSave";
-            btnSave.Size = new Size(75, 35);
+            btnSave.Size = new Size(87, 44);
             btnSave.TabIndex = 63;
             btnSave.Text = "Save";
             btnSave.UseVisualStyleBackColor = true;
@@ -107,11 +108,22 @@
             lblPropName.TabIndex = 66;
             lblPropName.Text = "Property Name";
             // 
+            // lblHint
+            // 
+            lblHint.AutoSize = true;
+            lblHint.Location = new Point(133, 98);
+            lblHint.Name = "lblHint";
+            lblHint.Size = new Size(394, 15);
+            lblHint.TabIndex = 67;
+            lblHint.Text = "enter property name in singular case. ex: EmployeeUser / Employee / User";
+            lblHint.Visible = false;
+            // 
             // UserRelationForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(536, 205);
+            Controls.Add(lblHint);
             Controls.Add(lblPropName);
             Controls.Add(lblRelType);
             Controls.Add(cmboRelType);
@@ -134,5 +146,6 @@
         private ComboBox cmboRelType;
         private Label lblRelType;
         private Label lblPropName;
+        private Label lblHint;
     }
 }

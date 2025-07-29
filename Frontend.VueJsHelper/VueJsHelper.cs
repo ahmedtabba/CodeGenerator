@@ -5269,7 +5269,7 @@ const removeAsset = (item) => {{
                     <p v-if=""validationErrors.{prop.Name.GetCamelCaseName()}"" class=""text-red-500"">{{{{ $t('message.imageRequired') }}}}</p>
                     <FileUpload
                         mode=""basic""
-                        accept=""image/*""
+                        accept="".jpg,.jpeg,.png""
                         @select=""(e) => onSelectAsset(e, newItem)""
                         customUpload
                         auto
@@ -5296,7 +5296,7 @@ const removeAsset = (item) => {{
                     <p v-if=""validationErrors.{prop.Name.GetCamelCaseName()}"" class=""text-red-500"">{{{{ $t('message.imageRequired') }}}}</p>
                     <FileUpload
                         mode=""basic""
-                        accept=""image/*""
+                        accept="".jpg,.jpeg,.png""
                         @select=""(e) => onSelectAsset(e, selectedItem)""
                         customUpload
                         auto
@@ -5374,7 +5374,7 @@ const removeVideo = (item) => {{
                     <p v-if=""validationErrors.{prop.Name.GetCamelCaseName()}"" class=""text-red-500"">{{{{ $t('message.videoRequired') }}}}</p>
                     <FileUpload
                         mode=""basic""
-                        accept=""video/*""
+                        accept="".mp4""
                         @select=""(e) => onSelectVideo(e, newItem)""
                         customUpload
                         auto
@@ -5401,7 +5401,7 @@ const removeVideo = (item) => {{
                     <p v-if=""validationErrors.{prop.Name.GetCamelCaseName()}"" class=""text-red-500"">{{{{ $t('message.videoRequired') }}}}</p>
                     <FileUpload
                         mode=""basic""
-                        accept=""video/*""
+                        accept="".mp4""
                         @select=""(e) => onSelectVideo(e, selectedItem)""
                         customUpload
                         auto
@@ -5712,7 +5712,7 @@ const removeExistingImage = (index, item) => {{
                     <p v-if=""validationErrors.{prop.Name.GetCamelCaseName()}"" class=""text-red-500"">{{{{ $t('message.imagesRequired') }}}}</p>
                     <FileUpload
                         :multiple=""true""
-                        accept=""image/*""
+                        accept="".jpg,.jpeg,.png""
                         mode=""basic""
                         @select=""(e) => onSelectAssets(e, newItem)""
                         customUpload
@@ -5767,7 +5767,7 @@ const removeExistingImage = (index, item) => {{
                     <p v-if=""validationErrors.{prop.Name.GetCamelCaseName()}"" class=""text-red-500"">{{{{ $t('message.imagesRequired') }}}}</p>
                     <FileUpload
                         :multiple=""true""
-                        accept=""image/*""
+                        accept="".jpg,.jpeg,.png""
                         mode=""basic""
                         @select=""(e) => onSelectAssets(e, selectedItem)""
                         customUpload
@@ -5864,7 +5864,7 @@ const removeExistingVideo = (index, item) => {{
                     <p v-if=""validationErrors.{prop.Name.GetCamelCaseName()}"" class=""text-red-500"">{{{{ $t('message.videosRequired') }}}}</p>
                     <FileUpload
                         :multiple=""true""
-                        accept=""video/*""
+                        accept="".mp4""
                         mode=""basic""
                         @select=""(e) => onSelectVideos(e, newItem)""
                         customUpload
@@ -5919,7 +5919,7 @@ const removeExistingVideo = (index, item) => {{
                     <p v-if=""validationErrors.{prop.Name.GetCamelCaseName()}"" class=""text-red-500"">{{{{ $t('message.videosRequired') }}}}</p>
                     <FileUpload
                         :multiple=""true""
-                        accept=""video/*""
+                        accept="".mp4""
                         mode=""basic""
                         @select=""(e) => onSelectVideos(e, selectedItem)""
                         customUpload

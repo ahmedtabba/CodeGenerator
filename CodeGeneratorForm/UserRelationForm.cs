@@ -24,7 +24,7 @@ namespace CodeGeneratorForm
 
         private void btnSave_Click(object sender, EventArgs e)
         {
-            if (cmboRelType.SelectedItem != null)
+            if (cmboRelType.SelectedItem != null && txtRelProp.Text != string.Empty)
             {
                 Relation.Type = cmboRelType.SelectedIndex == 0 ? RelationType.UserSingle : cmboRelType.SelectedIndex == 1 ? RelationType.UserSingleNullable : RelationType.UserMany;
                 Relation.RelatedEntity = "User";
@@ -74,6 +74,11 @@ namespace CodeGeneratorForm
         private void cmboRelType_SelectedIndexChanged(object sender, EventArgs e)
         {
             txtRelProp.Clear();
+
+            if (cmboRelType.SelectedIndex == 2)
+                lblHint.Visible = true;
+            else
+                lblHint.Visible = false;
         }
     }
 }

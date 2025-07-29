@@ -8,6 +8,8 @@ using System.Text.RegularExpressions;
 using Frontend.VueJsHelper;
 using System.Reflection;
 using PropertyInfo = SharedClasses.PropertyInfo;
+using System.Security.Cryptography.Xml;
+using System.Windows.Forms;
 
 namespace CodeGeneratorForm
 {
@@ -47,6 +49,11 @@ namespace CodeGeneratorForm
         {
             var isLocalized = this.checkBoxLocalization.Checked;
             PropertyForm propertyForm = new PropertyForm(isLocalized);
+            propertyForm.StartPosition = FormStartPosition.Manual;
+            propertyForm.Location = new Point(
+                this.Location.X + this.Width / 2 - propertyForm.Width / 2,
+                this.Location.Y + this.Height / 2 - propertyForm.Height / 2
+                );
             propertyForm.ShowDialog();
             var propertyInfo = propertyForm.PropertyInfo;
 
@@ -115,9 +122,9 @@ namespace CodeGeneratorForm
             }
 
             string entityPlural = entityName.GetPluralName();
-         
+
             bool hasAssets = properties.PropertiesList.Any(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD" || p.Type == "VDs" || p.Type == "FL" || p.Type == "FLs");
-         
+
             if (!hasAssets)
             {
                 if (isChild == null)
@@ -312,7 +319,7 @@ namespace CodeGeneratorForm
                     Application.GenerateUpdateCommandValidator(entityName, entityPlural, updateCommandPath, properties.PropertiesList, Relations);
 
 
-                    Application.GenerateDeleteCommand(entityName, entityPlural, deleteCommandPath, properties.PropertiesList, Relations, hasVersioning, hasNotification, hasUserAction,isParent);
+                    Application.GenerateDeleteCommand(entityName, entityPlural, deleteCommandPath, properties.PropertiesList, Relations, hasVersioning, hasNotification, hasUserAction, isParent);
                     Application.GenerateDeleteCommandValidator(entityName, entityPlural, deleteCommandPath, properties.PropertiesList, Relations);
                 }
                 else
@@ -330,7 +337,7 @@ namespace CodeGeneratorForm
                 }
                 var childNotBulk = isChild != null && !bulk;
                 if ((isChild == null && isParent == null) || isParent != null || childNotBulk)
-                    Application.GenerateGetByIdQuery(entityName, entityPlural, queryPath, hasLocalization, properties.PropertiesList, properties.EnumProps, Relations, isParent,parentEntityName);
+                    Application.GenerateGetByIdQuery(entityName, entityPlural, queryPath, hasLocalization, properties.PropertiesList, properties.EnumProps, Relations, isParent, parentEntityName);
                 else
                 {
                     //Bulk case
@@ -339,7 +346,7 @@ namespace CodeGeneratorForm
                 if ((isChild == null && isParent == null) || isParent != null)
                     Application.GenerateGetAllQuery(entityName, entityPlural, queryPath, hasLocalization, properties.PropertiesList, properties.EnumProps, Relations, parentEntityName);
 
-                Application.GenerateBaseDto(entityName, entityPlural, properties.PropertiesList, properties.EnumProps, solutionDir, Relations, hasLocalization, bulk,parentEntityName);
+                Application.GenerateBaseDto(entityName, entityPlural, properties.PropertiesList, properties.EnumProps, solutionDir, Relations, hasLocalization, bulk, parentEntityName);
 
                 if (hasLocalization)
                     Application.GenerateGetWithLocalizationQuery(entityName, entityPlural, queryPath, properties.PropertiesList, properties.EnumProps, Relations);
@@ -415,6 +422,11 @@ namespace CodeGeneratorForm
             }
 
             RelationForm relationForm = new RelationForm(solutionDir, properties, txtEntityName.Text);
+            relationForm.StartPosition = FormStartPosition.Manual;
+            relationForm.Location = new Point(
+                this.Location.X + this.Width / 2 - relationForm.Width / 2,
+                this.Location.Y + this.Height / 2 - relationForm.Height / 2
+                );
             relationForm.ShowDialog();
             var relation = relationForm.Relation;
             if (relationForm.IsSaved)
@@ -1181,6 +1193,11 @@ namespace CodeGeneratorForm
                 return;
             }
             UserRelationForm userRelationForm = new UserRelationForm();
+            userRelationForm.StartPosition = FormStartPosition.Manual;
+            userRelationForm.Location = new Point(
+                this.Location.X + this.Width / 2 - userRelationForm.Width / 2,
+                this.Location.Y + this.Height / 2 - userRelationForm.Height / 2
+                );
             userRelationForm.ShowDialog();
             var relation = userRelationForm.Relation;
             if (userRelationForm.IsSaved)
@@ -1197,7 +1214,7 @@ namespace CodeGeneratorForm
             {
                 lblParent.Visible = true;
                 cmboParent.Visible = true;
-                LoadExistingEntities();
+                LoadExistingEntities(OnlyParent: true);
             }
             else
             {
@@ -1207,7 +1224,7 @@ namespace CodeGeneratorForm
             }
         }
 
-        private void LoadExistingEntities()
+        private void LoadExistingEntities(bool? OnlyParent = null)
         {
             try
             {
@@ -1217,7 +1234,13 @@ namespace CodeGeneratorForm
                     cmboParent.Items.Clear();
                     foreach (var entity in metadata.Entities)
                     {
-                        cmboParent.Items.Add(entity.Name);
+                        if (OnlyParent != null)
+                        {
+                            if (entity.IsParent != null && entity.IsParent.Value)
+                                cmboParent.Items.Add(entity.Name);
+                        }
+                        else
+                            cmboParent.Items.Add(entity.Name);
                     }
                 }
             }

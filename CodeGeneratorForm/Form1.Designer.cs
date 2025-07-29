@@ -108,6 +108,7 @@
             // 
             txtEntityName.Location = new Point(9, 89);
             txtEntityName.Name = "txtEntityName";
+            txtEntityName.PlaceholderText = "entity name in singular";
             txtEntityName.Size = new Size(136, 23);
             txtEntityName.TabIndex = 4;
             // 
