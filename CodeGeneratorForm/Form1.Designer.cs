@@ -287,7 +287,8 @@
             // label3
             // 
             label3.AutoSize = true;
-            label3.Location = new Point(139, 427);
+            label3.BackColor = SystemColors.InactiveCaption;
+            label3.Location = new Point(151, 427);
             label3.Name = "label3";
             label3.Size = new Size(55, 15);
             label3.TabIndex = 58;
@@ -314,7 +315,8 @@
             // label5
             // 
             label5.AutoSize = true;
-            label5.Location = new Point(139, 183);
+            label5.BackColor = SystemColors.InactiveCaption;
+            label5.Location = new Point(151, 183);
             label5.Name = "label5";
             label5.Size = new Size(60, 15);
             label5.TabIndex = 61;
@@ -341,6 +343,7 @@
             // 
             // panel1
             // 
+            panel1.BackColor = SystemColors.GradientActiveCaption;
             panel1.BorderStyle = BorderStyle.FixedSingle;
             panel1.Controls.Add(btnClearPartial);
             panel1.Controls.Add(rdioChild);
@@ -408,7 +411,8 @@
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             AutoScroll = true;
-            ClientSize = new Size(772, 724);
+            BackgroundImageLayout = ImageLayout.None;
+            ClientSize = new Size(772, 701);
             Controls.Add(lblParent);
             Controls.Add(cmboParent);
             Controls.Add(panel1);
@@ -427,6 +431,7 @@
             Controls.Add(label2);
             Controls.Add(txtDir);
             Controls.Add(label1);
+            DoubleBuffered = true;
             Name = "Form1";
             Text = "Form1";
             Load += Form1_Load;

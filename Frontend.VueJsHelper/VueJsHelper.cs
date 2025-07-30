@@ -29,9 +29,9 @@ namespace Frontend.VueJsHelper
             string updateLine = directory == null ? "generalBackend.update(this, REST_ENDPOINT(item.id), PAGE_ROUTE(), item);" : "generalBackend.updateBulk(this, REST_ENDPOINT(item.id), null, item, item.id);";
 
 
-            var entityLower = char.ToLower(entityName[0]) + entityName.Substring(1);
-            string entityPlural = entityName.EndsWith("y") ? entityName[..^1] + "ies" : entityName + "s";
-            string entityPluralLower = char.ToLower(entityPlural[0]) + entityPlural.Substring(1);
+            var entityLower = entityName.GetCamelCaseName();
+            string entityPlural = entityName.GetPluralName();
+            string entityPluralLower = entityPlural.GetCamelCaseName();
             string capitalEntityPlural = entityPlural.ToUpper();
 
             var storeName = $"use{entityName}Store";
@@ -489,9 +489,9 @@ export const {storeName} = defineStore('{entityLower}', {{
 
 
 
-            var entityLower = char.ToLower(entityName[0]) + entityName.Substring(1);
-            string entityPlural = entityName.EndsWith("y") ? entityName[..^1] + "ies" : entityName + "s";
-            string entityPluralLower = char.ToLower(entityPlural[0]) + entityPlural.Substring(1);
+            var entityLower = entityName.GetCamelCaseName();
+            string entityPlural = entityName.GetPluralName();
+            string entityPluralLower = entityPlural.GetCamelCaseName();
             string capitalEntityPlural = entityPlural.ToUpper();
 
             var storeName = $"use{parentEntityName}{entityName}Store";
@@ -3105,7 +3105,7 @@ const {{ state, onPropChanged, onSave, onCancel, t }} = useSingle(store, PAGE_RO
 
             //string fileSingleName = entityName;
             string viewSinglePath = Path.Combine(viewDirectory, $"{entityName}BasicInfo.vue");
-            string? fileImportsRef = properties.Any(p => p.Type == "FL" || p.Type == "FLs") ? ", watch, onUnmounted, computed" : null;
+            string? fileImportsRef = properties.Any(p => p.Type == "FL" || p.Type == "FLs") ? ", watch, onUnmounted, onBeforeMount, computed" : null;
             string? fileImportPreview = properties.Any(p => p.Type == "FL" || p.Type == "FLs") ? "import { VueFilesPreview } from 'vue-files-preview';" : null;
 
             string? importRef = hasAssets ? $"import {{ ref{fileImportsRef} }} from 'vue';" : null;
@@ -3119,6 +3119,11 @@ const {{ state, onPropChanged, onSave, onCancel, t }} = useSingle(store, PAGE_RO
             string? fileListSection = null;
             string? filePreviewAndNameHelper = null;
             string? previewDialog = null;
+            string? onBeforeMountFN = !properties.Any(p => p.Type == "FL" || p.Type == "FLs") ? null : $@"
+onBeforeMount(()=>{{
+    console.log('store reset 👌');
+    store.$reset();
+}})";
             StringBuilder enumConsts = new StringBuilder();
             foreach (var enm in enumProps)
             {
@@ -3527,6 +3532,8 @@ const {{ state, onPropChanged, onSave, t }} = useSingle(store, PAGE_ROUTE);
 {fileSection}
 {fileListSection}
 
+{onBeforeMountFN}
+
 const handleCancel = () => {{
     if (store.id) {{
         store[FIND_ITEM]({{
@@ -3587,7 +3594,7 @@ const handleCancel = () => {{
 
             //string fileSingleName = entityName;
             string viewSinglePath = Path.Combine(viewDirectory, $"{parentEntityName}{entityName}.vue");
-            string? fileImportsRef = properties.Any(p => p.Type == "FL" || p.Type == "FLs") ? ", watch, onUnmounted, computed" : null;
+            string? fileImportsRef = properties.Any(p => p.Type == "FL" || p.Type == "FLs") ? ", watch, onUnmounted, onBeforeMount, computed" : null;
             string? fileImportPreview = properties.Any(p => p.Type == "FL" || p.Type == "FLs") ? "import { VueFilesPreview } from 'vue-files-preview';" : null;
 
             string? importRef = hasAssets ? $"import {{ ref{fileImportsRef} }} from 'vue';" : null;
@@ -3601,6 +3608,11 @@ const handleCancel = () => {{
             string? fileListSection = null;
             string? filePreviewAndNameHelper = null;
             string? previewDialog = null;
+            string? onBeforeMountFN = !properties.Any(p => p.Type == "FL" || p.Type == "FLs") ? null : $@"
+onBeforeMount(()=>{{
+    console.log('store reset 👌');
+    store.$reset();
+}})";
             StringBuilder enumConsts = new StringBuilder();
             foreach (var enm in enumProps)
             {
@@ -4006,9 +4018,8 @@ const {{ state, onPropChanged, onSave, t }} = useSingle(store, PAGE_ROUTE);
 {fileSection}
 {fileListSection}
 
-onBeforeMount(() => {{
-    store.{parentEntityName.GetCamelCaseName()}Id = null
-}})
+{onBeforeMountFN}
+
 const handleCancel = () => {{
     if (store.{parentEntityName.GetCamelCaseName()}Id) {{
         store[FIND_ITEM]({{
@@ -4164,8 +4175,6 @@ const {entityName.GetCamelCaseName()}{enm.prop}Options = [
                     if (typeWithoutNullable == "string")
                     {
                         var propLower = prop.Name.GetCamelCaseName();
-                        //string st = $"    {{field: '{propLower}', order: 0 }},";
-                        //filterSectionSortFields.Add(st);
                         filterSectionGlobalFields.Add($"'{propLower}'");
                         filterSectionInitFilters.Add($"    {propLower}: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: FilterMatchMode.STARTS_WITH }}] }},");
 
@@ -4184,8 +4193,6 @@ const {entityName.GetCamelCaseName()}{enm.prop}Options = [
                     if (typeWithoutNullable == "bool")
                     {
                         var propLower = char.ToLower(prop.Name[0]) + prop.Name.Substring(1);
-                        //string st = $"    {{field: '{propLower}', order: 0 }},";
-                        //filterSectionSortFields.Add(st);
                         filterSectionGlobalFields.Add($"'{propLower}'");
                         filterSectionInitFilters.Add($"    {propLower}: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: FilterMatchMode.EQUALS }}] }},");
 
@@ -4205,8 +4212,6 @@ const {entityName.GetCamelCaseName()}{enm.prop}Options = [
                     if (typeWithoutNullable == "double" || typeWithoutNullable == "decimal" || typeWithoutNullable == "float")
                     {
                         var propLower = char.ToLower(prop.Name[0]) + prop.Name.Substring(1);
-                        //string st = $"    {{field: '{propLower}', order: 0 }},";
-                        //filterSectionSortFields.Add(st);
                         filterSectionGlobalFields.Add($"'{propLower}'");
                         filterSectionInitFilters.Add($"    {propLower}: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: FilterMatchMode.EQUALS }}] }},");
 
@@ -4226,8 +4231,6 @@ const {entityName.GetCamelCaseName()}{enm.prop}Options = [
                     if (typeWithoutNullable == "int" && enumProps.Any(ep => ep.prop == prop.Name))//enum case
                     {
                         var propLower = char.ToLower(prop.Name[0]) + prop.Name.Substring(1);
-                        //string st = $"    {{field: '{propLower}', order: 0 }},";
-                        //filterSectionSortFields.Add(st);
                         filterSectionGlobalFields.Add($"'{propLower}'");
                         filterSectionInitFilters.Add($"    {propLower}: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: FilterMatchMode.EQUALS }}] }},");
 
@@ -4258,8 +4261,6 @@ const {entityName.GetCamelCaseName()}{enm.prop}Options = [
                     if (typeWithoutNullable == "int" && !enumProps.Any(ep => ep.prop == prop.Name))//int property case
                     {
                         var propLower = char.ToLower(prop.Name[0]) + prop.Name.Substring(1);
-                        //string st = $"    {{field: '{propLower}', order: 0 }},";
-                        //filterSectionSortFields.Add(st);
                         filterSectionGlobalFields.Add($"'{propLower}'");
                         filterSectionInitFilters.Add($"    {propLower}: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: FilterMatchMode.EQUALS }}] }},");
 
@@ -4278,8 +4279,6 @@ const {entityName.GetCamelCaseName()}{enm.prop}Options = [
                     if (typeWithoutNullable.Contains("Date") || typeWithoutNullable.Contains("Time"))
                     {
                         var propLower = char.ToLower(prop.Name[0]) + prop.Name.Substring(1);
-                        //string st = $"    {{field: '{propLower}', order: 0 }},";
-                        //filterSectionSortFields.Add(st);
                         filterSectionGlobalFields.Add($"'{propLower}'");
                         filterSectionInitFilters.Add($"    {propLower}: {{ operator: FilterOperator.AND, constraints: [{{value: null, matchMode: FilterMatchMode.DATE_IS }}] }},");
 
@@ -4351,8 +4350,6 @@ watch(
                         //var entityRelatedLowerValidation = rel.Type != RelationType.OneToOneSelfJoin ? rel.RelatedEntity.GetCamelCaseName() + "Id"
                         //    : rel.RelatedEntity.GetCamelCaseName() + $"ParentId";
                         var entityRelatedLowerValidation = rel.RelatedEntity.GetCamelCaseName() + "Id";
-                        //string st = $"    {{field: '{propLower}', order: 0 }},";
-                        //filterSectionSortFields.Add(st);
                         filterSectionGlobalFields.Add($"'{propLower}Id'");
                         filterSectionInitFilters.Add($"    {propLower}Id: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: FilterMatchMode.EQUALS }}] }},");
                         string entityRelatedPlural = rel.RelatedEntity.GetPluralName();

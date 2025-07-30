@@ -41,7 +41,6 @@ namespace InfrastructureGenerator
                 return;
             }
             string IdbSet = $"\t\tpublic DbSet<{entityName}> {entityPlural} {{ get;}}" +
-                //$"\n\t\tpublic DbSet<{entityName}Localization> {entityName}sLocalization => Set<{entityName}Localization>();" +
                 $"\n\t\t//Generate Here";
 
             var lines = File.ReadAllLines(IContextPath).ToList();
@@ -56,7 +55,6 @@ namespace InfrastructureGenerator
             lines.Clear();
             index = -1;
             string dbSet = $"\t\tpublic DbSet<{entityName}> {entityPlural} => Set<{entityName}>();" +
-                //$"\n\t\tpublic DbSet<{entityName}Localization> {entityName}sLocalization => Set<{entityName}Localization>();" +
                 $"\n\t\t//Generate Here";
 
             lines = File.ReadAllLines(contextPath).ToList();
@@ -195,7 +193,6 @@ namespace Infrastructure.Repositories
                 return;
             }
             string register = $"\t\t\tservices.AddScoped<I{entityName}Repository, {entityName}Repository>();" +
-                //$"\n\t\tpublic DbSet<{entityName}Localization> {entityName}sLocalization => Set<{entityName}Localization>();" +
                 $"\n\t\t\t//Register Here";
 
             var lines = File.ReadAllLines(dependencyInjectionPath).ToList();
@@ -297,12 +294,6 @@ namespace Infrastructure.Data.Configurations
                     return;
                 }
             }
-
-            //if (content.Contains(className))
-            //{
-            //    Console.WriteLine($"⚠️ RoleConsistent already contains routes for {entityName}.");
-            //    return;
-            //}
 
             // Add before Dictionary
             int insertIndex = content.LastIndexOf("public static Dictionary") - 1;

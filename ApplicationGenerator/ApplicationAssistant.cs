@@ -71,20 +71,6 @@ namespace ApplicationGenerator
                         break;
                 }
             }
-            //var tempProps = string.Join(Environment.NewLine, propList);
-
-
-            //properties.ForEach(p => propList.Add((p.Type == "GPG" && p.Validation == null)
-            //? $"public {p.Type}? {p.Name} {{ get; set; }}"
-            //: $"public {p.Type} {p.Name} {{ get; set; }}"));
-
-            //var tempList = new List<string>();
-            //foreach (var item in propList)
-            //{
-            //    var s = item.Replace("GPG", "string").Replace("PNGs", "List<string>").Replace("VD", "string?");
-            //    tempList.Add(s);
-            //}
-            //tempList.ForEach(p => p.Replace("GPG", "string").Replace("PNGs", "List<string>").Replace("VD", "string?"));
 
             foreach (var relation in relations)
             {
@@ -571,9 +557,7 @@ namespace Domain.Events.{entityName}Events
             {
                 if (item.EndsWith("Ids"))
                 {
-                    //var temp = item.Remove(item.Length - 3);
                     string? relatedEntityManyPlural = manyEntityRelated!.GetPluralName();
-                    //var tempPlural = temp.GetPluralName();
                     versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{relatedEntityManyPlural}.Select(x => x.Id).ToList(),");
                 }
                 else if (manyDisplayProp != null && item == (manyEntityRelated + manyDisplayProp.GetPluralName()))
@@ -766,8 +750,7 @@ namespace Application.{entityPlural}.EventHandlers
             string? HandleNotification = !notification ? null : $"await HandleNotification(notification, cancellationToken);";
 
             string aggregator = parentEntityName;
-            //string nullableAggregatorNot = relations.First(r => r.Type == RelationType.ManyToOne || r.Type == RelationType.ManyToOneNullable).Type == RelationType.ManyToOne ?
-            //                               $"notification.{entityPlural}[0].{aggregator}Id" : $"notification.{entityPlural}[0].{aggregator}Id.Value";
+            
             var propList = GetVersionDTOProp(properties, relations);
             string? manyEntityRelated = relations.Any(r => r.Type == RelationType.ManyToMany) ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity : null;
             string? manyDisplayProp = relations.Any(r => r.Type == RelationType.ManyToMany) ? relations.First(r => r.Type == RelationType.ManyToMany).DisplayedProperty : null;
@@ -777,13 +760,11 @@ namespace Application.{entityPlural}.EventHandlers
                 if (item.EndsWith("Ids"))
                 {
                     string? relatedEntityManyPlural = manyEntityRelated!.GetPluralName();
-                    //oldVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = oldObj.{relatedEntityManyPlural}.Select(x => x.Id).ToList(),");
                     versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{relatedEntityManyPlural}.Select(x => x.Id).ToList(),");
                 }
                 else if (manyDisplayProp != null && item == (manyEntityRelated + manyDisplayProp.GetPluralName()))
                 {
                     string? relatedEntityManyPlural = manyEntityRelated!.GetPluralName();
-                    //oldVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = oldObj.{relatedEntityManyPlural}.Select(x => x.{manyDisplayProp}).ToList(),");
                     versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{relatedEntityManyPlural}.Select(x => x.{manyDisplayProp}).ToList(),");
                 }
                 else if (!item.EndsWith("Id") && relations.Any(r => item.Contains(r.RelatedEntity)))
@@ -1240,8 +1221,7 @@ namespace Application.{entityPlural}.EventHandlers
             string? HandleNotification = !notification ? null : $"await HandleNotification(notification, cancellationToken);";
 
             string aggregator = parentEntityName;
-            //string nullableAggregatorNot = relations.First(r => r.Type == RelationType.ManyToOne || r.Type == RelationType.ManyToOneNullable).Type == RelationType.ManyToOne ?
-            //                               $"notification.Old{entityPlural}[0].{aggregator}Id" : $"notification.Old{entityPlural}[0].{aggregator}Id.Value";
+         
             var propList = GetVersionDTOProp(properties, relations);
 
             string? manyEntityRelated = relations.Any(r => r.Type == RelationType.ManyToMany) ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity : null;
@@ -1252,13 +1232,11 @@ namespace Application.{entityPlural}.EventHandlers
                 if (item.EndsWith("Ids"))
                 {
                     string? relatedEntityManyPlural = manyEntityRelated!.GetPluralName();
-                    //oldVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = oldObj.{relatedEntityManyPlural}.Select(x => x.Id).ToList(),");
                     versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{relatedEntityManyPlural}.Select(x => x.Id).ToList(),");
                 }
                 else if (manyDisplayProp != null && item == (manyEntityRelated + manyDisplayProp.GetPluralName()))
                 {
                     string? relatedEntityManyPlural = manyEntityRelated!.GetPluralName();
-                    //oldVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = oldObj.{relatedEntityManyPlural}.Select(x => x.{manyDisplayProp}).ToList(),");
                     versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{relatedEntityManyPlural}.Select(x => x.{manyDisplayProp}).ToList(),");
                 }
                 else if (!item.EndsWith("Id") && relations.Any(r => item.Contains(r.RelatedEntity)))
@@ -1467,9 +1445,7 @@ namespace Application.{entityPlural}.EventHandlers
             {
                 if (item.EndsWith("Ids"))
                 {
-                    //var temp = item.Remove(item.Length - 3);
                     string? relatedEntityManyPlural = manyEntityRelated!.GetPluralName();
-                    //var tempPlural = temp.GetPluralName();
                     versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = obj.{relatedEntityManyPlural}.Select(x => x.Id).ToList(),");
                 }
                 else if (manyDisplayProp != null && item == (manyEntityRelated + manyDisplayProp.GetPluralName()))
@@ -1661,9 +1637,7 @@ namespace Application.{entityPlural}.EventHandlers
             string? HandleNotification = !notification ? null : $"await HandleNotification(notification, cancellationToken);";
 
             string aggregator = parentEntityName;
-            //string nullableAggregatorNot = relations.First(r => r.Type == RelationType.ManyToOne || r.Type == RelationType.ManyToOneNullable).Type == RelationType.ManyToOne ?
-            //                               $"notification.Old{entityPlural}[0].{aggregator}Id" : $"notification.Old{entityPlural}[0].{aggregator}Id.Value";
-
+           
             var propList = GetVersionDTOProp(properties, relations);
             string? manyEntityRelated = relations.Any(r => r.Type == RelationType.ManyToMany) ? relations.First(r => r.Type == RelationType.ManyToMany).RelatedEntity : null;
             string? manyDisplayProp = relations.Any(r => r.Type == RelationType.ManyToMany) ? relations.First(r => r.Type == RelationType.ManyToMany).DisplayedProperty : null;
@@ -1673,13 +1647,11 @@ namespace Application.{entityPlural}.EventHandlers
                 if (item.EndsWith("Ids"))
                 {
                     string? relatedEntityManyPlural = manyEntityRelated!.GetPluralName();
-                    //oldVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = oldObj.{relatedEntityManyPlural}.Select(x => x.Id).ToList(),");
                     versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{relatedEntityManyPlural}.Select(x => x.Id).ToList(),");
                 }
                 else if (manyDisplayProp != null && item == (manyEntityRelated + manyDisplayProp.GetPluralName()))
                 {
                     string? relatedEntityManyPlural = manyEntityRelated!.GetPluralName();
-                    //oldVersioningDTOBuilder.AppendLine($"\t\t\t\t{item} = oldObj.{relatedEntityManyPlural}.Select(x => x.{manyDisplayProp}).ToList(),");
                     versioningDTOBuilder.AppendLine($"\t\t\t\t{item} = item.{relatedEntityManyPlural}.Select(x => x.{manyDisplayProp}).ToList(),");
                 }
                 else if (!item.EndsWith("Id") && relations.Any(r => item.Contains(r.RelatedEntity)))
@@ -1891,15 +1863,6 @@ namespace Application.{entityPlural}.EventHandlers
                         propList.Add($"{relation.RelatedEntity}Ids");
                         propList.Add($"{relation.RelatedEntity}{relation.DisplayedProperty.GetPluralName()}");
                         break;
-                    //case RelationType.UserSingle:
-                    //    propList.Add($"{relation.DisplayedProperty}Id");
-                    //    break;
-                    //case RelationType.UserSingleNullable:
-                    //    propList.Add($"{relation.DisplayedProperty}Id");
-                    //    break;
-                    //case RelationType.UserMany:
-                    //    propList.Add($"{relation.DisplayedProperty.GetPluralName()}Ids");
-                    //    break;
                     default:
                         break;
                 }
