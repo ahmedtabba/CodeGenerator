@@ -14,7 +14,7 @@ namespace InfrastructureGenerator
     public static class Infrastructure
     {
         private static readonly Regex ClassPattern = new Regex(
-    @"public\s+class\s+(\w+)\s*\{",
+    @"public static\s+class\s+(\w+)\s*\{",
     RegexOptions.Multiline | RegexOptions.IgnoreCase);
         /*
          public: Matches the keyword literally
@@ -267,21 +267,23 @@ namespace Infrastructure.Data.Configurations
         public class {entityName}
         {{
             public const string Browse = @""{entityName}\Browse {entityName}"";
+            public const string View = @""{entityName}\View {entityName}"";
             public const string Delete = @""{entityName}\Delete {entityName}"";
             public const string Add = @""{entityName}\Add {entityName}"";
             public const string Edit = @""{entityName}\Edit {entityName}"";
-            public List<string> Roles = [Delete, Add, Edit, Browse];
+            public List<string> Roles = [Delete, Add, Edit, Browse, View];
         }}
 "
         : $@"
         public class {entityName}
         {{
             public const string Browse = @""{entityName}\Browse {entityName}"";
+            public const string View = @""{entityName}\View {entityName}"";
             public const string Delete = @""{entityName}\Delete {entityName}"";
             public const string Add = @""{entityName}\Add {entityName}"";
             public const string Edit = @""{entityName}\Edit {entityName}"";
             public const string BrowseWithLocalization = @""{entityName}\Browse {entityName} With Localization"";
-            public List<string> Roles = [Delete, Add, Edit, Browse,BrowseWithLocalization];
+            public List<string> Roles = [Delete, Add, Edit, View ,Browse,BrowseWithLocalization];
         }}
 ";
 
@@ -335,6 +337,9 @@ namespace Infrastructure.Data.Configurations
             if (!roles.Exists(r => r.Name == RoleConsistent.{entityName}.Browse))
                 _identityContext.Roles.Add(new ApplicationRole {{Name = RoleConsistent.{entityName}.Browse,NormalizedName = RoleConsistent.{entityName}.Browse.ToUpper()}});
 
+            if (!roles.Exists(r => r.Name == RoleConsistent.{entityName}.View))
+                _identityContext.Roles.Add(new ApplicationRole {{Name = RoleConsistent.{entityName}.View,NormalizedName = RoleConsistent.{entityName}.View.ToUpper()}});
+
             if (!roles.Exists(r => r.Name == RoleConsistent.{entityName}.Delete))
                 _identityContext.Roles.Add(new ApplicationRole {{Name = RoleConsistent.{entityName}.Delete,NormalizedName = RoleConsistent.{entityName}.Delete.ToUpper()}});
 
@@ -351,6 +356,9 @@ namespace Infrastructure.Data.Configurations
 
             if (!roles.Exists(r => r.Name == RoleConsistent.{entityName}.Browse))
                 _identityContext.Roles.Add(new ApplicationRole {{Name = RoleConsistent.{entityName}.Browse,NormalizedName = RoleConsistent.{entityName}.Browse.ToUpper()}});
+
+            if (!roles.Exists(r => r.Name == RoleConsistent.{entityName}.View))
+                _identityContext.Roles.Add(new ApplicationRole {{Name = RoleConsistent.{entityName}.View,NormalizedName = RoleConsistent.{entityName}.View.ToUpper()}});
 
             if (!roles.Exists(r => r.Name == RoleConsistent.{entityName}.Delete))
                 _identityContext.Roles.Add(new ApplicationRole {{Name = RoleConsistent.{entityName}.Delete,NormalizedName = RoleConsistent.{entityName}.Delete.ToUpper()}});
@@ -430,7 +438,7 @@ using Application.{entityPlural}.Queries.Get{entityPlural}WithPagination;
             string methodsDefine = $"\t\tpublic Task Fill{entityName}Localization(Get{entityName}Dto dto, Guid languageId);" + "\n" + $"\t\tpublic Task Fill{entityName}Localization(PaginatedList<Get{entityPlural}WithPaginationDto> list, Guid languageId);" + 
                 $"\n\t\t//Define Localization Method Here";
             var lines = File.ReadAllLines(ILocalizationServicePath).ToList();
-            var index = lines.FindIndex(line => line.Contains("Define Localization Method Here"));
+            var index = lines.FindIndex(line => line.Contains("//Define Localization Method Here"));
 
             if (index >= 0)
             {

@@ -11,7 +11,7 @@ namespace Frontend.VueJsHelper
 {
     public class VueJsHelper
     {
-        public static string VueJsSolutionPath = "C:\\EvaLogoFrontendTemplate\\src"; // ضع المسار الجذري لمشروع Vue هنا
+        public static string VueJsSolutionPath = "C:\\EvaLogoFrontendTemplateV1.4\\src"; // ضع المسار الجذري لمشروع Vue هنا
 
         public static void GenerateStoreFile(string entityName, SharedClasses.Properties properties, List<string> notGeneratedTableProperties, List<string> hiddenTableProperties, List<Relation> relations, string srcDir, bool? isParent = null)
         {
@@ -22,7 +22,7 @@ namespace Frontend.VueJsHelper
             if (directory != null)
                 Directory.CreateDirectory(directory);
 
-
+            string? isTabsLocked = directory == null ? null : $"\tisTabsLocked: false,";
             string filePath = directory == null ? Path.Combine(srcDir, "store", $"{fileName}.js") : Path.Combine(srcDir, "store", entityName.GetCamelCaseName(), $"{fileName}.js");
 
             string saveLine = directory == null ? "generalBackend.save(this, REST_ENDPOINT(), PAGE_ROUTE(), item);" : "generalBackend.saveBulk(this, REST_ENDPOINT(), PAGE_ROUTE(), item);";
@@ -202,7 +202,8 @@ const INITIAL_STATE = {{
     // columns
     allColumns: ALL_COLUMNS,
     defaultColumns: DEFAULT_COLUMNS,
-
+    entityName: '{entityName.GetCamelCaseName()}',
+{isTabsLocked}
 {initialStateBuilder.ToString().TrimEnd()}
 }};
 
@@ -431,7 +432,7 @@ const INITIAL_STATE = {{
     // columns
     allColumns: ALL_COLUMNS,
     defaultColumns: DEFAULT_COLUMNS,
-
+    entityName: '{entityName.GetCamelCaseName()}',
 {initialStateBuilder.ToString().TrimEnd()}
 }};
 
@@ -585,6 +586,7 @@ import i18n from '@/config/i18n';
 import {{defineStore}} from 'pinia';
 import * as generalBackend from '@/backend/Backend';
 import {{{parentEntityName.GetPluralName().GetCapitalName()}_ROUTE as PAGE_ROUTE}} from '@/utils/Constants';
+import {{use{parentEntityName}Store as useParentStore}} from './{parentEntityName}Store';
 
 const REST_ENDPOINT = (id) => `{parentEntityName.GetCamelCaseName().GetPluralName()}${{id ? '/' + id : ''}}/{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}`;
 
@@ -600,6 +602,7 @@ const INITIAL_STATE = {{
     // columns
     allColumns: ALL_COLUMNS,
     defaultColumns: DEFAULT_COLUMNS,
+    entityName: '{entityName.GetCamelCaseName()}',
     {parentEntityName.GetCamelCaseName()}Id: null,
     {parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}: []
 }};
@@ -630,7 +633,7 @@ export const {storeName} = defineStore('{parentEntityName.GetCamelCaseName()}{en
                 return;
             }}
 
-            generalBackend.updateBulk(this, REST_ENDPOINT(this.{parentEntityName.GetCamelCaseName()}Id), null, item, this.{parentEntityName.GetCamelCaseName()}Id);
+            generalBackend.updateBulk(this, REST_ENDPOINT(this.{parentEntityName.GetCamelCaseName()}Id), null, item, this.{parentEntityName.GetCamelCaseName()}Id, useParentStore());
         }}
     }},
     persist: {{
@@ -650,6 +653,7 @@ export const {storeName} = defineStore('{parentEntityName.GetCamelCaseName()}{en
             if (directory != null)
                 Directory.CreateDirectory(directory);
 
+            string? isTabsLocked = directory == null ? null : $"\tisTabsLocked: false,";
 
             string filePath = directory == null ? Path.Combine(srcDir, "store", $"{fileName}.js") : Path.Combine(srcDir, "store", entityName.GetCamelCaseName(), $"{fileName}.js");
 
@@ -993,12 +997,12 @@ export const {storeName} = defineStore('{parentEntityName.GetCamelCaseName()}{en
                     }
                     initialStateBuilder.AppendLine($"        {camelCasePropName}Id: null,");
 
-                    if(rel.Type == RelationType.UserSingleNullable)
+                    if (rel.Type == RelationType.UserSingleNullable)
                         dataAppendBuilder.AppendLine($@"
                 if(this.{camelCasePropName}Id){{
                     data.append('{camelCasePropName}Id', String(this.{camelCasePropName}Id));
                 }}");
-                    
+
                     else
                         dataAppendBuilder.AppendLine($"                data.append('{camelCasePropName}Id', String(this.{camelCasePropName}Id));");
 
@@ -1061,7 +1065,8 @@ const INITIAL_STATE = {{
     // columns
     allColumns: ALL_COLUMNS,
     defaultColumns: DEFAULT_COLUMNS,
-
+    entityName: '{entityName.GetCamelCaseName()}',
+{isTabsLocked}
 {initialStateBuilder.ToString().TrimEnd()}
 {assetDefine}
 {assetListDefine}
@@ -1528,6 +1533,7 @@ const INITIAL_STATE = {{
     // columns
     allColumns: ALL_COLUMNS,
     defaultColumns: DEFAULT_COLUMNS,
+    entityName: '{entityName.GetCamelCaseName()}',
     {parentEntityName.GetCamelCaseName()}Id: null,
 {initialStateBuilder.ToString().TrimEnd()}
 {assetDefine}
@@ -1610,60 +1616,60 @@ export const {storeName} = defineStore('{entityLower}', {{
                     {
                         defaultColumns.Add($"'{camelCasePropName}'");
                     }
-                    switch (prop.Type)
-                    {
-                        case "GPG":
-                            singleFileKeys.Add($"'{prop.Name.GetCamelCaseName()}'");
-                            skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}',");
-                            skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}Src',");
-                            skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}Url',");
-                            skipKeys.Add($"\t\t\t\t\t'delete{prop.Name}',");
-                            break;
+                }
+                switch (prop.Type)
+                {
+                    case "GPG":
+                        singleFileKeys.Add($"'{prop.Name.GetCamelCaseName()}'");
+                        skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}',");
+                        skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}Src',");
+                        skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}Url',");
+                        skipKeys.Add($"\t\t\t\t\t'delete{prop.Name}',");
+                        break;
 
-                        case "PNGs":
-                            multiFileKeys.Add($"'{prop.Name.GetCamelCaseName()}'");
-                            skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}',");
-                            skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}Srcs',");
-                            skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}Urls',");
-                            skipKeys.Add($"\t\t\t\t\t'deleted{prop.Name}Urls',");
-                            break;
+                    case "PNGs":
+                        multiFileKeys.Add($"'{prop.Name.GetCamelCaseName()}'");
+                        skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}',");
+                        skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}Srcs',");
+                        skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}Urls',");
+                        skipKeys.Add($"\t\t\t\t\t'deleted{prop.Name}Urls',");
+                        break;
 
-                        case "VD":
-                            singleFileKeys.Add($"'{prop.Name.GetCamelCaseName()}'");
-                            skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}',");
-                            skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}Src',");
-                            skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}Url',");
-                            skipKeys.Add($"\t\t\t\t\t'delete{prop.Name}',");
-                            break;
+                    case "VD":
+                        singleFileKeys.Add($"'{prop.Name.GetCamelCaseName()}'");
+                        skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}',");
+                        skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}Src',");
+                        skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}Url',");
+                        skipKeys.Add($"\t\t\t\t\t'delete{prop.Name}',");
+                        break;
 
-                        case "VDs":
-                            multiFileKeys.Add($"'{prop.Name.GetCamelCaseName()}'");
-                            skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}',");
-                            skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}Srcs',");
-                            skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}Urls',");
-                            skipKeys.Add($"\t\t\t\t\t'deleted{prop.Name}Urls',");
-                            break;
+                    case "VDs":
+                        multiFileKeys.Add($"'{prop.Name.GetCamelCaseName()}'");
+                        skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}',");
+                        skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}Srcs',");
+                        skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}Urls',");
+                        skipKeys.Add($"\t\t\t\t\t'deleted{prop.Name}Urls',");
+                        break;
 
-                        case "FL":
-                            singleFileKeys.Add($"'{prop.Name.GetCamelCaseName()}'");
-                            skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}',");
-                            skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}Src',");
-                            skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}Url',");
-                            skipKeys.Add($"\t\t\t\t\t'delete{prop.Name}',");
-                            break;
+                    case "FL":
+                        singleFileKeys.Add($"'{prop.Name.GetCamelCaseName()}'");
+                        skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}',");
+                        skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}Src',");
+                        skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}Url',");
+                        skipKeys.Add($"\t\t\t\t\t'delete{prop.Name}',");
+                        break;
 
-                        case "FLs":
-                            multiFileKeys.Add($"'{prop.Name.GetCamelCaseName()}'");
-                            skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}',");
-                            skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}Srcs',");
-                            skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}Urls',");
-                            skipKeys.Add($"\t\t\t\t\t'deleted{prop.Name}Urls',");
-                            skipKeys.Add($"\t\t\t\t\t'is{prop.Name}Fetched',");
-                            break;
+                    case "FLs":
+                        multiFileKeys.Add($"'{prop.Name.GetCamelCaseName()}'");
+                        skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}',");
+                        skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}Srcs',");
+                        skipKeys.Add($"\t\t\t\t\t'{prop.Name.GetCamelCaseName()}Urls',");
+                        skipKeys.Add($"\t\t\t\t\t'deleted{prop.Name}Urls',");
+                        skipKeys.Add($"\t\t\t\t\t'is{prop.Name}Fetched',");
+                        break;
 
-                        default:
-                            break;
-                    }
+                    default:
+                        break;
                 }
             }
             string? handleSingleFileKeys = !properties.PropertiesList.Any(p => p.Type == "GPG" || p.Type == "VD" || p.Type == "FL") ? null : $@"
@@ -1777,6 +1783,7 @@ import i18n from '@/config/i18n';
 import {{defineStore}} from 'pinia';
 import * as generalBackend from '@/backend/Backend';
 import {{{parentEntityName.GetPluralName().GetCapitalName()}_ROUTE as PAGE_ROUTE}} from '@/utils/Constants';
+import {{use{parentEntityName}Store as useParentStore}} from './{parentEntityName}Store';
 
 const REST_ENDPOINT = (id) => `{parentEntityName.GetCamelCaseName().GetPluralName()}${{id ? '/' + id : ''}}/{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}`;
 
@@ -1792,6 +1799,7 @@ const INITIAL_STATE = {{
     // columns
     allColumns: ALL_COLUMNS,
     defaultColumns: DEFAULT_COLUMNS,
+    entityName: '{entityName.GetCamelCaseName()}',
     {parentEntityName.GetCamelCaseName()}Id: null,
     {parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}: []
 }};
@@ -1886,7 +1894,7 @@ export const {storeName} = defineStore('{parentEntityName.GetCamelCaseName()}{en
             }}
 
             // this.[parentId], this.[parentId]
-            generalBackend.updateBulkFormData(this, REST_ENDPOINT(this.{parentEntityName.GetCamelCaseName()}Id), null, data, this.{parentEntityName.GetCamelCaseName()}Id);    
+            generalBackend.updateBulkFormData(this, REST_ENDPOINT(this.{parentEntityName.GetCamelCaseName()}Id), null, data, this.{parentEntityName.GetCamelCaseName()}Id, useParentStore());    
         }}
     }},
     persist: {{
@@ -2008,7 +2016,7 @@ export const {storeName} = defineStore('{parentEntityName.GetCamelCaseName()}{en
                 return;
             }
 
-            string item = $"\t\t\t{{ label: t('title.{entityPluralLower}'), icon: 'pi pi-fw pi-star-fill', to: '/{entityPluralLower}' }}," + $"\n            //Add Menu Here";
+            string item = $"\t\t\t{{ label: t('title.{entityPluralLower}'), customIcon: sidebarMenuItemIcon, to: '/{entityPluralLower}', permissionEntity: '{entityName.GetCamelCaseName()}' }}," + $"\n            //Add Menu Here";
 
             var lines = File.ReadAllLines(appMenuPath).ToList();
             var index = lines.FindIndex(line => line.Contains("//Add Menu Here"));
@@ -2040,7 +2048,7 @@ export const {storeName} = defineStore('{parentEntityName.GetCamelCaseName()}{en
                 List<string> stOptions = new List<string>();
                 for (int i = 0; i < enm.enumValues.Count; i++)
                 {
-                    var enmValueLower = char.ToLower(enm.enumValues[i][0]) + enm.enumValues[i].Substring(1);
+                    var enmValueLower = enm.enumValues[i].GetCamelCaseName();
                     string line = $"    {{label: t('field.{enmValueLower}'), value: '{i}' }},";
                     string lineOption = $"    {{label: t('field.{enmValueLower}'), value: {i} }},";
                     st.Add(line);
@@ -2148,11 +2156,15 @@ watch(
                         filterSectionInitFilters.Add($"    {propLower}: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: FilterMatchMode.EQUALS }}] }},");
                         string entityRelatedPlural = rel.RelatedEntity.GetPluralName();
                         string entityRelatedPluralLower = entityRelatedPlural.GetCamelCaseName();
+
                         if (rel.Type == RelationType.OneToOneSelfJoin && isParent == null)
-                            relationImports.AppendLine($"import {{ use{rel.RelatedEntity}Store }} from '@/store/{entityLower}/{rel.RelatedEntity}Store';");
+                            relationConsts.AppendLine($"const {{ items: {entityRelatedPluralLower}, loading: loading{entityRelatedPlural}, search: search{entityRelatedPlural} }} = useList(useStore(), '', {{}});");
                         else
+                        {
                             relationImports.AppendLine($"import {{ use{rel.RelatedEntity}Store }} from '@/store/{rel.RelatedEntity}Store';");
-                        relationConsts.AppendLine($"const {{ items: {entityRelatedPluralLower}, loading: loading{entityRelatedPlural}, search: search{entityRelatedPlural} }} = useList(use{rel.RelatedEntity}Store(), '', {{}});");
+                            relationConsts.AppendLine($"const {{ items: {entityRelatedPluralLower}, loading: loading{entityRelatedPlural}, search: search{entityRelatedPlural} }} = useList(use{rel.RelatedEntity}Store(), '', {{}});");
+                        }
+                            
                     }
                     if (rel.Type == RelationType.ManyToMany)
                     {
@@ -2612,7 +2624,7 @@ initFilters();
             Directory.CreateDirectory(viewDirectory);
             string fileSingleName = entityName;
             string viewSinglePath = Path.Combine(viewDirectory, $"{entityName}.vue");
-            string? fileImportsRef = properties.Any(p => p.Type == "FL" || p.Type == "FLs") ? ", watch, onUnmounted, computed" : null;
+            string? fileImportsRef = properties.Any(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD" || p.Type == "VDs" || p.Type == "FL" || p.Type == "FLs") ? ", watch, onUnmounted, onBeforeMount, computed" : null;
             string? fileImportPreview = properties.Any(p => p.Type == "FL" || p.Type == "FLs") ? "import { VueFilesPreview } from 'vue-files-preview';" : null;
 
             string? importRef = hasAssets ? $"import {{ ref{fileImportsRef} }} from 'vue';" : null;
@@ -2626,13 +2638,83 @@ initFilters();
             string? fileListSection = null;
             string? filePreviewAndNameHelper = null;
             string? previewDialog = null;
+            string? ImgDialogRelated = !properties.Any(p => p.Type == "GPG" || p.Type == "PNGs") ? null : $@"
+// img dialog related
+const isImgDialogOpen = ref(false);
+const selectedImg = ref(null);
+const imgIs = ref('');
+const openImgDialog = (img, type = 'old') => {{
+    selectedImg.value = img;
+    imgIs.value = type;
+    isImgDialogOpen.value = true;
+}};";
+
+            string? ImgDialogHtml = !properties.Any(p => p.Type == "GPG" || p.Type == "PNGs") ? null : $@"
+        <!-- preview img dialog -->
+        <Dialog v-model:visible=""isImgDialogOpen"" :style=""{{ width: '95%', height: '90%' }}"" :header=""$t('title.filePreview')"" :modal=""true"" :draggable=""false"" :dismissableMask=""true"" block-scroll>
+            <div class=""!h-full"">
+                <img :src=""imgIs == 'new' ? selectedImg : ASSET_ENDPOINT(selectedImg)"" class=""w-full h-full object-cover"" alt=""image preview"" />
+            </div>
+        </Dialog>";
+
+            string? VideoDialogRelated = !properties.Any(p => p.Type == "VD" || p.Type == "VDs") ? null : $@"
+// video dialog related
+const isVideoDialogOpen = ref(false);
+const selectedVideo = ref(null);
+const vidIs = ref('');
+const openVideoDialog = (video, type = 'old') => {{
+    selectedVideo.value = video;
+    vidIs.value = type;
+    isVideoDialogOpen.value = true;
+}};";
+
+            string? VideoDialogHtml = !properties.Any(p => p.Type == "VD" || p.Type == "VDs") ? null : $@"
+        <!-- preview vid dialog -->
+        <Dialog v-model:visible=""isVideoDialogOpen"" :style=""{{ width: '95%', height: '90%' }}"" :header=""$t('title.filePreview')"" :modal=""true"" :draggable=""false"" :dismissableMask=""true"" block-scroll>
+            <div class=""!h-full"">
+                <video :src=""vidIs == 'new' ? selectedVideo : ASSET_ENDPOINT(selectedVideo)"" class=""w-full h-full object-cover"" controls alt=""video preview""></video>
+            </div>
+        </Dialog>";
+
+            string? onBeforeMountFN = !properties.Any(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD" || p.Type == "VDs" || p.Type == "FL" || p.Type == "FLs") ? null : $@"
+onBeforeMount(() => {{
+    // backup
+    const keepCols = store.selectedColumns;
+    const keepPageState = store.itemPageState;
+
+    // full reset
+    store.$reset();
+
+    // restore
+    store.selectedColumns = keepCols;
+    store.itemPageState = keepPageState;
+}});";
+
+            string? downloadAssetFN = !properties.Any(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD" || p.Type == "VDs") ? null : $@"
+const downloadAsset = async (url, filename) => {{
+    try {{
+        const res = await fetch(ASSET_ENDPOINT(url));
+        console.log('res: ', res);
+        if (!res.ok) throw new Error('Network error');
+        const blob = await res.blob();
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        URL.revokeObjectURL(link.href);
+        document.body.removeChild(link);
+    }} catch (err) {{
+        console.error('Download failed', err);
+    }}
+}}";
             StringBuilder enumConsts = new StringBuilder();
             foreach (var enm in enumProps)
             {
                 List<string> st = new List<string>();
                 for (int i = 0; i < enm.enumValues.Count; i++)
                 {
-                    string line = $"    {{label: t('field.{enm.enumValues[i]}'), value: {i} }},";
+                    string line = $"    {{label: t('field.{enm.enumValues[i].GetCamelCaseName()}'), value: {i} }},";
                     st.Add(line);
                 }
                 enumConsts.AppendLine($@"
@@ -2678,6 +2760,7 @@ const {entityLower}{enm.prop}Options = [
                 colomnBuilder.AppendLine(relationColomn);
 
             string? colomnFLs = null;
+            List<string> columnsBool = new List<string>();
             foreach (var prop in properties)
             {
                 #region script
@@ -2687,11 +2770,17 @@ const {entityLower}{enm.prop}Options = [
 // Single Asset Section
 const assetSrc = ref(null);
 const onSelectAsset = (e) => {{
+    const file = e.files[0];
+
+    if (!file) {{
+        store.sendErrorMessage(t('message.wrongImageFormat'));
+        return;
+    }}
+
     // remove old asset
     store.delete{prop.Name} = true;
     store.{prop.Name.GetCamelCaseName()}Url = null;
 
-    const file = e.files[0];
     onPropChanged(file, '{prop.Name.GetCamelCaseName()}');
     const reader = new FileReader();
     reader.onload = async (e) => {{
@@ -2720,6 +2809,12 @@ const onSelectAssets = (event) => {{
     // Convert FileList to array
     const filesArray = Array.from(event.files);
 
+    console.log('filesArray: ', filesArray);
+    if (!filesArray.length) {{
+        store.sendErrorMessage(t('message.wrongImageFormat'));
+        return;
+    }}
+
     filesArray.forEach((file) => {{
         // Add to array that will go into state.assets
         selectedFiles.value.push(file);
@@ -2735,15 +2830,16 @@ const onSelectAssets = (event) => {{
     onPropChanged(selectedFiles.value, '{prop.Name.GetCamelCaseName()}');
 }};
 
+
 // Remove new uploaded asset
-const removeNewAsset = (index) => {{
+const removeNewImage = (index) => {{
     assetSrcs.value.splice(index, 1);
     selectedFiles.value.splice(index, 1);
     onPropChanged(selectedFiles.value, '{prop.Name.GetCamelCaseName()}');
 }};
 
 // Remove existing backend asset
-const removeExistingAsset = (index) => {{
+const removeExistingImage = (index) => {{
     const removedUrl = store.{prop.Name.GetCamelCaseName()}Urls[index];
     store.deleted{prop.Name}Urls.push(removedUrl); // add to store.deleted{prop.Name}Urls
     store.{prop.Name.GetCamelCaseName()}Urls.splice(index, 1); // Remove from store.{prop.Name.GetCamelCaseName()}Urls (UI)
@@ -2755,12 +2851,19 @@ const removeExistingAsset = (index) => {{
                     videoSection = $@"
 // upload single video
 const videoSrc = ref(null);
+
 const onSelectVideo = (e) => {{
+    const file = e.files[0];
+
+    if (!file) {{
+        store.sendErrorMessage(t('message.wrongVideoFormat'));
+        return;
+    }}
+
     // reset old video
     store.delete{prop.Name} = true;
     store.{prop.Name.GetCamelCaseName()}Url = null;
 
-    const file = e.files[0];
     onPropChanged(file, '{prop.Name.GetCamelCaseName()}');
     const reader = new FileReader();
     reader.onload = async (e) => {{
@@ -2787,6 +2890,11 @@ const selectedVideos = ref([]); // Actual new File objects
 const onSelectVideos = (event) => {{
     // Convert FileList to array
     const filesArray = Array.from(event.files);
+
+    if (!filesArray.length) {{
+        store.sendErrorMessage(t('message.wrongVideoFormat'));
+        return;
+    }}
 
     filesArray.forEach((file) => {{
         // Add to array that will go into state.assets
@@ -2923,21 +3031,25 @@ watch(
                 console.error('Failed to load single file from', url, err);
             }}
         }}
-    }},
-    {{ immediate: true }}
+    }}
 );
 
 // When the user picks a new file manually, clear any backend one:
+
 function onSelectFile(event) {{
+    const file = event.files[0];
+
+    if (!file) {{
+        store.sendErrorMessage(t('message.wrongFileFormat'));
+        return;
+    }}
     clearSingle();
 
-    const file = event.files[0];
-    if (!file) return;
     singleFile.value = file;
     singlePreviewUrl.value = URL.createObjectURL(file);
-    onPropChanged(file, '{prop.Name.GetCamelCaseName()}');// <-- [property]
+    onPropChanged(file, '{prop.Name.GetCamelCaseName()}');
 
-    store.delete{prop.Name} = true; //<-- store.[property]
+    store.delete{prop.Name} = true;
 }}
 
 // Remove single file
@@ -2975,18 +3087,24 @@ watch(
                 console.error('Error fetching', url, err);
             }}
         }}
-    }},
-    {{ immediate: true }}
+    }}
 );
 
 // Handle new uploads
+
 function onSelectFiles(event) {{
     const files = Array.from(event.files);
+
+    if (!files.length) {{
+        store.sendErrorMessage(t('message.wrongFileFormat'));
+        return;
+    }}
+
     for (const f of files) {{
         newFiles.value.push(f);
         previews.value.push(makePreviewObj(f, 'new'));
     }}
-    onPropChanged(newFiles.value, '{prop.Name.GetCamelCaseName()}');// [property]
+    onPropChanged(newFiles.value, '{prop.Name.GetCamelCaseName()}');
 }}
 
 // Remove a preview (both UI and store)
@@ -3026,13 +3144,21 @@ const archiveFiles = computed(() => previews.value.filter((p) => isArchive(p.nam
                 #endregion
 
                 string colomn = null;
-                if (prop.Type != "FLs")
+                if (prop.Type != "FLs" && prop.Type != "bool" || prop.Type != "bool?")
                 {
                     colomn = GetSingleColomnControl(entityName, prop, enumProps);
                     colomnBuilder.AppendLine(colomn);
                 }
+                else if (prop.Type == "bool" || prop.Type == "bool?")
+                {
+                    columnsBool.Add(GetSingleColomnControl(entityName, prop, enumProps));
+                }
                 else
                     colomnFLs = GetSingleColomnControl(entityName, prop, enumProps);
+            }
+            foreach(var item in columnsBool)
+            {
+                colomnBuilder.AppendLine(item);
             }
             if (colomnFLs != null)
                 colomnBuilder.AppendLine(colomnFLs);
@@ -3044,12 +3170,15 @@ import {{ {capitalEntityPlural}_ROUTE as PAGE_ROUTE{importAssetEndpoint} }} from
 {relationImports}
 import useSingle from '@/composables/useSingle';
 import useList from '@/composables/useList';
+import TheButton from '@/components/ui/TheButton.vue';
 {importRef}
 {fileImportPreview}
 
 const store = useStore();
 
 const {{ state, onPropChanged, onSave, onCancel, t }} = useSingle(store, PAGE_ROUTE);
+{onBeforeMountFN}
+
 {relationConsts}
 {enumConsts}
 {assetSection}
@@ -3060,34 +3189,35 @@ const {{ state, onPropChanged, onSave, onCancel, t }} = useSingle(store, PAGE_RO
 {fileSection}
 {fileListSection}
 {filePreviewAndNameHelper}
+{ImgDialogRelated}
+{VideoDialogRelated}
+
+{downloadAssetFN}
 
 </script>
 <template>
+<div class=""page-container"">
+    <h2 class=""page-title"">{{{{ $t('title.entity') }}}}</h2>
     <div class=""theCard"">
-        <h2 class=""text-3xl font-semibold"">{{{{ $t('title.{entityName}') }}}}</h2>
-
+        <div v-if=""store.finding"" class=""flex justify-center items-center w-full mt-[32px]"">
+            <atom-spinner :size=""50"" color=""#988561"" />
+        </div>
         <!-- form -->
-        <form @submit.prevent="""" class=""mt-12 w-full"">
-            <div class=""grid grid-cols-1 md:grid-cols-2 gap-4 w-full"">                                      
+        <form @submit.prevent="""" class=""w-full"">
+            <div class=""grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[24px] w-full"">                                      
 {colomnBuilder}
             </div>
             <!-- actions -->
-            <div class=""flex items-center gap-5 mt-12 w-full"">
-                <Button severity=""primary"" text :label=""$t('button.cancel')"" class=""rounded float-start"" outlined @click=""onCancel"" :disabled=""state.saving""></Button>
-                <Button
-                    severity=""primary""
-                    :loading=""state.saving""
-                    style=""""
-                    :label=""$t('button.save')""
-                    class=""rounded float-start""
-                    @click=""onSave""
-                    :disabled=""state.saving || state.finding""
-                    v-if=""state.itemPageState !== $StoreConstant('VIEW_PAGE_STATE')""
-                />
+            <div class=""flex items-center justify-center gap-[32px] mt-[48px] w-full"">
+                <TheButton  v-if=""state.itemPageState !== $StoreConstant('VIEW_PAGE_STATE')"" :label=""$t('button.save')"" :loading=""state.saving"" @click=""onSave"" :disabled=""state.saving || state.finding""/>
+                <TheButton  variant=""cancel"" :label=""$t('button.cancel')"" @click=""onCancel"" :disabled=""state.saving""/>
             </div>
         </form>
 {previewDialog}
+{ImgDialogHtml}
+{VideoDialogHtml}
     </div>
+</div>
 </template>";
 
             File.WriteAllText(viewSinglePath, content);
@@ -3105,7 +3235,7 @@ const {{ state, onPropChanged, onSave, onCancel, t }} = useSingle(store, PAGE_RO
 
             //string fileSingleName = entityName;
             string viewSinglePath = Path.Combine(viewDirectory, $"{entityName}BasicInfo.vue");
-            string? fileImportsRef = properties.Any(p => p.Type == "FL" || p.Type == "FLs") ? ", watch, onUnmounted, onBeforeMount, computed" : null;
+            string? fileImportsRef = properties.Any(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD" || p.Type == "VDs" || p.Type == "FL" || p.Type == "FLs") ? ", watch, onUnmounted, computed" : null;
             string? fileImportPreview = properties.Any(p => p.Type == "FL" || p.Type == "FLs") ? "import { VueFilesPreview } from 'vue-files-preview';" : null;
 
             string? importRef = hasAssets ? $"import {{ ref{fileImportsRef} }} from 'vue';" : null;
@@ -3119,18 +3249,71 @@ const {{ state, onPropChanged, onSave, onCancel, t }} = useSingle(store, PAGE_RO
             string? fileListSection = null;
             string? filePreviewAndNameHelper = null;
             string? previewDialog = null;
-            string? onBeforeMountFN = !properties.Any(p => p.Type == "FL" || p.Type == "FLs") ? null : $@"
-onBeforeMount(()=>{{
-    console.log('store reset 👌');
-    store.$reset();
-}})";
+            string? ImgDialogRelated = !properties.Any(p => p.Type == "GPG" || p.Type == "PNGs") ? null : $@"
+// img dialog related
+const isImgDialogOpen = ref(false);
+const selectedImg = ref(null);
+const imgIs = ref('');
+
+const openImgDialog = (img, type = 'old') => {{
+    selectedImg.value = img;
+    imgIs.value = type;
+    isImgDialogOpen.value = true;
+}};";
+
+            string? ImgDialogHtml = !properties.Any(p => p.Type == "GPG" || p.Type == "PNGs") ? null : $@"
+        <!-- preview img dialog -->
+        <Dialog v-model:visible=""isImgDialogOpen"" :style=""{{ width: '95%', height: '90%' }}"" :header=""$t('title.filePreview')"" :modal=""true"" :draggable=""false"" :dismissableMask=""true"" block-scroll>
+            <div class=""!h-full"">
+                <img :src=""imgIs == 'new' ? selectedImg : ASSET_ENDPOINT(selectedImg)"" class=""w-full h-full object-cover"" alt=""image preview"" />
+            </div>
+        </Dialog>";
+
+            string? VideoDialogRelated = !properties.Any(p => p.Type == "VD" || p.Type == "VDs") ? null : $@"
+// video dialog related
+const isVideoDialogOpen = ref(false);
+const selectedVideo = ref(null);
+const vidIs = ref('');
+
+const openVideoDialog = (video, type = 'old') => {{
+    selectedVideo.value = video;
+    vidIs.value = type;
+    isVideoDialogOpen.value = true;
+}};";
+
+            string? VideoDialogHtml = !properties.Any(p => p.Type == "VD" || p.Type == "VDs") ? null : $@"
+        <!-- preview vid dialog -->
+        <Dialog v-model:visible=""isVideoDialogOpen"" :style=""{{ width: '95%', height: '90%' }}"" :header=""$t('title.filePreview')"" :modal=""true"" :draggable=""false"" :dismissableMask=""true"" block-scroll>
+            <div class=""!h-full"">
+                <video :src=""vidIs == 'new' ? selectedVideo : ASSET_ENDPOINT(selectedVideo)"" class=""w-full h-full object-cover"" controls alt=""video preview""></video>
+            </div>
+        </Dialog>";
+
+            string? downloadAssetFN = !properties.Any(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD" || p.Type == "VDs") ? null : $@"
+const downloadAsset = async (url, filename) => {{
+    try {{
+        const res = await fetch(ASSET_ENDPOINT(url));
+        console.log('res: ', res);
+        if (!res.ok) throw new Error('Network error');
+        const blob = await res.blob();
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        URL.revokeObjectURL(link.href);
+        document.body.removeChild(link);
+    }} catch (err) {{
+        console.error('Download failed', err);
+    }}
+}}";
             StringBuilder enumConsts = new StringBuilder();
             foreach (var enm in enumProps)
             {
                 List<string> st = new List<string>();
                 for (int i = 0; i < enm.enumValues.Count; i++)
                 {
-                    string line = $"    {{label: t('field.{enm.enumValues[i]}'), value: {i} }},";
+                    string line = $"    {{label: t('field.{enm.enumValues[i].GetCamelCaseName()}'), value: {i} }},";
                     st.Add(line);
                 }
                 enumConsts.AppendLine($@"
@@ -3171,11 +3354,13 @@ const {entityLower}{enm.prop}Options = [
 
             StringBuilder colomnBuilder = new StringBuilder();
 
-            string? relationColomn = GetSingleColomnRelationControl(entityName, relations);
+            string? relationColomn = GetSingleColomnRelationControl(entityName, relations, basicInfoOrPartialForm: true);
             if (relationColomn != null)
                 colomnBuilder.AppendLine(relationColomn);
 
             string? colomnFLs = null;
+            List<string> columnsBool = new List<string>();
+            List<string> handleCancelAssetReset = new List<string>();
             foreach (var prop in properties)
             {
                 #region script
@@ -3184,17 +3369,24 @@ const {entityLower}{enm.prop}Options = [
                     assetSection = $@"
 // Single Asset Section
 const onSelectAsset = (e) => {{
+    const file = e.files[0];
+
+    if (!file) {{
+        store.sendErrorMessage(t('message.wrongImageFormat'));
+        return;
+    }}
+
     // remove old asset
     store.delete{prop.Name} = true;
     store.{prop.Name.GetCamelCaseName()}Url = null;
 
-    const file = e.files[0];
     onPropChanged(file, '{prop.Name.GetCamelCaseName()}');
     const reader = new FileReader();
     reader.onload = async (e) => {{
         store.{prop.Name.GetCamelCaseName()}Src = e.target.result;
     }};
     reader.readAsDataURL(file);
+    store.isTabsLocked = true
 }};
 
 const removeAsset = () => {{
@@ -3203,6 +3395,7 @@ const removeAsset = () => {{
     store.{prop.Name.GetCamelCaseName()}Url = null;
     onPropChanged(null, '{prop.Name.GetCamelCaseName()}');
     store.{prop.Name.GetCamelCaseName()}Src = null;
+    store.isTabsLocked = true
 }};";
                 }
 
@@ -3214,67 +3407,10 @@ const onSelectAssets = (event) => {{
     // Convert FileList to array
     const filesArray = Array.from(event.files);
 
-    filesArray.forEach((file) => {{
-        // Add to array that will go into state.assets
-         store.{prop.Name.GetCamelCaseName()}.push(file);
-
-        // Create a preview URL
-        const reader = new FileReader();
-        reader.onload = (evt) => {{
-            store.{prop.Name.GetCamelCaseName()}Srcs.push(evt.target.result);
-        }};
-        reader.readAsDataURL(file);
-    }});
-}};
-
-// Remove new uploaded asset
-const removeNewAsset = (index) => {{
-    store.{prop.Name.GetCamelCaseName()}Srcs.splice(index, 1);
-    store.{prop.Name.GetCamelCaseName()}.splice(index, 1);
-}};
-
-// Remove existing backend asset
-const removeExistingAsset = (index) => {{
-    const removedUrl = store.{prop.Name.GetCamelCaseName()}Urls[index];
-    store.deleted{prop.Name}Urls.push(removedUrl); // add to store.deleted{prop.Name}Urls
-    store.{prop.Name.GetCamelCaseName()}Urls.splice(index, 1); // Remove from store.{prop.Name.GetCamelCaseName()}Urls (UI)
-}};";
-                }
-
-                else if (prop.Type == "VD")
-                {
-                    videoSection = $@"
-// upload single video
-const onSelectVideo = (e) => {{
-    // reset old video
-    store.delete{prop.Name} = true;
-    store.{prop.Name.GetCamelCaseName()}Url = null;
-
-    const file = e.files[0];
-    onPropChanged(file, '{prop.Name.GetCamelCaseName()}');
-    const reader = new FileReader();
-    reader.onload = async (e) => {{
-        store.{prop.Name.GetCamelCaseName()}Src = e.target.result;
-    }};
-    reader.readAsDataURL(file);
-}};
-
-const removeVideo = () => {{
-    // Reset delete video
-    store.delete{prop.Name} = true;
-    store.{prop.Name.GetCamelCaseName()}Url = null;
-    onPropChanged(null, '{prop.Name.GetCamelCaseName()}');
-    store.{prop.Name.GetCamelCaseName()}Src = null;
-}};";
-                }
-                else if (prop.Type == "VDs")
-                {
-                    videoListSection = $@"
-// upload multiple videos
-
-const onSelectVideos = (event) => {{
-    // Convert FileList to array
-    const filesArray = Array.from(event.files);
+    if (!filesArray.length) {{
+        store.sendErrorMessage(t('message.wrongImageFormat'));
+        return;
+    }}
 
     filesArray.forEach((file) => {{
         // Add to array that will go into state.assets
@@ -3287,18 +3423,102 @@ const onSelectVideos = (event) => {{
         }};
         reader.readAsDataURL(file);
     }});
+    store.isTabsLocked = true
+}};
+
+// Remove new uploaded asset
+const removeNewImage = (index) => {{
+    store.{prop.Name.GetCamelCaseName()}Srcs.splice(index, 1);
+    store.{prop.Name.GetCamelCaseName()}.splice(index, 1);
+    store.isTabsLocked = true
+}};
+
+// Remove existing backend asset
+const removeExistingImage = (index) => {{
+    const removedUrl = store.{prop.Name.GetCamelCaseName()}Urls[index];
+    store.deleted{prop.Name}Urls.push(removedUrl); // add to store.deleted{prop.Name}Urls
+    store.{prop.Name.GetCamelCaseName()}Urls.splice(index, 1); // Remove from store.{prop.Name.GetCamelCaseName()}Urls (UI)
+    store.isTabsLocked = true
+}};";
+                    handleCancelAssetReset.Add($"\t\t{prop.Name.GetCamelCaseName()} = [];");
+                    handleCancelAssetReset.Add($"\t\t{prop.Name.GetCamelCaseName()}Srcs = [];");
+                }
+
+                else if (prop.Type == "VD")
+                {
+                    videoSection = $@"
+// upload single video
+const onSelectVideo = (e) => {{
+    const file = e.files[0];
+
+    if (!file) {{
+        store.sendErrorMessage(t('message.wrongVideoFormat'));
+        return;
+    }}
+    // reset old video
+    store.delete{prop.Name} = true;
+    store.{prop.Name.GetCamelCaseName()}Url = null;
+
+    onPropChanged(file, '{prop.Name.GetCamelCaseName()}');
+    const reader = new FileReader();
+    reader.onload = async (e) => {{
+        store.{prop.Name.GetCamelCaseName()}Src = e.target.result;
+    }};
+    reader.readAsDataURL(file);
+    store.isTabsLocked = true
+}};
+
+const removeVideo = () => {{
+    // Reset delete video
+    store.delete{prop.Name} = true;
+    store.{prop.Name.GetCamelCaseName()}Url = null;
+    onPropChanged(null, '{prop.Name.GetCamelCaseName()}');
+    store.{prop.Name.GetCamelCaseName()}Src = null;
+    store.isTabsLocked = true
+}};";
+                }
+                else if (prop.Type == "VDs")
+                {
+                    videoListSection = $@"
+// upload multiple videos
+const onSelectVideos = (event) => {{
+    // Convert FileList to array
+    const filesArray = Array.from(event.files);
+
+    if (!filesArray.length) {{
+        store.sendErrorMessage(t('message.wrongVideoFormat'));
+        return;
+    }}
+
+    filesArray.forEach((file) => {{
+        // Add to array that will go into state.assets
+        store.{prop.Name.GetCamelCaseName()}.push(file);
+
+        // Create a preview URL
+        const reader = new FileReader();
+        reader.onload = (evt) => {{
+            store.{prop.Name.GetCamelCaseName()}Srcs.push(evt.target.result);
+        }};
+        reader.readAsDataURL(file);
+    }});
+    store.isTabsLocked = true
+
 }};
 
 const removeNewVideo = (index) => {{
     store.{prop.Name.GetCamelCaseName()}Srcs.splice(index, 1);
     store.{prop.Name.GetCamelCaseName()}.splice(index, 1);
+    store.isTabsLocked = true
 }}
 
 const removeExistingVideo = (index) => {{
     const removedUrl = store.{prop.Name.GetCamelCaseName()}Urls[index];
     store.deleted{prop.Name}Urls.push(removedUrl); // add to store.deleted{prop.Name}Urls
     store.{prop.Name.GetCamelCaseName()}Urls.splice(index, 1); // Remove from store.{prop.Name.GetCamelCaseName()}Urls (UI)
+    store.isTabsLocked = true
 }}";
+                    handleCancelAssetReset.Add($"\t\t{prop.Name.GetCamelCaseName()} = [];");
+                    handleCancelAssetReset.Add($"\t\t{prop.Name.GetCamelCaseName()}Srcs = [];");
                 }
                 else if (prop.Type == "FL" || prop.Type == "FLs")
                 {
@@ -3398,20 +3618,24 @@ watch(
         }}else{{
             clearSingle();
         }}
-    }},
-    {{ immediate: true }}
+    }}    
 );
 
 // When the user picks a new file manually, clear any backend one:
-function onSelectFile(event) {{
-    clearSingle();
 
+function onSelectFile(event) {{
     const file = event.files[0];
-    if (!file) return;
+    if (!file) {{
+        store.sendErrorMessage(t('message.wrongFileFormat'));
+        return;
+    }}
+
+    clearSingle();
     store.{prop.Name.GetCamelCaseName()}Src = makePreviewObj(file, 'new');
     store.{prop.Name.GetCamelCaseName()} = file;
 
-    store.delete{prop.Name} = true; //<-- store.[property]
+    store.delete{prop.Name} = true;
+    store.isTabsLocked = true
 }}
 
 // Remove single file
@@ -3419,6 +3643,8 @@ function removeFile() {{
     clearSingle();
     store.delete{prop.Name} = true;// <-- store.[property]
     store.{prop.Name.GetCamelCaseName()}Url = null;// <-- store.[property]
+    store.isTabsLocked = true
+
 }}
 
 onUnmounted(() => {{
@@ -3448,21 +3674,29 @@ watch(
                 console.error('Error fetching', url, err);
             }}
         }}
-    }},
-    {{ immediate: true }}
+    }}
 );
 
 // Handle new uploads
+
 function onSelectFiles(event) {{
     const files = Array.from(event.files);
+
+    if (!files.length) {{
+        store.sendErrorMessage(t('message.wrongFileFormat'));
+        return;
+    }}
+
     for (const f of files) {{
         store.{prop.Name.GetCamelCaseName()}.push(f);
         store.{prop.Name.GetCamelCaseName()}Srcs.push(makePreviewObj(f, 'new'));
     }}
+    store.isTabsLocked = true
 }}
 
 // Remove a preview (both UI and store)
 function removePreview(index) {{
+    store.isTabsLocked = true
     const p = store.{prop.Name.GetCamelCaseName()}Srcs[index];
     URL.revokeObjectURL(p.downloadUrl);
     store.{prop.Name.GetCamelCaseName()}Srcs.splice(index, 1);
@@ -3491,18 +3725,29 @@ const previewableFiles = computed(() => store.{prop.Name.GetCamelCaseName()}Srcs
 
 // Archive files only (zip / rar)
 const archiveFiles = computed(() => store.{prop.Name.GetCamelCaseName()}Srcs.filter((p) => isArchive(p.name)));";
+                        handleCancelAssetReset.Add($"\t\t{prop.Name.GetCamelCaseName()} = [];");
+                        handleCancelAssetReset.Add($"\t\t{prop.Name.GetCamelCaseName()}Srcs = [];");
                     }
                 }
                 #endregion
 
                 string colomn = null;
-                if (prop.Type != "FLs")
+
+                if (prop.Type != "FLs" && prop.Type != "bool" && prop.Type != "bool?")
                 {
                     colomn = GetSingleColomnControl(entityName, prop, enumProps, basicInfoOrPartialForm: true);
                     colomnBuilder.AppendLine(colomn);
                 }
+                else if (prop.Type == "bool" || prop.Type == "bool?")
+                {
+                    columnsBool.Add(GetSingleColomnControl(entityName, prop, enumProps, basicInfoOrPartialForm: true));
+                }
                 else
                     colomnFLs = GetSingleColomnControl(entityName, prop, enumProps, basicInfoOrPartialForm: true);
+            }
+            foreach (var item in columnsBool)
+            {
+                colomnBuilder.AppendLine(item);
             }
             if (colomnFLs != null)
                 colomnBuilder.AppendLine(colomnFLs);
@@ -3514,13 +3759,29 @@ import {{ {capitalEntityPlural}_ROUTE as PAGE_ROUTE{importAssetEndpoint} }} from
 {relationImports}
 import useSingle from '@/composables/useSingle';
 import useList from '@/composables/useList';
-import {{EDIT_ITEM,FIND_ITEM}} from '@/utils/StoreConstant';
+import {{EDIT_ITEM,FIND_ITEM,VIEW_ITEM}} from '@/utils/StoreConstant';
+import {{ onBeforeMount }} from 'vue';
+import TheButton from '@/components/ui/TheButton.vue';
 {importRef}
 {fileImportPreview}
 
 const store = useStore();
 
 const {{ state, onPropChanged, onSave, t }} = useSingle(store, PAGE_ROUTE);
+
+onBeforeMount(() => {{
+    // backup
+    const keepCols = store.selectedColumns;
+    const keepPageState = store.itemPageState;
+
+    // full reset
+    store.$reset();
+
+    // restore
+    store.selectedColumns = keepCols;
+    store.itemPageState = keepPageState;
+}})
+
 {relationConsts}
 {enumConsts}
 {assetSection}
@@ -3531,50 +3792,67 @@ const {{ state, onPropChanged, onSave, t }} = useSingle(store, PAGE_ROUTE);
 {filePreviewAndNameHelper}
 {fileSection}
 {fileListSection}
+{ImgDialogRelated}
+{VideoDialogRelated}
 
-{onBeforeMountFN}
+{downloadAssetFN}
 
 const handleCancel = () => {{
     if (store.id) {{
-        store[FIND_ITEM]({{
-            id: store.id,
-            viewState: EDIT_ITEM
-        }});
-    }} else {{
+        // backup
+        const keepid = store.id;
+        const keepPageState = store.itemPageState;
+        const keepCols = store.selectedColumns;
+
+        // full reset
         store.$reset();
+        store[FIND_ITEM]({{
+            id: keepid,
+            viewState: keepPageState === 2 ? EDIT_ITEM : VIEW_ITEM
+        }});
+
+        // restore
+        store.selectedColumns = keepCols;
+        store.itemPageState = keepPageState;
+    }} else {{
+        // backup
+        const keepCols = store.selectedColumns;
+        const keepPageState = store.itemPageState;
+
+        // full reset
+        store.$reset();
+{string.Join(Environment.NewLine, handleCancelAssetReset)}
+        // restore
+        store.selectedColumns = keepCols;
+        store.itemPageState = keepPageState;
     }}
 }};
+
 </script>
 <template>
+<div class=""bulk-page-container"">
+    <h2 class=""page-title"">{{{{ $t('title.{entityLower}') }}}}</h2>
     <div class=""theCard"">
-        <h2 class=""text-3xl font-semibold"">{{{{ $t('title.{entityName}BasicInfo') }}}}</h2>
-
         <div v-if=""store.finding"" class=""flex justify-center items-center w-full mt-[32px]"" >
-            <atom-spinner :size=""50"" color=""#1B80E4"" />
+            <atom-spinner :size=""50"" color=""#988561"" />
         </div>
 
         <!-- form -->
-        <form v-else @submit.prevent="""" class=""mt-12 w-full"">
-            <div class=""grid grid-cols-1 md:grid-cols-2 gap-4 w-full"">                                      
+        <form v-else @submit.prevent="""" class=""w-full"">
+            <div class=""grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[24px] w-full"">                                      
 {colomnBuilder}
             </div>
             <!-- actions -->
-            <div class=""flex items-center gap-5 mt-12 w-full"">
-                <Button severity=""primary"" text :label=""$t('button.cancel')"" class=""rounded float-start"" outlined @click=""handleCancel"" :disabled=""state.saving""></Button>
-                <Button
-                    severity=""primary""
-                    :loading=""state.saving""
-                    style=""""
-                    :label=""$t('button.save')""
-                    class=""rounded float-start""
-                    @click=""onSave""
-                    :disabled=""state.saving || state.finding""
-                    v-if=""state.itemPageState !== $StoreConstant('VIEW_PAGE_STATE')""
-                />
+            <div class=""flex items-center justify-center gap-[32px] mt-[48px] w-full"">
+                <TheButton  v-if=""state.itemPageState !== $StoreConstant('VIEW_PAGE_STATE')"" :label=""$t('button.save')"" :loading=""state.saving"" @click=""onSave"" :disabled=""state.saving || state.finding""/>
+                <TheButton  variant=""cancel"" :label=""$t('button.cancel')"" @click=""handleCancel"" :disabled=""state.saving""/>
             </div>
         </form>
 {previewDialog}
+{ImgDialogHtml}
+{VideoDialogHtml}
     </div>
+</div>
 </template>
 
 <style scoped></style>";
@@ -3594,7 +3872,7 @@ const handleCancel = () => {{
 
             //string fileSingleName = entityName;
             string viewSinglePath = Path.Combine(viewDirectory, $"{parentEntityName}{entityName}.vue");
-            string? fileImportsRef = properties.Any(p => p.Type == "FL" || p.Type == "FLs") ? ", watch, onUnmounted, onBeforeMount, computed" : null;
+            string? fileImportsRef = properties.Any(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD" || p.Type == "VDs" || p.Type == "FL" || p.Type == "FLs") ? ", watch, onUnmounted, computed" : null;
             string? fileImportPreview = properties.Any(p => p.Type == "FL" || p.Type == "FLs") ? "import { VueFilesPreview } from 'vue-files-preview';" : null;
 
             string? importRef = hasAssets ? $"import {{ ref{fileImportsRef} }} from 'vue';" : null;
@@ -3608,18 +3886,71 @@ const handleCancel = () => {{
             string? fileListSection = null;
             string? filePreviewAndNameHelper = null;
             string? previewDialog = null;
-            string? onBeforeMountFN = !properties.Any(p => p.Type == "FL" || p.Type == "FLs") ? null : $@"
-onBeforeMount(()=>{{
-    console.log('store reset 👌');
-    store.$reset();
-}})";
+            string? ImgDialogRelated = !properties.Any(p => p.Type == "GPG" || p.Type == "PNGs") ? null : $@"
+// img dialog related
+const isImgDialogOpen = ref(false);
+const selectedImg = ref(null);
+const imgIs = ref('');
+
+const openImgDialog = (img, type = 'old') => {{
+    selectedImg.value = img;
+    imgIs.value = type;
+    isImgDialogOpen.value = true;
+}};";
+
+            string? ImgDialogHtml = !properties.Any(p => p.Type == "GPG" || p.Type == "PNGs") ? null : $@"
+        <!-- preview img dialog -->
+        <Dialog v-model:visible=""isImgDialogOpen"" :style=""{{ width: '95%', height: '90%' }}"" :header=""$t('title.filePreview')"" :modal=""true"" :draggable=""false"" :dismissableMask=""true"" block-scroll>
+            <div class=""!h-full"">
+                <img :src=""imgIs == 'new' ? selectedImg : ASSET_ENDPOINT(selectedImg)"" class=""w-full h-full object-cover"" alt=""image preview"" />
+            </div>
+        </Dialog>";
+
+            string? VideoDialogRelated = !properties.Any(p => p.Type == "VD" || p.Type == "VDs") ? null : $@"
+// video dialog related
+const isVideoDialogOpen = ref(false);
+const selectedVideo = ref(null);
+const vidIs = ref('');
+
+const openVideoDialog = (video, type = 'old') => {{
+    selectedVideo.value = video;
+    vidIs.value = type;
+    isVideoDialogOpen.value = true;
+}};";
+
+            string? VideoDialogHtml = !properties.Any(p => p.Type == "VD" || p.Type == "VDs") ? null : $@"
+        <!-- preview vid dialog -->
+        <Dialog v-model:visible=""isVideoDialogOpen"" :style=""{{ width: '95%', height: '90%' }}"" :header=""$t('title.filePreview')"" :modal=""true"" :draggable=""false"" :dismissableMask=""true"" block-scroll>
+            <div class=""!h-full"">
+                <video :src=""vidIs == 'new' ? selectedVideo : ASSET_ENDPOINT(selectedVideo)"" class=""w-full h-full object-cover"" controls alt=""video preview""></video>
+            </div>
+        </Dialog>";
+
+            string? downloadAssetFN = !properties.Any(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD" || p.Type == "VDs") ? null : $@"
+const downloadAsset = async (url, filename) => {{
+    try {{
+        const res = await fetch(ASSET_ENDPOINT(url));
+        console.log('res: ', res);
+        if (!res.ok) throw new Error('Network error');
+        const blob = await res.blob();
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        URL.revokeObjectURL(link.href);
+        document.body.removeChild(link);
+    }} catch (err) {{
+        console.error('Download failed', err);
+    }}
+}}";
             StringBuilder enumConsts = new StringBuilder();
             foreach (var enm in enumProps)
             {
                 List<string> st = new List<string>();
                 for (int i = 0; i < enm.enumValues.Count; i++)
                 {
-                    string line = $"    {{label: t('field.{enm.enumValues[i]}'), value: {i} }},";
+                    string line = $"    {{label: t('field.{enm.enumValues[i].GetCamelCaseName()}'), value: {i} }},";
                     st.Add(line);
                 }
                 enumConsts.AppendLine($@"
@@ -3639,6 +3970,7 @@ const {entityLower}{enm.prop}Options = [
                 if (rel.Type == RelationType.OneToOneSelfJoin || rel.Type == RelationType.ManyToOne || rel.Type == RelationType.ManyToOneNullable
                     || rel.Type == RelationType.OneToOne || rel.Type == RelationType.OneToOneNullable || rel.Type == RelationType.ManyToMany)
                 {
+                    //Note: OneToOneSelfJoin dose not handle in partial case
                     //var propLower = rel.Type == RelationType.OneToOneSelfJoin ? char.ToLower(rel.RelatedEntity[0]) + rel.RelatedEntity.Substring(1) + "ParentId"
                     //    : rel.Type != RelationType.ManyToMany ?
                     //    char.ToLower(rel.RelatedEntity[0]) + rel.RelatedEntity.Substring(1) + "Id"
@@ -3653,11 +3985,12 @@ const {entityLower}{enm.prop}Options = [
 
             StringBuilder colomnBuilder = new StringBuilder();
 
-            string? relationColomn = GetSingleColomnRelationControl(entityName, relations);
+            string? relationColomn = GetSingleColomnRelationControl(entityName, relations, basicInfoOrPartialForm: true, partialForm: true);
             if (relationColomn != null)
                 colomnBuilder.AppendLine(relationColomn);
 
             string? colomnFLs = null;
+            List<string> columnsBool = new List<string>();
             foreach (var prop in properties)
             {
                 #region script
@@ -3666,17 +3999,24 @@ const {entityLower}{enm.prop}Options = [
                     assetSection = $@"
 // Single Asset Section
 const onSelectAsset = (e) => {{
+    const file = e.files[0];
+
+    if (!file) {{
+        store.sendErrorMessage(t('message.wrongImageFormat'));
+        return;
+    }}
+
     // remove old asset
     store.delete{prop.Name} = true;
     store.{prop.Name.GetCamelCaseName()}Url = null;
 
-    const file = e.files[0];
     onPropChanged(file, '{prop.Name.GetCamelCaseName()}');
     const reader = new FileReader();
     reader.onload = async (e) => {{
         store.{prop.Name.GetCamelCaseName()}Src = e.target.result;
     }};
     reader.readAsDataURL(file);
+    parentStore.isTabsLocked = true
 }};
 
 const removeAsset = () => {{
@@ -3685,6 +4025,7 @@ const removeAsset = () => {{
     store.{prop.Name.GetCamelCaseName()}Url = null;
     onPropChanged(null, '{prop.Name.GetCamelCaseName()}');
     store.{prop.Name.GetCamelCaseName()}Src = null;
+    parentStore.isTabsLocked = true
 }};";
                 }
 
@@ -3696,9 +4037,14 @@ const onSelectAssets = (event) => {{
     // Convert FileList to array
     const filesArray = Array.from(event.files);
 
+    if (!filesArray.length) {{
+        store.sendErrorMessage(t('message.wrongImageFormat'));
+        return;
+    }}
+
     filesArray.forEach((file) => {{
         // Add to array that will go into state.assets
-         store.{prop.Name.GetCamelCaseName()}.push(file);
+        store.{prop.Name.GetCamelCaseName()}.push(file);
 
         // Create a preview URL
         const reader = new FileReader();
@@ -3707,19 +4053,22 @@ const onSelectAssets = (event) => {{
         }};
         reader.readAsDataURL(file);
     }});
+    parentStore.isTabsLocked = true
 }};
 
 // Remove new uploaded asset
-const removeNewAsset = (index) => {{
+const removeNewImage = (index) => {{
     store.{prop.Name.GetCamelCaseName()}Srcs.splice(index, 1);
     store.{prop.Name.GetCamelCaseName()}.splice(index, 1);
+    parentStore.isTabsLocked = true
 }};
 
 // Remove existing backend asset
-const removeExistingAsset = (index) => {{
+const removeExistingImage = (index) => {{
     const removedUrl = store.{prop.Name.GetCamelCaseName()}Urls[index];
     store.deleted{prop.Name}Urls.push(removedUrl); // add to store.deleted{prop.Name}Urls
     store.{prop.Name.GetCamelCaseName()}Urls.splice(index, 1); // Remove from store.{prop.Name.GetCamelCaseName()}Urls (UI)
+    parentStore.isTabsLocked = true
 }};";
                 }
 
@@ -3728,17 +4077,23 @@ const removeExistingAsset = (index) => {{
                     videoSection = $@"
 // upload single video
 const onSelectVideo = (e) => {{
+    const file = e.files[0];
+
+    if (!file) {{
+        store.sendErrorMessage(t('message.wrongVideoFormat'));
+        return;
+    }}
     // reset old video
     store.delete{prop.Name} = true;
     store.{prop.Name.GetCamelCaseName()}Url = null;
 
-    const file = e.files[0];
     onPropChanged(file, '{prop.Name.GetCamelCaseName()}');
     const reader = new FileReader();
     reader.onload = async (e) => {{
         store.{prop.Name.GetCamelCaseName()}Src = e.target.result;
     }};
     reader.readAsDataURL(file);
+    parentStore.isTabsLocked = true
 }};
 
 const removeVideo = () => {{
@@ -3747,6 +4102,7 @@ const removeVideo = () => {{
     store.{prop.Name.GetCamelCaseName()}Url = null;
     onPropChanged(null, '{prop.Name.GetCamelCaseName()}');
     store.{prop.Name.GetCamelCaseName()}Src = null;
+    parentStore.isTabsLocked = true
 }};";
                 }
                 else if (prop.Type == "VDs")
@@ -3754,32 +4110,40 @@ const removeVideo = () => {{
                     videoListSection = $@"
 // upload multiple videos
 
-const onSelectVideos = (event) => {{{{
+const onSelectVideos = (event) => {{
     // Convert FileList to array
     const filesArray = Array.from(event.files);
 
-    filesArray.forEach((file) => {{{{
+    if (!filesArray.length) {{
+        store.sendErrorMessage(t('message.wrongVideoFormat'));
+        return;
+    }}
+
+    filesArray.forEach((file) => {{
         // Add to array that will go into state.assets
         store.{prop.Name.GetCamelCaseName()}.push(file);
 
         // Create a preview URL
         const reader = new FileReader();
-        reader.onload = (evt) => {{{{
+        reader.onload = (evt) => {{
             store.{prop.Name.GetCamelCaseName()}Srcs.push(evt.target.result);
-        }}}};
+        }};
         reader.readAsDataURL(file);
-    }}}});
-}}}};
+    }});
+    parentStore.isTabsLocked = true
+}};
 
 const removeNewVideo = (index) => {{{{
     store.{prop.Name.GetCamelCaseName()}Srcs.splice(index, 1);
     store.{prop.Name.GetCamelCaseName()}.splice(index, 1);
+    parentStore.isTabsLocked = true
 }}}}
 
 const removeExistingVideo = (index) => {{{{
     const removedUrl = store.{prop.Name.GetCamelCaseName()}Urls[index];
     store.deleted{prop.Name}Urls.push(removedUrl); // add to store.deleted{prop.Name}Urls
     store.{prop.Name.GetCamelCaseName()}Urls.splice(index, 1); // Remove from store.{prop.Name.GetCamelCaseName()}Urls (UI)
+    parentStore.isTabsLocked = true
 }}}}";
                 }
                 else if (prop.Type == "FL" || prop.Type == "FLs")
@@ -3883,20 +4247,23 @@ watch(
         }}else{{
             clearSingle();
         }}
-    }},
-    {{ immediate: true }}
+    }}
 );
 
 // When the user picks a new file manually, clear any backend one:
 function onSelectFile(event) {{
-    clearSingle();
-
     const file = event.files[0];
-    if (!file) return;
+    if (!file) {{
+        store.sendErrorMessage(t('message.wrongFileFormat'));
+        return;
+    }}
+
+    clearSingle();
     store.{prop.Name.GetCamelCaseName()}Src = makePreviewObj(file, 'new');
     store.{prop.Name.GetCamelCaseName()} = file;
 
-    store.delete{prop.Name} = true; //<-- store.[property]
+    store.delete{prop.Name} = true;
+    parentStore.isTabsLocked = true
 }}
 
 // Remove single file
@@ -3904,6 +4271,7 @@ function removeFile() {{
     clearSingle();
     store.delete{prop.Name} = true;// <-- store.[property]
     store.{prop.Name.GetCamelCaseName()}Url = null;// <-- store.[property]
+    parentStore.isTabsLocked = true
 }}
 
 onUnmounted(() => {{
@@ -3933,21 +4301,28 @@ watch(
                 console.error('Error fetching', url, err);
             }}
         }}
-    }},
-    {{ immediate: true }}
+    }}
 );
 
 // Handle new uploads
 function onSelectFiles(event) {{
     const files = Array.from(event.files);
+
+    if (!files.length) {{
+        store.sendErrorMessage(t('message.wrongFileFormat'));
+        return;
+    }}
+
     for (const f of files) {{
         store.{prop.Name.GetCamelCaseName()}.push(f);
         store.{prop.Name.GetCamelCaseName()}Srcs.push(makePreviewObj(f, 'new'));
     }}
+    parentStore.isTabsLocked = true
 }}
 
 // Remove a preview (both UI and store)
 function removePreview(index) {{
+    parentStore.isTabsLocked = true
     const p = store.{prop.Name.GetCamelCaseName()}Srcs[index];
     URL.revokeObjectURL(p.downloadUrl);
     store.{prop.Name.GetCamelCaseName()}Srcs.splice(index, 1);
@@ -3981,13 +4356,21 @@ const archiveFiles = computed(() => store.{prop.Name.GetCamelCaseName()}Srcs.fil
                 #endregion
 
                 string colomn = null;
-                if (prop.Type != "FLs")
+                if (prop.Type != "FLs" && prop.Type != "bool" || prop.Type != "bool?")
                 {
-                    colomn = GetSingleColomnControl(entityName, prop, enumProps,basicInfoOrPartialForm: true);
+                    colomn = GetSingleColomnControl(entityName, prop, enumProps, basicInfoOrPartialForm: true, partialForm: true);
                     colomnBuilder.AppendLine(colomn);
                 }
+                else if (prop.Type == "bool" || prop.Type == "bool?")
+                {
+                    columnsBool.Add(GetSingleColomnControl(entityName, prop, enumProps, basicInfoOrPartialForm: true, partialForm: true));
+                }
                 else
-                    colomnFLs = GetSingleColomnControl(entityName, prop, enumProps, basicInfoOrPartialForm: true);
+                    colomnFLs = GetSingleColomnControl(entityName, prop, enumProps, basicInfoOrPartialForm: true, partialForm: true);
+            }
+            foreach (var item in columnsBool)
+            {
+                colomnBuilder.AppendLine(item);
             }
             if (colomnFLs != null)
                 colomnBuilder.AppendLine(colomnFLs);
@@ -3999,14 +4382,30 @@ import {{ {parentEntityName.GetPluralName().GetCapitalName()}_ROUTE as PAGE_ROUT
 {relationImports}
 import useSingle from '@/composables/useSingle';
 import useList from '@/composables/useList';
-import {{EDIT_ITEM,FIND_ITEM}} from '@/utils/StoreConstant';
-import {{onBeforeMount}} from 'vue';
+import {{EDIT_ITEM, FIND_ITEM, VIEW_ITEM, EDIT_PAGE_STATE, VIEW_PAGE_STATE }} from '@/utils/StoreConstant';
+import {{ onBeforeMount }} from 'vue';
+import {{ use{parentEntityName}Store }} from '@/store/{parentEntityName.GetCamelCaseName()}/{parentEntityName}Store';
+import TheButton from '@/components/ui/TheButton.vue';
 {importRef}
 {fileImportPreview}
 
 const store = useStore();
+const parentStore = use{parentEntityName}Store();
 
 const {{ state, onPropChanged, onSave, t }} = useSingle(store, PAGE_ROUTE);
+const {{hasPermission}} = useList(store, PAGE_ROUTE, {{autoLoad: false }});
+onBeforeMount(() => {{
+    // backup
+    const keepCols = store.selectedColumns;
+
+    // full reset
+    store.$reset();
+
+    // restore
+    store.selectedColumns = keepCols;
+    store.itemPageState = hasPermission(store.entityName, 'edit') ?  parentStore.itemPageState : VIEW_PAGE_STATE;
+}});
+
 {relationConsts}
 {enumConsts}
 {assetSection}
@@ -4017,53 +4416,71 @@ const {{ state, onPropChanged, onSave, t }} = useSingle(store, PAGE_ROUTE);
 {filePreviewAndNameHelper}
 {fileSection}
 {fileListSection}
+{ImgDialogRelated}
+{VideoDialogRelated}
 
-{onBeforeMountFN}
+{downloadAssetFN}
 
 const handleCancel = () => {{
     if (store.{parentEntityName.GetCamelCaseName()}Id) {{
-        store[FIND_ITEM]({{
-            id: store.{parentEntityName.GetCamelCaseName()}Id,
-            viewState: EDIT_ITEM
-        }});
-    }} else {{
+        // backup
+        const keepid = store.{parentEntityName.GetCamelCaseName()}Id;
+        const keepPageState = store.itemPageState;
+        const keepCols = store.selectedColumns;
+
+        // full reset
         store.$reset();
+        store[FIND_ITEM]({{
+            id: keepid,
+            viewState: keepPageState === 2 ? EDIT_ITEM : VIEW_ITEM
+        }});
+
+        // restore
+        store.selectedColumns = keepCols;
+        store.itemPageState = keepPageState;
+        parentStore.isTabsLocked = false;
+    }} else {{
+        // backup
+        const keepCols = store.selectedColumns;
+        const keepPageState = store.itemPageState;
+
+        // full reset
+        store.$reset();
+
+        // restore
+        store.selectedColumns = keepCols;
+        store.itemPageState = keepPageState;
+        parentStore.isTabsLocked = false;
     }}
 }};
 </script>
 <template>
+<div class=""bulk-page-container"">
+    <h2 class=""page-title"">{{{{ $t('title.{entityLower}') }}}}</h2>
     <div class=""theCard"">
-        <h2 class=""text-3xl font-semibold"">{{{{ $t('title.{parentEntityName}{entityName}') }}}}</h2>
-
         <div v-if=""!store.finding && !store.{parentEntityName.GetCamelCaseName()}Id"">
             {{{{ $t('message.createEntityFirstMessage', {{ entity: $t('field.{parentEntityName.GetCamelCaseName()}') }}) }}}}
         </div>
         <div v-if=""store.finding"" class=""flex justify-center items-center w-full mt-[32px]"">
-            <atom-spinner :size=""50"" color=""#1B80E4"" />
+            <atom-spinner :size=""50"" color=""#988561"" />
         </div>
 
         <!-- form -->
-        <form v-if=""!store.finding && store.{parentEntityName.GetCamelCaseName()}Id"" @submit.prevent="""" class=""mt-12 w-full"">
-            <div class=""grid grid-cols-1 md:grid-cols-2 gap-4 w-full"">                                      
+        <form v-if=""!store.finding && store.{parentEntityName.GetCamelCaseName()}Id"" @submit.prevent="""" class=""w-full"">
+            <div class=""grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[24px] w-full"">                                      
 {colomnBuilder}
             </div>
             <!-- actions -->
-            <div class=""flex items-center gap-5 mt-12 w-full"">
-                <Button severity=""primary"" text :label=""$t('button.cancel')"" class=""rounded float-start"" outlined @click=""handleCancel"" :disabled=""state.saving""></Button>
-                <Button
-                    severity=""primary""
-                    :loading=""state.saving""
-                    style=""""
-                    :label=""$t('button.save')""
-                    class=""rounded float-start""
-                    @click=""onSave""
-                    :disabled=""state.saving || state.finding""
-                    v-if=""state.itemPageState !== $StoreConstant('VIEW_PAGE_STATE')""
-                />
+            <div class=""flex items-center justify-center gap-[32px] mt-[48px] w-full"">
+                <TheButton  v-if=""hasPermission(store.entityName, 'edit') && state.itemPageState !== $StoreConstant('VIEW_PAGE_STATE')"" :label=""$t('button.save')"" :loading=""state.saving"" @click=""onSave"" :disabled=""state.saving || state.finding""/>
+                <TheButton  variant=""cancel"" :label=""$t('button.cancel')"" @click=""handleCancel"" :disabled=""state.saving""/>
             </div>
         </form>
 {previewDialog}
+{ImgDialogHtml}
+{VideoDialogHtml}
     </div>
+</div>
 </template>";
 
             File.WriteAllText(viewSinglePath, content);
@@ -4087,7 +4504,7 @@ const handleCancel = () => {{
             lines.Clear();
             index = -1;
 
-            string tabPartial = $"{{ key: '{entityName.GetCamelCaseName()}', label: t('title.{entityName.GetCamelCaseName()}') }}," +
+            string tabPartial = $"{{ key: '{entityName.GetCamelCaseName()}', label: t('title.{entityName.GetCamelCaseName()}'), permissionEntity: '{entityLower}' }}," +
                 $"\n\t//Add tab Partials Here";
 
             lines = File.ReadAllLines(parentViewPath).ToList();
@@ -4138,7 +4555,7 @@ const handleCancel = () => {{
                 List<string> stOptions = new List<string>();
                 for (int i = 0; i < enm.enumValues.Count; i++)
                 {
-                    var enmValueLower = char.ToLower(enm.enumValues[i][0]) + enm.enumValues[i].Substring(1);
+                    var enmValueLower = enm.enumValues[i].GetCamelCaseName();
                     string line = $"    {{label: t('field.{enmValueLower}'), value: '{i}' }},";
                     string lineOption = $"    {{label: t('field.{enmValueLower}'), value: {i} }},";
                     st.Add(line);
@@ -4179,15 +4596,15 @@ const {entityName.GetCamelCaseName()}{enm.prop}Options = [
                         filterSectionInitFilters.Add($"    {propLower}: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: FilterMatchMode.STARTS_WITH }}] }},");
 
                         addDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""title"">{{{{ $t('field.{propLower}') }}}}</label>
-                    <InputText :placeholder=""$t('field.title')"" :invalid=""validationErrors.{propLower}"" class=""w-full"" v-model=""newItem.{propLower}"" />
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                    <InputText :placeholder=""$t('field.{propLower}')"" :invalid=""validationErrors.{propLower}"" class=""w-full"" v-model=""newItem.{propLower}"" />
                 </div>");
 
                         editDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""title"">{{{{ $t('field.{propLower}') }}}}</label>
-                    <InputText :invalid=""validationErrors.{propLower}"" :placeholder=""$t('field.title')"" class=""w-full"" v-model=""selectedItem.{propLower}"" />
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                    <InputText :invalid=""validationErrors.{propLower}"" :placeholder=""$t('field.{propLower}')"" class=""w-full"" v-model=""selectedItem.{propLower}"" :disabled=""state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" />
                 </div>");
                     }
                     if (typeWithoutNullable == "bool")
@@ -4197,15 +4614,15 @@ const {entityName.GetCamelCaseName()}{enm.prop}Options = [
                         filterSectionInitFilters.Add($"    {propLower}: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: FilterMatchMode.EQUALS }}] }},");
 
                         addDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                <div class=""flex items-center field-gap w-full"">
                     <Checkbox :invalid=""validationErrors.{propLower}"" v-model=""newItem.{propLower}"" inputId=""{propLower}"" name=""{propLower}"" :binary=""true"" />
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                 </div>");
 
                         editDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
-                    <Checkbox :invalid=""validationErrors.{propLower}"" v-model=""selectedItem.{propLower}"" inputId=""{propLower}"" name=""{propLower}"" :binary=""true"" />
+                <div class=""flex flex-col field-gap w-full"">
+                    <Checkbox :invalid=""validationErrors.{propLower}"" v-model=""selectedItem.{propLower}"" inputId=""{propLower}"" name=""{propLower}"" :binary=""true"" :disabled=""state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" />
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                 </div>");
 
                     }
@@ -4216,15 +4633,15 @@ const {entityName.GetCamelCaseName()}{enm.prop}Options = [
                         filterSectionInitFilters.Add($"    {propLower}: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: FilterMatchMode.EQUALS }}] }},");
 
                         addDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                     <InputNumber :useGrouping=""false"" :maxFractionDigits=""4"" :invalid=""validationErrors.{propLower}"" fluid :placeholder=""$t('field.{propLower}')"" class=""w-full"" v-model=""newItem.{propLower}"" />
                 </div>");
 
                         editDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
-                    <InputNumber :invalid=""validationErrors.{propLower}"" :useGrouping=""false"" :maxFractionDigits=""4"" fluid :placeholder=""$t('field.{propLower}')"" class=""w-full"" v-model=""selectedItem.{propLower}"" />
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                    <InputNumber :invalid=""validationErrors.{propLower}"" :useGrouping=""false"" :maxFractionDigits=""4"" fluid :placeholder=""$t('field.{propLower}')"" class=""w-full"" v-model=""selectedItem.{propLower}"" :disabled=""state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" />
                 </div>");
 
                     }
@@ -4235,9 +4652,9 @@ const {entityName.GetCamelCaseName()}{enm.prop}Options = [
                         filterSectionInitFilters.Add($"    {propLower}: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: FilterMatchMode.EQUALS }}] }},");
 
                         addDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
-                    <Select :options=""{entityName.GetCamelCaseName()}{prop.Name}Options"" :invalid=""validationErrors.{propLower}"" optionLabel=""label"" filter optionValue=""value"" v-model=""newItem.{propLower}"" :placeholder=""$t('field.select{prop.Name}')"" class=""w-full"">
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                    <Select :options=""{entityName.GetCamelCaseName()}{prop.Name}Options"" :invalid=""validationErrors.{propLower}"" optionLabel=""label"" showClear filter optionValue=""value"" v-model=""newItem.{propLower}"" :placeholder=""$t('field.select{prop.Name}')"" class=""w-full"">
                         <template #option=""slotProps"">
                             <div class=""flex items-center"">
                                 <div>{{{{ slotProps.option.label }}}}</div>
@@ -4247,9 +4664,9 @@ const {entityName.GetCamelCaseName()}{enm.prop}Options = [
                 </div>");
 
                         editDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
-                    <Select :options=""{entityName.GetCamelCaseName()}{prop.Name}Options"" :invalid=""validationErrors.{propLower}"" optionLabel=""label"" filter optionValue=""value"" v-model=""selectedItem.{propLower}"" :placeholder=""$t('field.select{prop.Name}')"" class=""w-full"">
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                    <Select :options=""{entityName.GetCamelCaseName()}{prop.Name}Options"" :invalid=""validationErrors.{propLower}"" optionLabel=""label"" showClear filter optionValue=""value"" v-model=""selectedItem.{propLower}"" :placeholder=""$t('field.select{prop.Name}')"" class=""w-full"" :disabled=""state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" >
                         <template #option=""slotProps"">
                             <div class=""flex items-center"">
                                 <div>{{{{ slotProps.option.label }}}}</div>
@@ -4265,15 +4682,15 @@ const {entityName.GetCamelCaseName()}{enm.prop}Options = [
                         filterSectionInitFilters.Add($"    {propLower}: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: FilterMatchMode.EQUALS }}] }},");
 
                         addDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                     <InputNumber :useGrouping=""false"" :invalid=""validationErrors.{propLower}"" fluid :placeholder=""$t('field.{propLower}')"" class=""w-full"" v-model=""newItem.{propLower}"" />
                 </div>");
 
                         editDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
-                    <InputNumber :invalid=""validationErrors.{propLower}"" :useGrouping=""false"" fluid :placeholder=""$t('field.{propLower}')"" class=""w-full"" v-model=""selectedItem.{propLower}"" />
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                    <InputNumber :invalid=""validationErrors.{propLower}"" :useGrouping=""false"" fluid :placeholder=""$t('field.{propLower}')"" class=""w-full"" v-model=""selectedItem.{propLower}"" :disabled=""state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" />
                 </div>");
                     }
                     if (typeWithoutNullable.Contains("Date") || typeWithoutNullable.Contains("Time"))
@@ -4288,15 +4705,15 @@ const {entityName.GetCamelCaseName()}{enm.prop}Options = [
         }}");
 
                         addDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                     <DatePicker :invalid=""validationErrors.{propLower}"" v-model=""newItem.{propLower}"" showIcon fluid iconDisplay=""input"" dateFormat=""dd/mm/yy"" showButtonBar :placeholder=""$t('field.{propLower}')"" class=""!w-full"" />
                 </div>");
 
                         editDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
-                    <DatePicker :invalid=""validationErrors.{propLower}"" v-model=""selectedItem.{propLower}"" showIcon fluid iconDisplay=""input"" dateFormat=""dd/mm/yy"" showButtonBar :placeholder=""$t('field.{propLower}')"" class=""!w-full"" />
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                    <DatePicker :invalid=""validationErrors.{propLower}"" v-model=""selectedItem.{propLower}"" showIcon fluid iconDisplay=""input"" dateFormat=""dd/mm/yy"" showButtonBar :placeholder=""$t('field.{propLower}')"" class=""!w-full"" :disabled=""state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" />
                 </div>");
 
                         dateWatch.Append($@"
@@ -4327,7 +4744,6 @@ watch(
                         }
                     }
                 }
-
             }
             StringBuilder relationImports = new StringBuilder();
             StringBuilder relationConsts = new StringBuilder();
@@ -4356,10 +4772,10 @@ watch(
                         string entityRelatedPluralLower = entityRelatedPlural.GetCamelCaseName();
                         relationImports.AppendLine($"import {{ use{rel.RelatedEntity}Store }} from '@/store/{rel.RelatedEntity}Store';");
                         relationConsts.AppendLine($"const {{ items: {entityRelatedPluralLower}, loading: loading{entityRelatedPlural}, search: search{entityRelatedPlural} }} = useList(use{rel.RelatedEntity}Store(), '', {{}});");
-
+                        
                         addDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                     <Select
                         :invalid=""validationErrors.{entityRelatedLowerValidation}""
                         :emptyMessage=""$t('message.noAvailableOptions')""
@@ -4370,6 +4786,7 @@ watch(
                         :loading=""loading{entityRelatedPlural}""
                         :placeholder=""$t('field.{propLower}')""
                         class=""w-full""
+                        showClear
                         filter
                         @filter=""(e) => search{entityRelatedPlural}(e.value)""
                     >
@@ -4382,8 +4799,8 @@ watch(
                 </div>");
 
                         editDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                     <Select
                         :invalid=""validationErrors.{entityRelatedLowerValidation}""
                         :emptyMessage=""$t('message.noAvailableOptions')""
@@ -4394,8 +4811,10 @@ watch(
                         :loading=""loading{entityRelatedPlural}""
                         :placeholder=""$t('field.{propLower}')""
                         class=""w-full""
+                        showClear
                         filter
                         @filter=""(e) => search{entityRelatedPlural}(e.value)""
+                        :disabled=""state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
                     >
                         <template #option=""slotProps"">
                             <div class=""flex items-center"">
@@ -4418,8 +4837,8 @@ watch(
                         relationConsts.AppendLine($"const {{ items: {entityRelatedPluralLower}, loading: loading{entityRelatedPlural}, search: search{entityRelatedPlural} }} = useList(use{rel.RelatedEntity}Store(), '', {{}});");
 
                         addDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                     <MultiSelect
                         id=""{propLower}""
                         class=""w-full""
@@ -4439,8 +4858,8 @@ watch(
                 </div>");
 
                         editDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                     <MultiSelect
                         id=""{propLower}""
                         class=""w-full""
@@ -4456,6 +4875,7 @@ watch(
                         @filter=""(e) => search{entityRelatedPlural}(e.value)""
                         :placeholder=""$t('field.{propLower}')""
                         :maxSelectedLabels=""3""
+                        :disabled=""state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
                     />
                 </div>");
                     }
@@ -4467,8 +4887,8 @@ watch(
                         filterSectionInitFilters.Add($"    {propLower}Id: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: FilterMatchMode.EQUALS }}] }},");
 
                         addDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                     <Select
                         :invalid=""validationErrors.{entityUserValidation}""
                         :emptyMessage=""$t('message.noAvailableOptions')""
@@ -4479,6 +4899,7 @@ watch(
                         :loading=""loadingUsers""
                         :placeholder=""$t('field.{propLower}')""
                         class=""w-full""
+                        showClear
                         filter
                         @filter=""(e) => searchUsers(e.value)""
                     >
@@ -4491,8 +4912,8 @@ watch(
                 </div>");
 
                         editDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                     <Select
                         :emptyMessage=""$t('message.noAvailableOptions')""
                         :invalid=""validationErrors.{entityUserValidation}""
@@ -4503,8 +4924,10 @@ watch(
                         :loading=""loadingUsers""
                         :placeholder=""$t('field.{propLower}')""
                         class=""w-full""
+                        showClear
                         filter
                         @filter=""(e) => searchUsers(e.value)""
+                        :disabled=""state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
                     >
                         <template #option=""slotProps"">
                             <div class=""flex items-center"">
@@ -4523,8 +4946,8 @@ watch(
                         filterSectionInitFilters.Add($"    {propLower}Ids: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: 'arrayIncludes' }}] }},");
 
                         addDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                     <MultiSelect
                         id=""{propLower}""
                         class=""w-full""
@@ -4544,8 +4967,8 @@ watch(
                 </div>");
 
                         editDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                     <MultiSelect
                         id=""{propLower}""
                         class=""w-full""
@@ -4561,6 +4984,7 @@ watch(
                         @filter=""(e) => searchUsers(e.value)""
                         :placeholder=""$t('field.{propLower}')""
                         :maxSelectedLabels=""3""
+                        :disabled=""state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
                     />
                 </div>");
                     }
@@ -4632,19 +5056,36 @@ watch(
 import LocalListTemplate from '@/components/table/LocalListTemplate.vue';
 import {{ use{parentEntityName}{entityName}Store as useStore }} from '@/store/{parentEntityName.GetCamelCaseName()}/{parentEntityName}{entityName}Store';
 import {{ {parentEntityName.GetPluralName().GetCapitalName()}_ROUTE as PAGE_ROUTE}} from '@/utils/Constants';
-import {{ ref, watch }} from 'vue';
+import {{ ref, watch, onBeforeMount, computed }} from 'vue';
+import {{ use{parentEntityName}Store }} from '@/store/{parentEntityName.GetCamelCaseName()}/{parentEntityName}Store';
 import {{ FilterMatchMode, FilterService, FilterOperator }} from '@primevue/core';
-import {{ EDIT_ITEM, FIND_ITEM }} from '@/utils/StoreConstant';
+import {{ EDIT_ITEM, FIND_ITEM, VIEW_ITEM, EDIT_PAGE_STATE, VIEW_PAGE_STATE }} from '@/utils/StoreConstant';
 import useSingle from '@/composables/useSingle';
 import useList from '@/composables/useList';
 import {{formatDate}} from '@/utils/utils';
+import TheButton from '@/components/ui/TheButton.vue';
+
 {relationImports}
 
 
 const store = useStore();
+const parentStore = use{parentEntityName}Store();
 
 const {{ state, t, onSave }} = useSingle(store, PAGE_ROUTE);
-const {{ isColumnSelected, formattedDate, getOptionLabel }} = useList(store, PAGE_ROUTE, {{ autoLoad: false }});
+const {{ isColumnSelected, formattedDate, getOptionLabel, hasPermission }} = useList(store, PAGE_ROUTE, {{ autoLoad: false }});
+
+onBeforeMount(() => {{
+    // backup
+    const keepCols = store.selectedColumns;
+
+    // full reset
+    store.$reset();
+
+    // restore
+    store.selectedColumns = keepCols;
+    store.itemPageState = parentStore.itemPageState;
+}});
+
 {enumFilters.ToString().TrimEnd()}
 {enumDisplayOption.ToString().TrimEnd()}
 
@@ -4709,6 +5150,7 @@ const onAddSave = () => {{
     }}
 
     store.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}.push({{ ...newItem.value }});
+    parentStore.isTabsLocked = true;
     isAddModalOpen.value = false;
 
     // reset errors
@@ -4727,8 +5169,13 @@ function findIndex(item) {{
 const selectedItem = ref(null);
 const originalItem = ref(null); // store a backup copy
 const isEditModalOpen = ref(false);
+const editDialogMode = computed(() => (store.itemPageState === VIEW_PAGE_STATE ? 'view' : 'edit'));
 
-const onEdit = (item) => {{
+const onEdit = (item, mode = 'editMode') => {{
+
+    if (mode === 'viewMode') {{
+        store.itemPageState = VIEW_PAGE_STATE;
+    }}
     // make a deep copy so we can revert later
     originalItem.value = JSON.parse(JSON.stringify(item));
     // work on a fresh object, not the one in the array
@@ -4750,6 +5197,7 @@ const onEditSave = () => {{
         // replace the array item with the edited version
         store.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}.splice(idx, 1, selectedItem.value);
     }}
+    parentStore.isTabsLocked = true;
     isEditModalOpen.value = false;
     validationErrors.value = {{}}; // clear old errors
 }};
@@ -4760,6 +5208,7 @@ const onEditCancel = () => {{
     if (idx !== -1) {{
         store.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}.splice(idx, 1, originalItem.value);
     }}
+    if (parentStore.itemPageState !== VIEW_PAGE_STATE) store.itemPageState = EDIT_PAGE_STATE;
     isEditModalOpen.value = false;
 }};
 
@@ -4778,6 +5227,7 @@ const onDeleteConfirm = () => {{
     if (idx !== -1) {{
         store.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}.splice(idx, 1);
     }}
+    parentStore.isTabsLocked = true;
     isDeleteModalOpen.value = false;
 }};
 
@@ -4819,20 +5269,45 @@ const saveAll = () => {{
 
 
 const handleCancel = () => {{
-    store[FIND_ITEM]({{
-        id: store.{parentEntityName.GetCamelCaseName()}Id,
-        viewState: EDIT_ITEM
-    }});
+    if (store.{parentEntityName.GetCamelCaseName()}Id) {{
+        // backup
+        const keepid = store.{parentEntityName.GetCamelCaseName()}Id;//parent id
+        const keepPageState = store.itemPageState;
+        const keepCols = store.selectedColumns;
+
+        // full reset
+        store.$reset();
+        store[FIND_ITEM]({{
+            id: keepid,
+            viewState: keepPageState === 2 ? EDIT_ITEM : VIEW_ITEM
+        }});
+
+        // restore
+        store.selectedColumns = keepCols;
+        store.itemPageState = keepPageState;
+        parentStore.isTabsLocked = false;
+    }} else {{
+        // backup
+        const keepCols = store.selectedColumns;
+        const keepPageState = store.itemPageState;
+
+        // full reset
+        store.$reset();
+
+        // restore
+        store.selectedColumns = keepCols;
+        store.itemPageState = keepPageState;
+        parentStore.isTabsLocked = false;
+    }}
 }};
 </script>
 <template>
     <div class=""theCard"">
-        <div class=""flex flex-wrap items-center justify-between gap-4 mb-8"">
-            <h2 class=""text-3xl font-semibold"">{{{{ $t('title.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}') }}}}</h2>
+        <div class=""flex flex-wrap items-center justify-between gap-4"">
             <!-- actions -->
-            <div v-if=""!store.finding && store.{parentEntityName.GetCamelCaseName()}Id"" class="""">
-                <Button text :label=""$t('button.cancelAll')"" class=""mr-2"" @click=""handleCancel"" />
-                <Button :label=""$t('button.saveAll')"" class=""mr-2"" @click=""saveAll"" />
+            <div v-if=""!store.finding && store.{parentEntityName.GetCamelCaseName()}Id && hasPermission(store.entityName, 'edit') && state.itemPageState !== $StoreConstant('VIEW_PAGE_STATE')"" class=""flex items-center gap-[32px] mb-8"">
+                <TheButton :label=""$t('button.save')"" @click=""saveAll"" :loading=""state.saving""  />
+                <TheButton variant=""cancel"" :label=""$t('button.cancel')"" @click=""handleCancel"" :disabled=""state.saving""/>
             </div>
         </div>
         <div v-if=""!store.finding && !store.{parentEntityName.GetCamelCaseName()}Id"">
@@ -4841,15 +5316,34 @@ const handleCancel = () => {{
         <div v-if=""store.finding"" class=""flex justify-center items-center w-full mt-[32px]"">
             <atom-spinner :size=""50"" color=""#1B80E4"" />
         </div>
-        <LocalListTemplate v-if=""!store.finding && store.{parentEntityName.GetCamelCaseName()}Id"" :items=""store.{parentEntityName.GetCamelCaseName()}{entityPlural}"" :use-store=""useStore"" :filters=""filters"" @add=""onAdd"" :global-filter-fields=""globalFields"">
+        <LocalListTemplate v-if=""!store.finding && store.{parentEntityName.GetCamelCaseName()}Id"" title=""title.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}"" :items=""store.{parentEntityName.GetCamelCaseName()}{entityPlural}"" :use-store=""useStore"" :filters=""filters"" :show-add=""state.itemPageState !== $StoreConstant('VIEW_PAGE_STATE') && hasPermission(store.entityName, 'add')"" @add=""onAdd"" :global-filter-fields=""globalFields"">
             <template #columns>
 {colomnBuilder}
-
-                <Column field=""actions"" :header=""$t('field.actions')"">
+                <!-- table actions -->
+                <Column field=""actions"" class=""data-table-actions"" :header=""$t('field.actions')"">
                     <template #body=""{{ data }}"">
-                        <div class=""flex flex-row gap-2 items-center"">
-                            <Button v-tooltip=""$t('tooltip.edit')"" text :severity=""$AppColor('ICON_EDIT_COLOR')"" class=""p-button-rounded mr-2 mb-2"" @click=""onEdit(data)""><i class=""fa-solid fa-pen""></i></Button>
-                            <Button v-tooltip=""$t('tooltip.delete')"" text :severity=""$AppColor('ICON_DELETE_COLOR')"" class=""p-button-rounded mr-2 mb-2"" @click=""onDelete(data)""><i class=""fa-solid fa-trash""></i></Button>
+                        <div class=""flex flex-row gap-2 items-center justify-center"">
+                            <button v-if=""hasPermission(store.entityName, 'edit') || hasPermission(store.entityName, 'view')"" v-tooltip=""$t('tooltip.view')"" class=""size-[36px] rounded-full flex items-center justify-center text-[#298DA1] hover:bg-[#E0FAFF] transition-colors"" @click=""onEdit(data, 'viewMode')"">
+                                <i class=""fa-solid fa-eye leading-none font-semibold""></i>
+                            </button>
+                            <button
+                                v-if=""state.itemPageState !== $StoreConstant('VIEW_PAGE_STATE') && hasPermission(store.entityName, 'edit')""
+                                v-tooltip=""$t('tooltip.edit')""
+                                class=""size-[36px] rounded-full flex items-center justify-center text-[#1E19A4] hover:bg-[#E8E7FF] transition-colors""
+                                @click=""onEdit(data)""
+                            >
+                                <i class=""fa-solid fa-pen leading-none font-semibold""></i>
+                            </button>
+                            <!-- v-if=""state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" -->
+
+                            <button
+                                v-if=""state.itemPageState !== $StoreConstant('VIEW_PAGE_STATE') && hasPermission(store.entityName, 'delete')""
+                                v-tooltip=""$t('tooltip.delete')""
+                                class=""size-[36px] rounded-full flex items-center justify-center text-[#D7001F] hover:bg-[#FFDDE2] transition-colors""
+                                @click=""onDelete(data)""
+                            >
+                                <i class=""fa-solid fa-trash leading-none font-semibold""></i>
+                            </button>
                         </div>
                     </template>
                 </Column>
@@ -4858,25 +5352,25 @@ const handleCancel = () => {{
 
         <!-- -- Dialogs -- -->
         <!-- ADD DIALOG -->
-        <Dialog v-model:visible=""isAddModalOpen"" :header=""t('title.add{parentEntityName}{entityName}')"" modal dismissableMask :draggable=""false"" block-scroll class=""!w-[90%] !max-w-[600px]"">
+        <Dialog v-model:visible=""isAddModalOpen"" :header=""t('title.add{parentEntityName}{entityName}')"" modal dismissableMask :draggable=""false"" block-scroll class=""!w-[90%] !max-w-[800px] !h-[100%]"">
             <div class=""grid grid-cols-1 md:grid-cols-2 gap-4"">
 {addDialog}
             </div>
             <template #footer>
-                <Button :label=""$t('button.cancel')"" text @click=""onAddCancel"" />
-                <Button :label=""$t('button.save')"" @click=""onAddSave"" />
+                <TheButton  :label=""$t('button.save')"" @click=""onAddSave""/>
+                <TheButton  variant=""cancel"" :label=""$t('button.cancel')"" @click=""onAddCancel""/>
             </template>
         </Dialog>
 
         <!-- EDIT DIALOG -->
-        <Dialog v-model:visible=""isEditModalOpen"" dismissableMask modal :header=""$t('title.edit{parentEntityName}{entityName}')"" :modal=""true"" :draggable=""false"" block-scroll class=""!w-[90%] !max-w-[600px]"">
+        <Dialog v-model:visible=""isEditModalOpen"" dismissableMask modal :header=""$t(`title.${{editDialogMode}}{parentEntityName}{entityName}`)"" :modal=""true"" :draggable=""false"" block-scroll class=""!w-[90%] !max-w-[800px] !h-[100%]"">
             <!-- your form fields, bound to selectedItem.fullName, etc. -->
             <div class=""w-full grid grid-cols-1 md:grid-cols-2 gap-4"">
 {editDialog}
             </div>
-            <template #footer>
-                <Button :label=""$t('button.cancel')"" text @click=""onEditCancel"" />
-                <Button :label=""$t('button.save')"" @click=""onEditSave"" />
+            <template #footer v-if=""state.itemPageState !== $StoreConstant('VIEW_PAGE_STATE')"">
+                <TheButton  :label=""$t('button.save')"" @click=""onEditSave""/>
+                <TheButton  variant=""cancel"" :label=""$t('button.cancel')"" @click=""onEditCancel""/>
             </template>
         </Dialog>
 
@@ -4896,7 +5390,7 @@ const handleCancel = () => {{
 
             File.WriteAllText(viewBulkPath, content);
 
-            //update parent single view
+            #region update parent single view
             string parentViewPath = Path.Combine(srcDir, "views", $"{parentEntityName.GetCamelCaseName()}", $"{parentEntityName}.vue");
             if (!File.Exists(parentViewPath))
             {
@@ -4916,7 +5410,7 @@ const handleCancel = () => {{
             lines.Clear();
             index = -1;
 
-            string tabPartial = $"{{ key: '{entityName.GetCamelCaseName().GetPluralName()}', label: t('title.{entityName.GetCamelCaseName().GetPluralName()}') }}," +
+            string tabPartial = $"{{ key: '{entityName.GetCamelCaseName().GetPluralName()}', label: t('title.{entityName.GetCamelCaseName().GetPluralName()}'), permissionEntity: '{entityLower}' }}," +
                 $"\n\t//Add tab Partials Here";
 
             lines = File.ReadAllLines(parentViewPath).ToList();
@@ -4940,6 +5434,7 @@ const handleCancel = () => {{
                 lines[index] = componentPartial;
                 File.WriteAllLines(parentViewPath, lines);
             }
+            #endregion
         }
         public static void GeneratePartialBulkViewWithAssets(string entityName, string srcDir, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, List<string> notGeneratedTableProperties, List<string> hiddenTableProperties, List<Relation> relations, string parentEntityName)
         {
@@ -4966,7 +5461,7 @@ const handleCancel = () => {{
                 List<string> stOptions = new List<string>();
                 for (int i = 0; i < enm.enumValues.Count; i++)
                 {
-                    var enmValueLower = char.ToLower(enm.enumValues[i][0]) + enm.enumValues[i].Substring(1);
+                    var enmValueLower = enm.enumValues[i].GetCamelCaseName();
                     string line = $"    {{label: t('field.{enmValueLower}'), value: '{i}' }},";
                     string lineOption = $"    {{label: t('field.{enmValueLower}'), value: {i} }},";
                     st.Add(line);
@@ -5004,7 +5499,15 @@ const {entityName.GetCamelCaseName()}{enm.prop}Options = [
             string? multiImagesSection = null;
             string? multiVideosSection = null;
             string? multiFilesSection = null;
-            string? fileHelperSection = !properties.Any(p => p.Type == "FL" || p.Type == "FLs") ? null : $@"
+            string? previewDialog = !properties.Any(p => p.Type == "FL" || p.Type == "FLs") ? null : $@"
+        <!-- file preview dialog -->
+        <Dialog v-model:visible=""isPreviewModalOpen"" :style=""{{ width: '95%', height: '90%' }}"" :header=""$t('title.filePreview')"" :modal=""true"" :draggable=""false"" :dismissableMask=""true"" block-scroll>
+            <div class=""!h-full"">
+                <VueFilesPreview v-if=""selectedPreviewFile"" :file=""selectedPreviewFile"" overflow=""auto"" />
+            </div>
+        </Dialog>
+";
+            string ? fileHelperSection = !properties.Any(p => p.Type == "FL" || p.Type == "FLs") ? null : $@"
 // —————————————
 // Files Helper Section
 // —————————————
@@ -5062,6 +5565,45 @@ function makePreviewObj(file, source) {{
     }};
 }}
 ";
+            string? ImgDialogRelated = !properties.Any(p => p.Type == "GPG" || p.Type == "PNGs") ? null : $@"
+// img dialog related
+const isImgDialogOpen = ref(false);
+const selectedImg = ref(null);
+const imgIs = ref('');
+
+const openImgDialog = (img, type = 'old') => {{
+    selectedImg.value = img;
+    imgIs.value = type;
+    isImgDialogOpen.value = true;
+}};";
+
+            string? ImgDialogHtml = !properties.Any(p => p.Type == "GPG" || p.Type == "PNGs") ? null : $@"
+        <!-- preview img dialog -->
+        <Dialog v-model:visible=""isImgDialogOpen"" :style=""{{ width: '95%', height: '90%' }}"" :header=""$t('title.filePreview')"" :modal=""true"" :draggable=""false"" :dismissableMask=""true"" block-scroll>
+            <div class=""!h-full"">
+                <img :src=""imgIs == 'new' ? selectedImg : ASSET_ENDPOINT(selectedImg)"" class=""w-full h-full object-cover"" alt=""image preview"" />
+            </div>
+        </Dialog>";
+
+            string? VideoDialogRelated = !properties.Any(p => p.Type == "VD" || p.Type == "VDs") ? null : $@"
+// video dialog related
+const isVideoDialogOpen = ref(false);
+const selectedVideo = ref(null);
+const vidIs = ref('');
+
+const openVideoDialog = (video, type = 'old') => {{
+    selectedVideo.value = video;
+    vidIs.value = type;
+    isVideoDialogOpen.value = true;
+}};";
+
+            string? VideoDialogHtml = !properties.Any(p => p.Type == "VD" || p.Type == "VDs") ? null : $@"
+        <!-- preview vid dialog -->
+        <Dialog v-model:visible=""isVideoDialogOpen"" :style=""{{ width: '95%', height: '90%' }}"" :header=""$t('title.filePreview')"" :modal=""true"" :draggable=""false"" :dismissableMask=""true"" block-scroll>
+            <div class=""!h-full"">
+                <video :src=""vidIs == 'new' ? selectedVideo : ASSET_ENDPOINT(selectedVideo)"" class=""w-full h-full object-cover"" controls alt=""video preview""></video>
+            </div>
+        </Dialog>";
             foreach (var prop in properties)
             {
                 if (!notGeneratedTableProperties.Any(p => p == prop.Name))
@@ -5077,15 +5619,15 @@ function makePreviewObj(file, source) {{
                         filterSectionInitFilters.Add($"    {propLower}: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: FilterMatchMode.STARTS_WITH }}] }},");
 
                         addDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""title"">{{{{ $t('field.{propLower}') }}}}</label>
-                    <InputText :placeholder=""$t('field.title')"" :invalid=""validationErrors.{propLower}"" class=""w-full"" v-model=""newItem.{propLower}"" />
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                    <InputText :placeholder=""$t('field.{propLower}')"" :invalid=""validationErrors.{propLower}"" class=""w-full"" v-model=""newItem.{propLower}"" />
                 </div>");
 
                         editDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""title"">{{{{ $t('field.{propLower}') }}}}</label>
-                    <InputText :invalid=""validationErrors.{propLower}"" :placeholder=""$t('field.title')"" class=""w-full"" v-model=""selectedItem.{propLower}"" />
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                    <InputText :invalid=""validationErrors.{propLower}"" :placeholder=""$t('field.{propLower}')"" class=""w-full"" v-model=""selectedItem.{propLower}"" :disabled=""state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" />
                 </div>");
                     }
                     if (typeWithoutNullable == "bool")
@@ -5098,15 +5640,15 @@ function makePreviewObj(file, source) {{
                         filterSectionInitFilters.Add($"    {propLower}: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: FilterMatchMode.EQUALS }}] }},");
 
                         addDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                <div class=""flex items-center field-gap w-full"">
                     <Checkbox :invalid=""validationErrors.{propLower}"" v-model=""newItem.{propLower}"" inputId=""{propLower}"" name=""{propLower}"" :binary=""true"" />
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                 </div>");
 
                         editDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
-                    <Checkbox :invalid=""validationErrors.{propLower}"" v-model=""selectedItem.{propLower}"" inputId=""{propLower}"" name=""{propLower}"" :binary=""true"" />
+                <div class=""flex items-center field-gap w-full"">
+                    <Checkbox :invalid=""validationErrors.{propLower}"" v-model=""selectedItem.{propLower}"" inputId=""{propLower}"" name=""{propLower}"" :binary=""true"" :disabled=""state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" />
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                 </div>");
 
                     }
@@ -5120,15 +5662,15 @@ function makePreviewObj(file, source) {{
                         filterSectionInitFilters.Add($"    {propLower}: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: FilterMatchMode.EQUALS }}] }},");
 
                         addDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                     <InputNumber :useGrouping=""false"" :maxFractionDigits=""4"" :invalid=""validationErrors.{propLower}"" fluid :placeholder=""$t('field.{propLower}')"" class=""w-full"" v-model=""newItem.{propLower}"" />
                 </div>");
 
                         editDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
-                    <InputNumber :invalid=""validationErrors.{propLower}"" :useGrouping=""false"" :maxFractionDigits=""4"" fluid :placeholder=""$t('field.{propLower}')"" class=""w-full"" v-model=""selectedItem.{propLower}"" />
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                    <InputNumber :invalid=""validationErrors.{propLower}"" :useGrouping=""false"" :maxFractionDigits=""4"" fluid :placeholder=""$t('field.{propLower}')"" class=""w-full"" v-model=""selectedItem.{propLower}"" :disabled=""state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" />
                 </div>");
 
                     }
@@ -5142,9 +5684,9 @@ function makePreviewObj(file, source) {{
                         filterSectionInitFilters.Add($"    {propLower}: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: FilterMatchMode.EQUALS }}] }},");
 
                         addDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
-                    <Select :options=""{entityName.GetCamelCaseName()}{prop.Name}Options"" :invalid=""validationErrors.{propLower}"" optionLabel=""label"" filter optionValue=""value"" v-model=""newItem.{propLower}"" :placeholder=""$t('field.select{prop.Name}')"" class=""w-full"">
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                    <Select :options=""{entityName.GetCamelCaseName()}{prop.Name}Options"" :invalid=""validationErrors.{propLower}"" optionLabel=""label"" showClear filter optionValue=""value"" v-model=""newItem.{propLower}"" :placeholder=""$t('field.select{prop.Name}')"" class=""w-full"">
                         <template #option=""slotProps"">
                             <div class=""flex items-center"">
                                 <div>{{{{ slotProps.option.label }}}}</div>
@@ -5154,9 +5696,9 @@ function makePreviewObj(file, source) {{
                 </div>");
 
                         editDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
-                    <Select :options=""{entityName.GetCamelCaseName()}{prop.Name}Options"" :invalid=""validationErrors.{propLower}"" optionLabel=""label"" filter optionValue=""value"" v-model=""selectedItem.{propLower}"" :placeholder=""$t('field.select{prop.Name}')"" class=""w-full"">
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                    <Select :options=""{entityName.GetCamelCaseName()}{prop.Name}Options"" :invalid=""validationErrors.{propLower}"" optionLabel=""label"" showClear filter optionValue=""value"" v-model=""selectedItem.{propLower}"" :placeholder=""$t('field.select{prop.Name}')"" class=""w-full"" :disabled=""state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" >
                         <template #option=""slotProps"">
                             <div class=""flex items-center"">
                                 <div>{{{{ slotProps.option.label }}}}</div>
@@ -5175,15 +5717,15 @@ function makePreviewObj(file, source) {{
                         filterSectionInitFilters.Add($"    {propLower}: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: FilterMatchMode.EQUALS }}] }},");
 
                         addDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                     <InputNumber :useGrouping=""false"" :invalid=""validationErrors.{propLower}"" fluid :placeholder=""$t('field.{propLower}')"" class=""w-full"" v-model=""newItem.{propLower}"" />
                 </div>");
 
                         editDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
-                    <InputNumber :invalid=""validationErrors.{propLower}"" :useGrouping=""false"" fluid :placeholder=""$t('field.{propLower}')"" class=""w-full"" v-model=""selectedItem.{propLower}"" />
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                    <InputNumber :invalid=""validationErrors.{propLower}"" :useGrouping=""false"" fluid :placeholder=""$t('field.{propLower}')"" class=""w-full"" v-model=""selectedItem.{propLower}"" :disabled=""state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" />
                 </div>");
                     }
                     if (typeWithoutNullable.Contains("Date") || typeWithoutNullable.Contains("Time"))
@@ -5201,15 +5743,15 @@ function makePreviewObj(file, source) {{
         }}");
 
                         addDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                     <DatePicker :invalid=""validationErrors.{propLower}"" v-model=""newItem.{propLower}"" showIcon fluid iconDisplay=""input"" dateFormat=""dd/mm/yy"" showButtonBar :placeholder=""$t('field.{propLower}')"" class=""!w-full"" />
                 </div>");
 
                         editDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
-                    <DatePicker :invalid=""validationErrors.{propLower}"" v-model=""selectedItem.{propLower}"" showIcon fluid iconDisplay=""input"" dateFormat=""dd/mm/yy"" showButtonBar :placeholder=""$t('field.{propLower}')"" class=""!w-full"" />
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                    <DatePicker :invalid=""validationErrors.{propLower}"" v-model=""selectedItem.{propLower}"" showIcon fluid iconDisplay=""input"" dateFormat=""dd/mm/yy"" showButtonBar :placeholder=""$t('field.{propLower}')"" class=""!w-full"" :disabled=""state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" />
                 </div>");
 
                         dateWatch.Append($@"
@@ -5238,11 +5780,17 @@ watch(
                         singleImageSection = $@"
 // Single Image Section
 const onSelectAsset = (e, item) => {{
+    const file = e.files[0];
+
+    if (!file) {{
+        store.sendErrorMessage(t('message.wrongImageFormat'));
+        return;
+    }}
+
     // remove old asset
     item.delete{prop.Name} = true; // item.delete[property]
     item.{prop.Name.GetCamelCaseName()}Url = null; // item.[property]Url
 
-    const file = e.files[0];
     item.{prop.Name.GetCamelCaseName()} = file; // item.[property]
     const reader = new FileReader();
     reader.onload = async (e) => {{
@@ -5261,74 +5809,131 @@ const removeAsset = (item) => {{
 
                         addDialog.AppendLine($@"
                 <!-- Single Image -->
-                <div class=""flex flex-col items-start col-span-1 md:col-span-2 gap-2 w-full"">
-                    <label>{{{{ $t('field.singleAsset(photo)') }}}}</label>
+                <div class=""flex flex-col items-start col-span-1 md:col-span-2 field-gap w-full"">
+                    <label class=""field-label"">{{{{ $t('field.{prop.Name.GetCamelCaseName()}') }}}}</label>
                     <p v-if=""validationErrors.{prop.Name.GetCamelCaseName()}"" class=""text-red-500"">{{{{ $t('message.imageRequired') }}}}</p>
-                    <FileUpload
-                        mode=""basic""
-                        accept="".jpg,.jpeg,.png""
-                        @select=""(e) => onSelectAsset(e, newItem)""
-                        customUpload
-                        auto
-                        class=""p-button-outlined""
-                        :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                    />
-                    <!-- new image -->
-                    <div v-if=""newItem.{prop.Name.GetCamelCaseName()}Src"" class=""relative"">
-                        <button
-                            @click=""removeAsset(newItem)""
-                            :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                            class=""absolute z-50 top-2.5 right-2.5 bg-black/50 border border-white text-white flex justify-center items-center rounded-lg w-[32px] h-[32px] hover:bg-[#FF4C51] transition""
-                        >
-                            <i class=""pi pi-trash""></i>
-                        </button>
-                        <img :src=""newItem.{prop.Name.GetCamelCaseName()}Src"" alt=""Image"" class=""shadow-md w-[300px] aspect-video object-cover"" />
+                    <div class=""w-full"">
+                        <FileUpload accept="".jpg,.jpeg,.png"" @select=""(e) => onSelectAsset(e, newItem)"" customUpload auto class=""!w-full"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"">
+                            <template #header=""{{ chooseCallback }}"">
+                                <div class=""flex flex-wrap justify-between items-center flex-1 gap-4"">
+                                    <div class=""flex gap-2"">
+                                        <button @click=""chooseCallback()"" class=""size-[28px] rounded-[8px] bg-white flex items-center justify-center text-gold1 border border-solid border-gold1 hover:bg-green2 hover:text-gold3 transition-colors"">
+                                            <i class=""pi pi-plus text-xs leading-none font-semibold""></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                            <template #content>
+                                <!-- empty state -->
+                                <div v-if=""!newItem.{prop.Name.GetCamelCaseName()}Src"" class=""flex items-center w-full justify-center text-center p-5 flex-col"">
+                                    <img src=""@/assets/icons/fileUploadIcon.svg"" alt=""file upload icon"" />
+                                    <p class=""mt-[8px] text-green1 font-medium text-[13px]"">{{{{ $t('message.uploadFile') }}}}</p>
+                                    <p class=""mt-[12px] text-lightGrey text-[13px]"">{{{{ $t('message.supportedImageFormats') }}}}</p>
+                                </div>
+                                <!-- uploaded state -->
+                                <div v-else class=""p-[10px]"">
+                                    <!-- new image -->
+                                    <div v-if=""newItem.{prop.Name.GetCamelCaseName()}Src"" class=""relative"">
+                                        <div class=""absolute z-50 top-[10px] right-[10px] flex flex-col gap-[10px]"">
+                                            <button
+                                                @click.stop=""removeAsset""
+                                                :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                                                class=""bg-[#D7001F]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#A60018]/80 transition""
+                                            >
+                                                <img src=""@/assets/icons/trashIcon.svg"" alt=""trash-icon"" />
+                                            </button>
+                                            <button
+                                                @click.stop=""openImgDialog(newItem.{prop.Name.GetCamelCaseName()}Src, 'new')""
+                                                :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                                                class=""bg-[#298DA1]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#1E6A79]/80 transition""
+                                            >
+                                                <img src=""@/assets/icons/eyeIcon.svg"" alt=""eye-icon"" />
+                                            </button>
+                                        </div>
+
+                                        <img :src=""newItem.{prop.Name.GetCamelCaseName()}Src"" alt=""Image"" class=""border border-border1 rounded-[4px] w-[120px] aspect-square object-cover"" />
+                                    </div>
+                                </div>
+                            </template>
+                        </FileUpload>
                     </div>
                 </div>");
 
                         editDialog.AppendLine($@"
                 <!-- Single Image -->
-                <div class=""flex flex-col items-start col-span-1 md:col-span-2 gap-2 w-full"">
-                    <label>{{{{ $t('field.singleAsset(photo)') }}}}</label>
+                <div class=""flex flex-col items-start col-span-1 md:col-span-2 field-gap w-full"">
+                    <label class=""field-label"">{{{{ $t('field.{prop.Name.GetCamelCaseName()}') }}}}</label>
                     <p v-if=""validationErrors.{prop.Name.GetCamelCaseName()}"" class=""text-red-500"">{{{{ $t('message.imageRequired') }}}}</p>
-                    <FileUpload
-                        mode=""basic""
-                        accept="".jpg,.jpeg,.png""
-                        @select=""(e) => onSelectAsset(e, selectedItem)""
-                        customUpload
-                        auto
-                        class=""p-button-outlined""
-                        :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                    />
-                    <!-- new image -->
-                    <div v-if=""selectedItem.{prop.Name.GetCamelCaseName()}Src"" class=""relative"">
-                        <button
-                            @click=""removeAsset(selectedItem)""
-                            :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                            class=""absolute z-50 top-2.5 right-2.5 bg-black/50 border border-white text-white flex justify-center items-center rounded-lg w-[32px] h-[32px] hover:bg-[#FF4C51] transition""
-                        >
-                            <i class=""pi pi-trash""></i>
-                        </button>
-                        <img :src=""selectedItem.{prop.Name.GetCamelCaseName()}Src"" alt=""Image"" class=""shadow-md w-[300px] aspect-video object-cover"" />
-                    </div>
+                    <div class=""w-full"">
+                        <FileUpload accept="".jpg,.jpeg,.png"" @select=""(e) => onSelectAsset(e, selectedItem)"" customUpload auto class=""!w-full"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"">
+                            <template #header=""{{ chooseCallback }}"">
+                                <div class=""flex flex-wrap justify-between items-center flex-1 gap-4"">
+                                    <div class=""flex gap-2"">
+                                        <button @click=""chooseCallback()"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" class=""size-[28px] rounded-[8px] bg-white flex items-center justify-center text-gold1 border border-solid border-gold1 hover:bg-green2 hover:text-gold3 transition-colors"">
+                                            <i class=""pi pi-plus text-xs leading-none font-semibold""></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                            <template #content>
+                                <!-- empty state -->
+                                <div v-if=""!selectedItem.{prop.Name.GetCamelCaseName()}Src && !selectedItem.{prop.Name.GetCamelCaseName()}Url"" class=""flex items-center w-full justify-center text-center p-5 flex-col"">
+                                    <img src=""@/assets/icons/fileUploadIcon.svg"" alt=""file upload icon"" />
+                                    <p class=""mt-[8px] text-green1 font-medium text-[13px]"">{{{{ $t('message.uploadFile') }}}}</p>
+                                    <p class=""mt-[12px] text-lightGrey text-[13px]"">{{{{ $t('message.supportedImageFormats') }}}}</p>
+                                </div>
+                                <!-- uploaded state -->
+                                <div v-else class=""p-[10px]"">
+                                    <!-- new image -->
+                                    <div v-if=""selectedItem.{prop.Name.GetCamelCaseName()}Src"" class=""relative"">
+                                        <div class=""absolute z-50 top-[10px] right-[10px] flex flex-col gap-[10px]"">
+                                            <button
+                                                @click.stop=""removeAsset(selectedItem)""
+                                                :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                                                class=""bg-[#D7001F]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#A60018]/80 transition""
+                                            >
+                                                <img src=""@/assets/icons/trashIcon.svg"" alt=""trash-icon"" />
+                                            </button>
+                                            <button
+                                                @click.stop=""openImgDialog(selectedItem.{prop.Name.GetCamelCaseName()}Src, 'new')""
+                                                :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                                                class=""bg-[#298DA1]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#1E6A79]/80 transition""
+                                            >
+                                                <img src=""@/assets/icons/eyeIcon.svg"" alt=""eye-icon"" />
+                                            </button>
+                                        </div>
 
-                    <!-- old image -->
-                    <div v-if=""selectedItem.{prop.Name.GetCamelCaseName()}Url"" class=""relative"">
-                        <button
-                            @click=""removeAsset(selectedItem)""
-                            :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                            class=""absolute z-50 top-2.5 right-2.5 bg-black/50 border border-white text-white flex justify-center items-center rounded-lg w-[32px] h-[32px] hover:bg-[#FF4C51] transition""
-                        >
-                            <i class=""pi pi-trash""></i>
-                        </button>
-                        <a
-                            :href=""selectedItem.{prop.Name.GetCamelCaseName()}Url""
-                            :download=""selectedItem.{prop.Name.GetCamelCaseName()}Url.slice(46)""
-                            class=""absolute z-[100] top-2.5 left-2.5 bg-black/50 border border-white text-white flex justify-center items-center rounded-lg w-[32px] h-[32px] hover:bg-green-500 transition""
-                        >
-                            <i class=""pi pi-download""></i>
-                        </a>
-                        <img :src=""ASSET_ENDPOINT(selectedItem.{prop.Name.GetCamelCaseName()}Url)"" alt=""Image"" class=""shadow-md w-[300px] aspect-video object-cover"" />
+                                        <img :src=""selectedItem.{prop.Name.GetCamelCaseName()}Src"" alt=""Image"" class=""border border-border1 rounded-[4px] w-[120px] aspect-square object-cover"" />
+                                    </div>
+
+                                    <!-- old image -->
+                                    <div v-if=""selectedItem.{prop.Name.GetCamelCaseName()}Url"" class=""relative"">
+                                        <div class=""absolute z-50 top-[10px] right-[10px] flex flex-col gap-[10px]"">
+                                            <button
+                                                @click.stop=""removeAsset(selectedItem)""
+                                                :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                                                class=""bg-[#D7001F]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#A60018]/80 transition""
+                                            >
+                                                <img src=""@/assets/icons/trashIcon.svg"" alt=""trash-icon"" />
+                                            </button>
+                                            <button
+                                                @click.stop=""openImgDialog(selectedItem.{prop.Name.GetCamelCaseName()}Url)""
+                                                class=""bg-[#298DA1]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#1E6A79]/80 transition""
+                                            >
+                                                <img src=""@/assets/icons/eyeIcon.svg"" alt=""eye-icon"" />
+                                            </button>
+                                            <button
+                                                @click.stop=""downloadAsset(selectedItem.{prop.Name.GetCamelCaseName()}Url, selectedItem.{prop.Name.GetCamelCaseName()}Url.slice(46))""
+                                                class=""bg-[#7A8714]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#657016]/80 transition""
+                                            >
+                                                <img src=""@/assets/icons/downloadIcon.svg"" alt=""download-icon"" />
+                                            </button>
+                                        </div>
+                                        <img :src=""ASSET_ENDPOINT(selectedItem.{prop.Name.GetCamelCaseName()}Url)"" alt=""Image"" class=""border border-border1 rounded-[4px] w-[120px] aspect-square object-cover"" />
+                                    </div>
+                                </div>
+                            </template>
+                        </FileUpload>
                     </div>
                 </div>");
                     }
@@ -5343,11 +5948,17 @@ const removeAsset = (item) => {{
                         singleVideoSection = $@"
 // Single video section
 const onSelectVideo = (e, item) => {{
+    const file = e.files[0];
+
+    if (!file) {{
+        store.sendErrorMessage(t('message.wrongVideoFormat'));
+        return;
+    }}
+
     // reset old video
-    item.delete{prop.Name.GetCamelCaseName()} = true; // item.delete[property]
+    item.delete{prop.Name} = true; // item.delete[property]
     item.{prop.Name.GetCamelCaseName()}Url = null; // item.[property]Url
 
-    const file = e.files[0];
     item.{prop.Name.GetCamelCaseName()} = file; // item.[property]
     const reader = new FileReader();
     reader.onload = async (e) => {{
@@ -5366,73 +5977,127 @@ const removeVideo = (item) => {{
 
                         addDialog.AppendLine($@"
                 <!-- single video -->
-                <div class=""flex flex-col items-start col-span-1 md:col-span-2 gap-2 w-full"">
-                    <label>{{{{ $t('field.singleAsset(video)') }}}}</label>
+                <div class=""flex flex-col items-start col-span-1 md:col-span-2 field-gap w-full"">
+                    <label class=""field-label"">{{{{ $t('field.{prop.Name.GetCamelCaseName()}') }}}}</label>
                     <p v-if=""validationErrors.{prop.Name.GetCamelCaseName()}"" class=""text-red-500"">{{{{ $t('message.videoRequired') }}}}</p>
-                    <FileUpload
-                        mode=""basic""
-                        accept="".mp4""
-                        @select=""(e) => onSelectVideo(e, newItem)""
-                        customUpload
-                        auto
-                        class=""p-button-outlined""
-                        :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                    />
-                    <!-- new video -->
-                    <div v-if=""newItem.{prop.Name.GetCamelCaseName()}Src"" class=""relative"">
-                        <button
-                            @click=""removeVideo(newItem)""
-                            :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                            class=""absolute z-50 top-2.5 right-2.5 bg-black/50 border border-white text-white flex justify-center items-center rounded-lg w-[32px] h-[32px] hover:bg-[#FF4C51] transition""
-                        >
-                            <i class=""pi pi-trash""></i>
-                        </button>
-                        <video :src=""newItem.{prop.Name.GetCamelCaseName()}Src"" alt=""Video"" controls class=""shadow-md w-[300px] aspect-video object-cover""></video>
+                    <div class=""w-full"">
+                        <FileUpload accept="".mp4"" @select=""(e) => onSelectVideo(e, newItem)"" customUpload auto class=""p-button-outlined"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"">
+                            <template #header=""{{ chooseCallback }}"">
+                                <div class=""flex flex-wrap justify-between items-center flex-1 gap-4"">
+                                    <div class=""flex gap-2"">
+                                        <button @click=""chooseCallback()"" class=""size-[28px] rounded-[8px] bg-white flex items-center justify-center text-gold1 border border-solid border-gold1 hover:bg-green2 hover:text-gold3 transition-colors"">
+                                            <i class=""pi pi-plus text-xs leading-none font-semibold""></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                            <template #content>
+                                <!-- empty state -->
+                                <div v-if=""!newItem.{prop.Name.GetCamelCaseName()}Src"" class=""flex items-center w-full justify-center text-center p-5 flex-col"">
+                                    <img src=""@/assets/icons/fileUploadIcon.svg"" alt=""file upload icon"" />
+                                    <p class=""mt-[8px] text-green1 font-medium text-[13px]"">{{{{ $t('message.uploadFile') }}}}</p>
+                                    <p class=""mt-[12px] text-lightGrey text-[13px]"">{{{{ $t('message.supportedVideoFormats') }}}}</p>
+                                </div>
+                                <div v-else class=""p-[10px]"">
+                                    <!-- new video -->
+                                    <div v-if=""newItem.{prop.Name.GetCamelCaseName()}Src"" class=""relative"">
+                                        <div class=""absolute z-50 top-[10px] right-[10px] flex flex-col gap-[10px]"">
+                                            <button
+                                                @click.stop=""removeVideo(newItem)""
+                                                :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                                                class=""bg-[#D7001F]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#A60018]/80 transition""
+                                            >
+                                                <img src=""@/assets/icons/trashIcon.svg"" alt=""trash-icon"" />
+                                            </button>
+                                            <button
+                                                @click.stop=""openVideoDialog(newItem.{prop.Name.GetCamelCaseName()}Src, 'new')""
+                                                :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                                                class=""bg-[#298DA1]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#1E6A79]/80 transition""
+                                            >
+                                                <img src=""@/assets/icons/eyeIcon.svg"" alt=""eye-icon"" />
+                                            </button>
+                                        </div>
+                                        <video :src=""newItem.{prop.Name.GetCamelCaseName()}Src"" alt=""Video"" controls class=""shadow-md w-[300px] aspect-video object-cover""></video>
+                                    </div>
+                                </div>
+                            </template>
+                        </FileUpload>
                     </div>
                 </div>");
 
                         editDialog.AppendLine($@"
                 <!-- single video -->
-                <div class=""flex flex-col items-start col-span-1 md:col-span-2 gap-2 w-full"">
-                    <label>{{{{ $t('field.singleAsset(video)') }}}}</label>
+                <div class=""flex flex-col items-start col-span-1 md:col-span-2 field-gap w-full"">
+                    <label class=""field-label"">{{{{ $t('field.{prop.Name.GetCamelCaseName()}') }}}}</label>
                     <p v-if=""validationErrors.{prop.Name.GetCamelCaseName()}"" class=""text-red-500"">{{{{ $t('message.videoRequired') }}}}</p>
-                    <FileUpload
-                        mode=""basic""
-                        accept="".mp4""
-                        @select=""(e) => onSelectVideo(e, selectedItem)""
-                        customUpload
-                        auto
-                        class=""p-button-outlined""
-                        :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                    />
-                    <!-- new video -->
-                    <div v-if=""selectedItem.{prop.Name.GetCamelCaseName()}Src"" class=""relative"">
-                        <button
-                            @click=""removeVideo(selectedItem)""
-                            :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                            class=""absolute z-50 top-2.5 right-2.5 bg-black/50 border border-white text-white flex justify-center items-center rounded-lg w-[32px] h-[32px] hover:bg-[#FF4C51] transition""
-                        >
-                            <i class=""pi pi-trash""></i>
-                        </button>
-                        <video :src=""selectedItem.{prop.Name.GetCamelCaseName()}Src"" alt=""Video"" controls class=""shadow-md w-[300px] aspect-video object-cover""></video>
-                    </div>
-                    <!-- old video -->
-                    <div v-if=""selectedItem.{prop.Name.GetCamelCaseName()}Url"" class=""relative"">
-                        <button
-                            @click=""removeVideo(selectedItem)""
-                            :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                            class=""absolute z-50 top-2.5 right-2.5 bg-black/50 border border-white text-white flex justify-center items-center rounded-lg w-[32px] h-[32px] hover:bg-[#FF4C51] transition""
-                        >
-                            <i class=""pi pi-trash""></i>
-                        </button>
-                        <a
-                            :href=""selectedItem.{prop.Name.GetCamelCaseName()}Url""
-                            :download=""selectedItem.{prop.Name.GetCamelCaseName()}Url.slice(46)""
-                            class=""absolute z-[100] top-2.5 left-2.5 bg-black/50 border border-white text-white flex justify-center items-center rounded-lg w-[32px] h-[32px] hover:bg-green-500 transition""
-                        >
-                            <i class=""pi pi-download""></i>
-                        </a>
-                        <video :src=""ASSET_ENDPOINT(selectedItem.{prop.Name.GetCamelCaseName()}Url)"" alt=""Video"" controls class=""shadow-md w-[300px] aspect-video object-cover""></video>
+                    <div class=""w-full"">
+                        <FileUpload accept="".mp4"" @select=""(e) => onSelectVideo(e, selectedItem)"" customUpload auto class=""p-button-outlined"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"">
+                            <template #header=""{{ chooseCallback }}"">
+                                <div class=""flex flex-wrap justify-between items-center flex-1 gap-4"">
+                                    <div class=""flex gap-2"">
+                                        <button @click=""chooseCallback()"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" class=""size-[28px] rounded-[8px] bg-white flex items-center justify-center text-gold1 border border-solid border-gold1 hover:bg-green2 hover:text-gold3 transition-colors"">
+                                            <i class=""pi pi-plus text-xs leading-none font-semibold""></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                            <template #content>
+                                <!-- empty state -->
+                                <div v-if=""!selectedItem.{prop.Name.GetCamelCaseName()}Src && !selectedItem.{prop.Name.GetCamelCaseName()}Url"" class=""flex items-center w-full justify-center text-center p-5 flex-col"">
+                                    <img src=""@/assets/icons/fileUploadIcon.svg"" alt=""file upload icon"" />
+                                    <p class=""mt-[8px] text-green1 font-medium text-[13px]"">{{{{ $t('message.uploadFile') }}}}</p>
+                                    <p class=""mt-[12px] text-lightGrey text-[13px]"">{{{{ $t('message.supportedVideoFormats') }}}}</p>
+                                </div>
+                                <div v-else class=""p-[10px]"">
+                                    <!-- new video -->
+                                    <div v-if=""selectedItem.{prop.Name.GetCamelCaseName()}Src"" class=""relative"">
+                                        <div class=""absolute z-50 top-[10px] right-[10px] flex flex-col gap-[10px]"">
+                                            <button
+                                                @click.stop=""removeVideo(selectedItem)""
+                                                :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                                                class=""bg-[#D7001F]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#A60018]/80 transition""
+                                            >
+                                                <img src=""@/assets/icons/trashIcon.svg"" alt=""trash-icon"" />
+                                            </button>
+                                            <button
+                                                @click.stop=""openVideoDialog(selectedItem.{prop.Name.GetCamelCaseName()}Src, 'new')""
+                                                :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                                                class=""bg-[#298DA1]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#1E6A79]/80 transition""
+                                            >
+                                                <img src=""@/assets/icons/eyeIcon.svg"" alt=""eye-icon"" />
+                                            </button>
+                                        </div>
+                                        <video :src=""selectedItem.{prop.Name.GetCamelCaseName()}Src"" alt=""Video"" controls class=""shadow-md w-[300px] aspect-video object-cover""></video>
+                                    </div>
+
+                                    <!-- old video -->
+                                    <div v-if=""selectedItem.{prop.Name.GetCamelCaseName()}Url"" class=""relative"">
+                                        <div class=""absolute z-50 top-[10px] right-[10px] flex flex-col gap-[10px]"">
+                                            <button
+                                                @click.stop=""removeVideo(selectedItem)""
+                                                :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                                                class=""bg-[#D7001F]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#A60018]/80 transition""
+                                            >
+                                                <img src=""@/assets/icons/trashIcon.svg"" alt=""trash-icon"" />
+                                            </button>
+                                            <button
+                                                @click.stop=""openVideoDialog(selectedItem.{prop.Name.GetCamelCaseName()}Url)""
+                                                class=""bg-[#298DA1]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#1E6A79]/80 transition""
+                                            >
+                                                <img src=""@/assets/icons/eyeIcon.svg"" alt=""eye-icon"" />
+                                            </button>
+                                            <button
+                                                @click.stop=""downloadAsset(selectedItem.{prop.Name.GetCamelCaseName()}Url, selectedItem.{prop.Name.GetCamelCaseName()}Url.slice(46))""
+                                                class=""bg-[#7A8714]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#657016]/80 transition""
+                                            >
+                                                <img src=""@/assets/icons/downloadIcon.svg"" alt=""download-icon"" />
+                                            </button>
+                                        </div>
+                                        <video :src=""ASSET_ENDPOINT(selectedItem.{prop.Name.GetCamelCaseName()}Url)"" alt=""Video"" controls class=""shadow-md w-[300px] aspect-video object-cover""></video>
+                                    </div>
+                                </div>
+                            </template>
+                        </FileUpload>
                     </div>
                 </div>");
                     }
@@ -5462,10 +6127,16 @@ const removeVideo = (item) => {{
 
 // When the user picks a new file manually, clear any backend one:
 function onSelectFile(event, item) {{
+    const file = event.files[0];
+
+    if (!file) {{
+        store.sendErrorMessage(t('message.wrongFileFormat'));
+        return;
+    }}
+
     item.delete{prop.Name} = true; // item.delete[property]
     item.{prop.Name.GetCamelCaseName()}Url = null; // item.[property]Url
 
-    const file = event.files[0];
     if (!file) return;
     item.{prop.Name.GetCamelCaseName()} = file; // item.[property]
     if (item.{prop.Name.GetCamelCaseName()}Src) {{
@@ -5491,84 +6162,108 @@ function removeFile(item) {{
                         addDialog.AppendLine($@"
                 <!-- single file -->
                 <div class=""md:col-span-2"">
-                    <div class=""flex flex-col items-start gap-2 w-full"">
-                        <label>{{{{ $t('field.singleFile') }}}}</label>
+                    <div class=""flex flex-col items-start field-gap w-full"">
+                        <label class=""field-label"">{{{{ $t('field.{prop.Name.GetCamelCaseName()}') }}}}</label>
                         <p v-if=""validationErrors.{prop.Name.GetCamelCaseName()}"" class=""text-red-500"">{{{{ $t('message.fileRequired') }}}}</p>
-                        <FileUpload :multiple=""false"" accept="".pdf, .txt, .xlsx, .xls, .docx, .rar, .zip"" mode=""basic"" @select=""(e) => onSelectFile(e, newItem)"" customUpload auto class=""p-button-outlined"" :disabled=""state.finding || state.saving"" />
-                    </div>
+                        <div class=""w-full"">
+                            <FileUpload :multiple=""false"" accept="".pdf, .txt, .xlsx, .xls, .docx, .rar, .zip"" @select=""(e) => onSelectFile(e, newItem)"" customUpload auto class=""p-button-outlined"" :disabled=""state.finding || state.saving"">
+                                <template #header=""{{ chooseCallback }}"">
+                                    <div class=""flex flex-wrap justify-between items-center flex-1 gap-4"">
+                                        <div class=""flex gap-2"">
+                                            <button @click=""chooseCallback()"" class=""size-[28px] rounded-[8px] bg-white flex items-center justify-center text-gold1 border border-solid border-gold1 hover:bg-green2 hover:text-gold3 transition-colors"">
+                                                <i class=""pi pi-plus text-xs leading-none font-semibold""></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </template>
+                                <template #content>
+                                    <!-- empty state -->
+                                    <div v-if=""!newItem.{prop.Name.GetCamelCaseName()}Src"" class=""flex items-center w-full justify-center text-center p-5 flex-col"">
+                                        <img src=""@/assets/icons/fileUploadIcon.svg"" alt=""file upload icon"" />
+                                        <p class=""mt-[8px] text-green1 font-medium text-[13px]"">{{{{ $t('message.uploadFile') }}}}</p>
+                                        <p class=""mt-[12px] text-lightGrey text-[13px]"">{{{{ $t('message.supportedFileFormats') }}}}</p>
+                                    </div>
+                                    <!-- uploaded state -->
+                                    <div v-else class=""p-[10px]"">
+                                        <!-- Preview of the single file -->
+                                        <div v-if=""newItem.{prop.Name.GetCamelCaseName()}Src && !isArchive(newItem.{prop.Name.GetCamelCaseName()}.name)"" class=""bg-[#EEEBE5] flex-wrap py-[12px] px-[14px] rounded-[8px] flex gap-4 justify-between items-center"">
+                                            <!-- File preview -->
 
-                    <!-- Preview of the single file -->
-                    <div v-if=""newItem.{prop.Name.GetCamelCaseName()}Src && !isArchive(newItem.{prop.Name.GetCamelCaseName()}.name)"" class=""mt-2 bg-slate-100 flex-wrap p-2 px-3 border border-[#EAEAEA] rounded-lg flex gap-4 justify-between items-center"">
-                        <!-- File preview -->
-
-                        <div class=""flex items-center gap-4"">
-                            <div class=""flex items-center justify-center h-[40px] bg-white border shrink-0 rounded-full w-[40px] gap-2"">
-                                <i class=""fa-solid fa-file text-lg""></i>
-                            </div>
-                            <p
-                                v-tooltip.top=""{{
-                                    value: newItem.{prop.Name.GetCamelCaseName()}.name,
-                                    pt: {{
-                                        root: {{
-                                            style: {{
-                                                maxWidth: '350px',
-                                                whiteSpace: 'normal',
-                                                wordBreak: 'break-word'
-                                            }}
-                                        }}
-                                    }}
-                                }}""
-                                class=""flex items-center flex-wrap gap-1 gap-y-0.5""
-                            >
-                                {{{{ shortenFileName(newItem.{prop.Name.GetCamelCaseName()}.name) }}}} <span class="""">({{{{ (newItem.{prop.Name.GetCamelCaseName()}.size / 1024).toFixed(1) }}}} KB)</span>
-                            </p>
-                        </div>
-                        <div class=""flex gap-2"">
-                            <!-- preview button -->
-                            <button @click=""openPreviewModal(newItem.{prop.Name.GetCamelCaseName()})"" class=""px-3 py-2 bg-blue-500 text-white rounded text-sm"">
-                                <i class=""fa-solid fa-eye""></i>
-                            </button>
-                            <a :href=""newItem.{prop.Name.GetCamelCaseName()}Src"" :download=""newItem.{prop.Name.GetCamelCaseName()}.name"" class=""px-3 py-2 bg-green-500 text-white rounded text-sm"">
-                                <i class=""fa-solid fa-download""></i>
-                            </a>
-                            <button @click=""removeFile(newItem)"" class=""px-3 py-2 bg-red-500 text-white rounded text-sm"">
-                                <i class=""fa-solid fa-trash""></i>
-                            </button>
-                        </div>
-                    </div>
-                    <!-- single archive -->
-                    <div v-if=""newItem.{prop.Name.GetCamelCaseName()}Src && isArchive(newItem.{prop.Name.GetCamelCaseName()}.name)"" class=""mt-4"">
-                        <label class=""block mb-3"">{{{{ $t('title.archivedFile') }}}}</label>
-                        <div class=""bg-slate-100 flex-wrap p-2 px-3 border border-[#EAEAEA] rounded-lg flex gap-4 justify-between items-center"">
-                            <div class=""flex items-center gap-4"">
-                                <div class=""flex items-center justify-center h-[40px] bg-white shrink-0 border rounded-full w-[40px] gap-2"">
-                                    <i class=""fa-solid fa-file-zipper text-lg""></i>
-                                </div>
-                                <p
-                                    v-tooltip.top=""{{
-                                        value: newItem.{prop.Name.GetCamelCaseName()}.name,
-                                        pt: {{
-                                            root: {{
-                                                style: {{
-                                                    maxWidth: '350px',
-                                                    whiteSpace: 'normal',
-                                                    wordBreak: 'break-word'
-                                                }}
-                                            }}
-                                        }}
-                                    }}""
-                                >
-                                    {{{{ newItem.{prop.Name.GetCamelCaseName()}.name }}}} ({{{{ (newItem.{prop.Name.GetCamelCaseName()}.size / 1024).toFixed(1) }}}} KB)
-                                </p>
-                            </div>
-                            <div class=""flex gap-2"">
-                                <a :href=""newItem.{prop.Name.GetCamelCaseName()}Src"" :download=""newItem.{prop.Name.GetCamelCaseName()}.name"" class=""px-3 py-2 bg-green-500 text-white rounded text-sm"">
-                                    <i class=""fa-solid fa-download""></i>
-                                </a>
-                                <button @click=""removeFile(newItem)"" class=""px-3 py-2 bg-red-500 text-white rounded text-sm"">
-                                    <i class=""fa-solid fa-trash""></i>
-                                </button>
-                            </div>
+                                            <div class=""flex items-center gap-4"">
+                                                <div class=""flex items-center justify-center shrink-0"">
+                                                    <img src=""@/assets/icons/fileIcon.svg"" alt=""fileIcon"" />
+                                                </div>
+                                                <p
+                                                    v-tooltip.top=""{{
+                                                        value: newItem.{prop.Name.GetCamelCaseName()}.name,
+                                                        pt: {{
+                                                            root: {{
+                                                                style: {{
+                                                                    maxWidth: '350px',
+                                                                    whiteSpace: 'normal',
+                                                                    wordBreak: 'break-word'
+                                                                }}
+                                                            }}
+                                                        }}
+                                                    }}""
+                                                    class=""flex items-center flex-wrap gap-1 gap-y-0.5 text-[14px] font-semibold text-green1""
+                                                >
+                                                    {{{{ shortenFileName(newItem.{prop.Name.GetCamelCaseName()}.name) }}}}
+                                                    <!-- <span class="""">({{{{ (singleFile.size / 1024).toFixed(1) }}}} KB)</span> -->
+                                                </p>
+                                            </div>
+                                            <div class=""file-buttons-container"">
+                                                <a :href=""newItem.{prop.Name.GetCamelCaseName()}Src"" :download=""newItem.{prop.Name.GetCamelCaseName()}.name"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FBFFDD] transition-colors rounded-[6px]"">
+                                                    <img src=""@/assets/icons/fileDownloadIcon.svg"" alt=""file download"" />
+                                                </a>
+                                                <button @click=""openPreviewModal(newItem.{prop.Name.GetCamelCaseName()})"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#E0FAFF] transition-colors rounded-[6px]"">
+                                                    <img src=""@/assets/icons/filePreviewIcon.svg"" alt=""file preview"" />
+                                                </button>
+                                                <button @click=""removeFile(newItem)"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FECFD5] transition-colors rounded-[6px]"">
+                                                    <img src=""@/assets/icons/fileDeleteIcon.svg"" alt=""file delete"" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <!-- single archive -->
+                                        <div v-if=""newItem.{prop.Name.GetCamelCaseName()}Src && isArchive(newItem.{prop.Name.GetCamelCaseName()}.name)"" class="""">
+                                            <!-- <label class=""block mb-3"">{{{{ $t('title.archivedFile') }}}}</label> -->
+                                            <div class=""bg-[#EEEBE5] flex-wrap py-[12px] px-[14px] rounded-[8px] flex gap-4 justify-between items-center"">
+                                                <div class=""flex items-center gap-4"">
+                                                    <div class=""flex items-center justify-center shrink-0"">
+                                                        <i class=""fa-solid fa-file-zipper text-[20px] text-gold2""></i>
+                                                    </div>
+                                                    <p
+                                                        v-tooltip.top=""{{
+                                                            value: newItem.{prop.Name.GetCamelCaseName()}.name,
+                                                            pt: {{
+                                                                root: {{
+                                                                    style: {{
+                                                                        maxWidth: '350px',
+                                                                        whiteSpace: 'normal',
+                                                                        wordBreak: 'break-word'
+                                                                    }}
+                                                                }}
+                                                            }}
+                                                        }}""
+                                                        class=""flex items-center flex-wrap gap-1 gap-y-0.5 text-[14px] font-semibold text-green1""
+                                                    >
+                                                        {{{{ newItem.{prop.Name.GetCamelCaseName()}.name }}}}
+                                                        <!-- ({{{{ (singleFile.size / 1024).toFixed(1) }}}} KB) -->
+                                                    </p>
+                                                </div>
+                                                <div class=""file-buttons-container"">
+                                                    <a :href=""newItem.{prop.Name.GetCamelCaseName()}Src"" :download=""newItem.{prop.Name.GetCamelCaseName()}.name"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FBFFDD] transition-colors rounded-[6px]"">
+                                                        <img src=""@/assets/icons/fileDownloadIcon.svg"" alt=""file download"" />
+                                                    </a>
+                                                    <button @click=""removeFile(newItem)"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FECFD5] transition-colors rounded-[6px]"">
+                                                        <img src=""@/assets/icons/fileDeleteIcon.svg"" alt=""file delete"" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </FileUpload>
                         </div>
                     </div>
                 </div>");
@@ -5576,84 +6271,108 @@ function removeFile(item) {{
                         editDialog.AppendLine($@"
                 <!-- single file -->
                 <div class=""md:col-span-2"">
-                    <div class=""flex flex-col items-start gap-2 w-full"">
-                        <label>{{{{ $t('field.singleFile') }}}}</label>
+                    <div class=""flex flex-col items-start field-gap w-full"">
+                        <label class=""field-label"">{{{{ $t('field.{prop.Name.GetCamelCaseName()}') }}}}</label>
                         <p v-if=""validationErrors.{prop.Name.GetCamelCaseName()}"" class=""text-red-500"">{{{{ $t('message.fileRequired') }}}}</p>
-                        <FileUpload :multiple=""false"" accept="".pdf, .txt, .xlsx, .xls, .docx, .rar, .zip"" mode=""basic"" @select=""(e) => onSelectFile(e, selectedItem)"" customUpload auto class=""p-button-outlined"" :disabled=""state.finding || state.saving"" />
-                    </div>
+                        <div class=""w-full"">
+                            <FileUpload :multiple=""false"" accept="".pdf, .txt, .xlsx, .xls, .docx, .rar, .zip"" @select=""(e) => onSelectFile(e, selectedItem)"" customUpload auto class=""p-button-outlined"" :disabled=""state.finding || state.saving"">
+                                <template #header=""{{ chooseCallback }}"">
+                                    <div class=""flex flex-wrap justify-between items-center flex-1 gap-4"">
+                                        <div class=""flex gap-2"">
+                                            <button @click=""chooseCallback()"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" class=""size-[28px] rounded-[8px] bg-white flex items-center justify-center text-gold1 border border-solid border-gold1 hover:bg-green2 hover:text-gold3 transition-colors"">
+                                                <i class=""pi pi-plus text-xs leading-none font-semibold""></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </template>
+                                <template #content>
+                                    <!-- empty state -->
+                                    <div v-if=""!selectedItem.{prop.Name.GetCamelCaseName()}Src"" class=""flex items-center w-full justify-center text-center p-5 flex-col"">
+                                        <img src=""@/assets/icons/fileUploadIcon.svg"" alt=""file upload icon"" />
+                                        <p class=""mt-[8px] text-green1 font-medium text-[13px]"">{{{{ $t('message.uploadFile') }}}}</p>
+                                        <p class=""mt-[12px] text-lightGrey text-[13px]"">{{{{ $t('message.supportedFileFormats') }}}}</p>
+                                    </div>
+                                    <!-- uploaded state -->
+                                    <div v-else class=""p-[10px]"">
+                                        <!-- Preview of the single file -->
+                                        <div v-if=""selectedItem.{prop.Name.GetCamelCaseName()}Src && !isArchive(selectedItem.{prop.Name.GetCamelCaseName()}.name)"" class=""bg-[#EEEBE5] flex-wrap py-[12px] px-[14px] rounded-[8px] flex gap-4 justify-between items-center"">
+                                            <!-- File preview -->
 
-                    <!-- Preview of the single file -->
-                    <div v-if=""selectedItem.{prop.Name.GetCamelCaseName()}Src && !isArchive(selectedItem.{prop.Name.GetCamelCaseName()}.name)"" class=""mt-2 bg-slate-100 flex-wrap p-2 px-3 border border-[#EAEAEA] rounded-lg flex gap-4 justify-between items-center"">
-                        <!-- File preview -->
-
-                        <div class=""flex items-center gap-4"">
-                            <div class=""flex items-center justify-center h-[40px] bg-white border shrink-0 rounded-full w-[40px] gap-2"">
-                                <i class=""fa-solid fa-file text-lg""></i>
-                            </div>
-                            <p
-                                v-tooltip.top=""{{
-                                    value: selectedItem.{prop.Name.GetCamelCaseName()}.name,
-                                    pt: {{
-                                        root: {{
-                                            style: {{
-                                                maxWidth: '350px',
-                                                whiteSpace: 'normal',
-                                                wordBreak: 'break-word'
-                                            }}
-                                        }}
-                                    }}
-                                }}""
-                                class=""flex items-center flex-wrap gap-1 gap-y-0.5""
-                            >
-                                {{{{ shortenFileName(selectedItem.{prop.Name.GetCamelCaseName()}.name) }}}} <span class="""">({{{{ (selectedItem.{prop.Name.GetCamelCaseName()}.size / 1024).toFixed(1) }}}} KB)</span>
-                            </p>
-                        </div>
-                        <div class=""flex gap-2"">
-                            <!-- preview button -->
-                            <button @click=""openPreviewModal(selectedItem.{prop.Name.GetCamelCaseName()})"" class=""px-3 py-2 bg-blue-500 text-white rounded text-sm"">
-                                <i class=""fa-solid fa-eye""></i>
-                            </button>
-                            <a :href=""selectedItem.{prop.Name.GetCamelCaseName()}Src"" :download=""selectedItem.{prop.Name.GetCamelCaseName()}.name"" class=""px-3 py-2 bg-green-500 text-white rounded text-sm"">
-                                <i class=""fa-solid fa-download""></i>
-                            </a>
-                            <button @click=""removeFile(selectedItem)"" class=""px-3 py-2 bg-red-500 text-white rounded text-sm"">
-                                <i class=""fa-solid fa-trash""></i>
-                            </button>
-                        </div>
-                    </div>
-                    <!-- single archive -->
-                    <div v-if=""selectedItem.{prop.Name.GetCamelCaseName()}Src && isArchive(selectedItem.{prop.Name.GetCamelCaseName()}.name)"" class=""mt-4"">
-                        <label class=""block mb-3"">{{{{ $t('title.archivedFile') }}}}</label>
-                        <div class=""bg-slate-100 flex-wrap p-2 px-3 border border-[#EAEAEA] rounded-lg flex gap-4 justify-between items-center"">
-                            <div class=""flex items-center gap-4"">
-                                <div class=""flex items-center justify-center h-[40px] bg-white shrink-0 border rounded-full w-[40px] gap-2"">
-                                    <i class=""fa-solid fa-file-zipper text-lg""></i>
-                                </div>
-                                <p
-                                    v-tooltip.top=""{{
-                                        value: selectedItem.{prop.Name.GetCamelCaseName()}.name,
-                                        pt: {{
-                                            root: {{
-                                                style: {{
-                                                    maxWidth: '350px',
-                                                    whiteSpace: 'normal',
-                                                    wordBreak: 'break-word'
-                                                }}
-                                            }}
-                                        }}
-                                    }}""
-                                >
-                                    {{{{ selectedItem.{prop.Name.GetCamelCaseName()}.name }}}} ({{{{ (selectedItem.{prop.Name.GetCamelCaseName()}.size / 1024).toFixed(1) }}}} KB)
-                                </p>
-                            </div>
-                            <div class=""flex gap-2"">
-                                <a :href=""selectedItem.{prop.Name.GetCamelCaseName()}Src"" :download=""selectedItem.{prop.Name.GetCamelCaseName()}.name"" class=""px-3 py-2 bg-green-500 text-white rounded text-sm"">
-                                    <i class=""fa-solid fa-download""></i>
-                                </a>
-                                <button @click=""removeFile(selectedItem)"" class=""px-3 py-2 bg-red-500 text-white rounded text-sm"">
-                                    <i class=""fa-solid fa-trash""></i>
-                                </button>
-                            </div>
+                                            <div class=""flex items-center gap-4"">
+                                                <div class=""flex items-center justify-center shrink-0"">
+                                                    <img src=""@/assets/icons/fileIcon.svg"" alt=""fileIcon"" />
+                                                </div>
+                                                <p
+                                                    v-tooltip.top=""{{
+                                                        value: selectedItem.{prop.Name.GetCamelCaseName()}.name,
+                                                        pt: {{
+                                                            root: {{
+                                                                style: {{
+                                                                    maxWidth: '350px',
+                                                                    whiteSpace: 'normal',
+                                                                    wordBreak: 'break-word'
+                                                                }}
+                                                            }}
+                                                        }}
+                                                    }}""
+                                                    class=""flex items-center flex-wrap gap-1 gap-y-0.5 text-[14px] font-semibold text-green1""
+                                                >
+                                                    {{{{ shortenFileName(selectedItem.{prop.Name.GetCamelCaseName()}.name) }}}}
+                                                    <!-- <span class="""">({{{{ (singleFile.size / 1024).toFixed(1) }}}} KB)</span> -->
+                                                </p>
+                                            </div>
+                                            <div class=""file-buttons-container"">
+                                                <a :href=""selectedItem.{prop.Name.GetCamelCaseName()}Src"" :download=""selectedItem.{prop.Name.GetCamelCaseName()}.name"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FBFFDD] transition-colors rounded-[6px]"">
+                                                    <img src=""@/assets/icons/fileDownloadIcon.svg"" alt=""file download"" />
+                                                </a>
+                                                <button @click=""openPreviewModal(selectedItem.{prop.Name.GetCamelCaseName()})"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#E0FAFF] transition-colors rounded-[6px]"">
+                                                    <img src=""@/assets/icons/filePreviewIcon.svg"" alt=""file preview"" />
+                                                </button>
+                                                <button @click=""removeFile(selectedItem)"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FECFD5] transition-colors rounded-[6px]"">
+                                                    <img src=""@/assets/icons/fileDeleteIcon.svg"" alt=""file delete"" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <!-- single archive -->
+                                        <div v-if=""selectedItem.{prop.Name.GetCamelCaseName()}Src && isArchive(selectedItem.{prop.Name.GetCamelCaseName()}.name)"" class="""">
+                                            <!-- <label class=""block mb-3"">{{{{ $t('title.archivedFile') }}}}</label> -->
+                                            <div class=""bg-[#EEEBE5] flex-wrap py-[12px] px-[14px] rounded-[8px] flex gap-4 justify-between items-center"">
+                                                <div class=""flex items-center gap-4"">
+                                                    <div class=""flex items-center justify-center shrink-0"">
+                                                        <i class=""fa-solid fa-file-zipper text-[20px] text-gold2""></i>
+                                                    </div>
+                                                    <p
+                                                        v-tooltip.top=""{{
+                                                            value: selectedItem.{prop.Name.GetCamelCaseName()}.name,
+                                                            pt: {{
+                                                                root: {{
+                                                                    style: {{
+                                                                        maxWidth: '350px',
+                                                                        whiteSpace: 'normal',
+                                                                        wordBreak: 'break-word'
+                                                                    }}
+                                                                }}
+                                                            }}
+                                                        }}""
+                                                        class=""flex items-center flex-wrap gap-1 gap-y-0.5 text-[14px] font-semibold text-green1""
+                                                    >
+                                                        {{{{ selectedItem.{prop.Name.GetCamelCaseName()}.name }}}}
+                                                        <!-- ({{{{ (singleFile.size / 1024).toFixed(1) }}}} KB) -->
+                                                    </p>
+                                                </div>
+                                                <div class=""file-buttons-container"">
+                                                    <a :href=""selectedItem.{prop.Name.GetCamelCaseName()}Src"" :download=""selectedItem.{prop.Name.GetCamelCaseName()}.name"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FBFFDD] transition-colors rounded-[6px]"">
+                                                        <img src=""@/assets/icons/fileDownloadIcon.svg"" alt=""file download"" />
+                                                    </a>
+                                                    <button @click=""removeFile(selectedItem)"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FECFD5] transition-colors rounded-[6px]"">
+                                                        <img src=""@/assets/icons/fileDeleteIcon.svg"" alt=""file delete"" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </FileUpload>
                         </div>
                     </div>
                 </div>");
@@ -5673,6 +6392,11 @@ function removeFile(item) {{
 const onSelectAssets = (event, item) => {{
     // Convert FileList to array
     const filesArray = Array.from(event.files);
+
+    if (!filesArray.length) {{
+        store.sendErrorMessage(t('message.wrongImageFormat'));
+        return;
+    }}
 
     filesArray.forEach((file) => {{
         // Add to array that will go into state.assets
@@ -5704,111 +6428,151 @@ const removeExistingImage = (index, item) => {{
 
                         addDialog.AppendLine($@"
                 <!-- Multiple Images -->
-                <div class=""flex flex-col items-start col-span-1 md:col-span-2 gap-2 w-full"">
-                    <label>{{{{ $t('field.multipleAssets(photos)') }}}}</label>
+                <div class=""flex flex-col items-start col-span-1 md:col-span-2 field-gap w-full"">
+                    <label class=""field-label"">{{{{ $t('field.{prop.Name.GetCamelCaseName()}') }}}}</label>
                     <p v-if=""validationErrors.{prop.Name.GetCamelCaseName()}"" class=""text-red-500"">{{{{ $t('message.imagesRequired') }}}}</p>
-                    <FileUpload
-                        :multiple=""true""
-                        accept="".jpg,.jpeg,.png""
-                        mode=""basic""
-                        @select=""(e) => onSelectAssets(e, newItem)""
-                        customUpload
-                        auto
-                        class=""p-button-outlined""
-                        :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                    />
-
-                    <!-- images -->
                     <div class=""w-full"">
-                        <!-- old -->
-                        <div v-if=""newItem.{prop.Name.GetCamelCaseName()}Urls"" class=""flex flex-wrap gap-4 w-full"">
-                            <div v-for=""(assetUrl, index) in newItem.{prop.Name.GetCamelCaseName()}Urls"" :key=""index"" class=""relative"">
-                                <button
-                                    @click=""removeExistingImage(index, newItem)""
-                                    :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                                    class=""absolute z-50 top-2.5 right-2.5 bg-black/50 border border-white text-white flex justify-center items-center rounded-lg w-[32px] h-[32px] hover:bg-[#FF4C51] transition""
-                                >
-                                    <i class=""pi pi-trash""></i>
-                                </button>
-                                <a
-                                    :href=""assetUrl""
-                                    :download=""assetUrl.slice(46)""
-                                    class=""absolute z-[100] top-2.5 left-2.5 bg-black/50 border border-white text-white flex justify-center items-center rounded-lg w-[32px] h-[32px] hover:bg-green-500 transition""
-                                >
-                                    <i class=""pi pi-download""></i>
-                                </a>
-                                <img :src=""ASSET_ENDPOINT(assetUrl)"" alt=""Image"" class=""shadow-md w-[300px] aspect-video object-cover"" />
-                            </div>
-                        </div>
-
-                        <!-- new -->
-                        <div v-if=""newItem.{prop.Name.GetCamelCaseName()}Srcs"" class=""flex flex-wrap gap-4 w-full"">
-                            <div v-for=""(img, index) in newItem.{prop.Name.GetCamelCaseName()}Srcs"" :key=""index"" class=""relative"">
-                                <button
-                                    @click=""removeNewImage(index, newItem)""
-                                    :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                                    class=""absolute z-50 top-2.5 right-2.5 bg-black/50 border border-white text-white flex justify-center items-center rounded-lg w-[32px] h-[32px] hover:bg-[#FF4C51] transition""
-                                >
-                                    <i class=""pi pi-trash""></i>
-                                </button>
-                                <img :src=""img"" alt=""Image"" class=""w-[300px] shadow-md aspect-video object-cover"" />
-                            </div>
-                        </div>
+                        <FileUpload
+                            :multiple=""true""
+                            accept="".jpg,.jpeg,.png""
+                            @select=""(e) => onSelectImages(e, newItem)""
+                            customUpload
+                            auto
+                            class=""p-button-outlined""
+                            :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                        >
+                            <template #header=""{{ chooseCallback }}"">
+                                <div class=""flex flex-wrap justify-between items-center flex-1 gap-4"">
+                                    <div class=""flex gap-2"">
+                                        <button @click=""chooseCallback()"" class=""size-[28px] rounded-[8px] bg-white flex items-center justify-center text-gold1 border border-solid border-gold1 hover:bg-green2 hover:text-gold3 transition-colors"">
+                                            <i class=""pi pi-plus text-xs leading-none font-semibold""></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                            <template #content>
+                                <!-- empty state -->
+                                <div v-if=""!newItem.{prop.Name.GetCamelCaseName()}Srcs.length"" class=""flex items-center w-full justify-center text-center p-5 flex-col"">
+                                    <img src=""@/assets/icons/fileUploadIcon.svg"" alt=""file upload icon"" />
+                                    <p class=""mt-[8px] text-green1 font-medium text-[13px]"">{{{{ $t('message.uploadFile') }}}}</p>
+                                    <p class=""mt-[12px] text-lightGrey text-[13px]"">{{{{ $t('message.supportedImageFormats') }}}}</p>
+                                </div>
+                                <!-- uploaded state -->
+                                <div v-else class=""w-full flex gap-4 flex-wrap p-[10px]"">
+                                    <!-- new -->
+                                    <template v-if=""newItem.{prop.Name.GetCamelCaseName()}Srcs"">
+                                        <div v-for=""(img, index) in newItem.{prop.Name.GetCamelCaseName()}Srcs"" :key=""index"" class=""relative"">
+                                            <div class=""absolute z-50 top-[10px] right-[10px] flex flex-col gap-[10px]"">
+                                                <button
+                                                    @click.stop=""removeNewImage(index, newItem)""
+                                                    :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                                                    class=""bg-[#D7001F]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#A60018]/80 transition""
+                                                >
+                                                    <img src=""@/assets/icons/trashIcon.svg"" alt=""trash"" />
+                                                </button>
+                                                <button
+                                                    @click.stop=""openImgDialog(img, 'new')""
+                                                    :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                                                    class=""bg-[#298DA1]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#1E6A79]/80 transition""
+                                                >
+                                                    <img src=""@/assets/icons/eyeIcon.svg"" alt=""preview"" />
+                                                </button>
+                                            </div>
+                                            <img :src=""img"" alt=""Image"" class=""border border-border1 rounded-[4px] w-[120px] aspect-square object-cover"" />
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </FileUpload>
                     </div>
                 </div>");
 
                         editDialog.AppendLine($@"
                 <!-- Multiple Images -->
-                <div class=""flex flex-col items-start col-span-1 md:col-span-2 gap-2 w-full"">
-                    <label>{{{{ $t('field.multipleAssets(photos)') }}}}</label>
+                <div class=""flex flex-col items-start col-span-1 md:col-span-2 field-gap w-full"">
+                    <label class=""field-label"">{{{{ $t('field.{prop.Name.GetCamelCaseName()}') }}}}</label>
                     <p v-if=""validationErrors.{prop.Name.GetCamelCaseName()}"" class=""text-red-500"">{{{{ $t('message.imagesRequired') }}}}</p>
-                    <FileUpload
-                        :multiple=""true""
-                        accept="".jpg,.jpeg,.png""
-                        mode=""basic""
-                        @select=""(e) => onSelectAssets(e, selectedItem)""
-                        customUpload
-                        auto
-                        class=""p-button-outlined""
-                        :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                    />
-
-                    <!-- images -->
                     <div class=""w-full"">
-                        <!-- old -->
-                        <div v-if=""selectedItem.{prop.Name.GetCamelCaseName()}Urls"" class=""flex flex-wrap gap-4 w-full"">
-                            <div v-for=""(assetUrl, index) in selectedItem.{prop.Name.GetCamelCaseName()}Urls"" :key=""index"" class=""relative"">
-                                <button
-                                    @click=""removeExistingImage(index, selectedItem)""
-                                    :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                                    class=""absolute z-50 top-2.5 right-2.5 bg-black/50 border border-white text-white flex justify-center items-center rounded-lg w-[32px] h-[32px] hover:bg-[#FF4C51] transition""
-                                >
-                                    <i class=""pi pi-trash""></i>
-                                </button>
-                                <a
-                                    :href=""assetUrl""
-                                    :download=""assetUrl.slice(46)""
-                                    class=""absolute z-[100] top-2.5 left-2.5 bg-black/50 border border-white text-white flex justify-center items-center rounded-lg w-[32px] h-[32px] hover:bg-green-500 transition""
-                                >
-                                    <i class=""pi pi-download""></i>
-                                </a>
-                                <img :src=""ASSET_ENDPOINT(assetUrl)"" alt=""Image"" class=""shadow-md w-[300px] aspect-video object-cover"" />
-                            </div>
-                        </div>
+                        <FileUpload
+                            :multiple=""true""
+                            accept="".jpg,.jpeg,.png""
+                            @select=""(e) => onSelectAssets(e, selectedItem)""
+                            customUpload
+                            auto
+                            class=""p-button-outlined""
+                            :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                        >
+                            <template #header=""{{ chooseCallback }}"">
+                                <div class=""flex flex-wrap justify-between items-center flex-1 gap-4"">
+                                    <div class=""flex gap-2"">
+                                        <button @click=""chooseCallback()"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" class=""size-[28px] rounded-[8px] bg-white flex items-center justify-center text-gold1 border border-solid border-gold1 hover:bg-green2 hover:text-gold3 transition-colors"">
+                                            <i class=""pi pi-plus text-xs leading-none font-semibold""></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                            <template #content>
+                                <!-- empty state -->
+                                <div v-if=""!selectedItem.{prop.Name.GetCamelCaseName()}Srcs.length && !selectedItem.{prop.Name.GetCamelCaseName()}Urls.length"" class=""flex items-center w-full justify-center text-center p-5 flex-col"">
+                                    <img src=""@/assets/icons/fileUploadIcon.svg"" alt=""file upload icon"" />
+                                    <p class=""mt-[8px] text-green1 font-medium text-[13px]"">{{{{ $t('message.uploadFile') }}}}</p>
+                                    <p class=""mt-[12px] text-lightGrey text-[13px]"">{{{{ $t('message.supportedImageFormats') }}}}</p>
+                                </div>
+                                <!-- uploaded state -->
+                                <div v-else class=""w-full flex gap-4 flex-wrap p-[10px]"">
+                                    <!-- old -->
+                                    <template v-if=""selectedItem.{prop.Name.GetCamelCaseName()}Urls"">
+                                        <div v-for=""(assetUrl, index) in selectedItem.{prop.Name.GetCamelCaseName()}Urls"" :key=""index"" class=""relative"">
+                                            <div class=""absolute z-50 top-[10px] right-[10px] flex flex-col gap-[10px]"">
+                                                <button
+                                                    @click.stop=""removeExistingImage(index, selectedItem)""
+                                                    :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                                                    class=""bg-[#D7001F]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#A60018]/80 transition""
+                                                >
+                                                    <img src=""@/assets/icons/trashIcon.svg"" alt="""" />
+                                                </button>
+                                                <button
+                                                    @click.stop=""openImgDialog(assetUrl)""
+                                                    class=""bg-[#298DA1]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#1E6A79]/80 transition""
+                                                >
+                                                    <img src=""@/assets/icons/eyeIcon.svg"" alt=""preview"" />
+                                                </button>
+                                                <button
+                                                    @click.stop=""downloadAsset(assetUrl, assetUrl.slice(46))""
+                                                    class=""bg-[#7A8714]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#657016]/80 transition""
+                                                >
+                                                    <img src=""@/assets/icons/downloadIcon.svg"" alt=""download-icon"" />
+                                                </button>
+                                            </div>
+                                            <img :src=""ASSET_ENDPOINT(assetUrl)"" alt=""Image"" class=""border border-border1 rounded-[4px] w-[120px] aspect-square object-cover"" />
+                                        </div>
+                                    </template>
 
-                        <!-- new -->
-                        <div v-if=""selectedItem.{prop.Name.GetCamelCaseName()}Srcs"" class=""flex flex-wrap gap-4 w-full"">
-                            <div v-for=""(img, index) in selectedItem.{prop.Name.GetCamelCaseName()}Srcs"" :key=""index"" class=""relative"">
-                                <button
-                                    @click=""removeNewImage(index, selectedItem)""
-                                    :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                                    class=""absolute z-50 top-2.5 right-2.5 bg-black/50 border border-white text-white flex justify-center items-center rounded-lg w-[32px] h-[32px] hover:bg-[#FF4C51] transition""
-                                >
-                                    <i class=""pi pi-trash""></i>
-                                </button>
-                                <img :src=""img"" alt=""Image"" class=""w-[300px] shadow-md aspect-video object-cover"" />
-                            </div>
-                        </div>
+                                    <!-- new -->
+                                    <template v-if=""selectedItem.{prop.Name.GetCamelCaseName()}Srcs"">
+                                        <div v-for=""(img, index) in selectedItem.{prop.Name.GetCamelCaseName()}Srcs"" :key=""index"" class=""relative"">
+                                            <div class=""absolute z-50 top-[10px] right-[10px] flex flex-col gap-[10px]"">
+                                                <button
+                                                    @click.stop=""removeNewImage(index, selectedItem)""
+                                                    :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                                                    class=""bg-[#D7001F]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#A60018]/80 transition""
+                                                >
+                                                    <img src=""@/assets/icons/trashIcon.svg"" alt=""trash"" />
+                                                </button>
+                                                <button
+                                                    @click.stop=""openImgDialog(img, 'new')""
+                                                    :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                                                    class=""bg-[#298DA1]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#1E6A79]/80 transition""
+                                                >
+                                                    <img src=""@/assets/icons/eyeIcon.svg"" alt=""preview"" />
+                                                </button>
+                                            </div>
+                                            <img :src=""img"" alt=""Image"" class=""border border-border1 rounded-[4px] w-[120px] aspect-square object-cover"" />
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </FileUpload>
                     </div>
                 </div>");
                     }
@@ -5826,9 +6590,14 @@ const removeExistingImage = (index, item) => {{
                         multiVideosSection = $@"
 // Multiple videos section
 
-const onSelectVideos = (event, item) => {{
+const onSelectVideos = (event, item) => {{///////////////////////////////////////////
     // Convert FileList to array
     const filesArray = Array.from(event.files);
+
+    if (!filesArray.length) {{
+        store.sendErrorMessage(t('message.wrongVideoFormat'));
+        return;
+    }}
 
     filesArray.forEach((file) => {{
         // Add to array that will go into state.assets
@@ -5856,111 +6625,149 @@ const removeExistingVideo = (index, item) => {{
 
                         addDialog.AppendLine($@"
                 <!-- multiple videos -->
-                <div class=""flex flex-col items-start col-span-1 md:col-span-2 gap-2 w-full"">
-                    <label>{{{{ $t('field.multipleAssets(videos)') }}}}</label>
+                <div class=""flex flex-col items-start col-span-1 md:col-span-2 field-gap w-full"">
+                    <label class=""field-label"">{{{{ $t('field.{prop.Name.GetCamelCaseName()}') }}}}</label>
                     <p v-if=""validationErrors.{prop.Name.GetCamelCaseName()}"" class=""text-red-500"">{{{{ $t('message.videosRequired') }}}}</p>
-                    <FileUpload
-                        :multiple=""true""
-                        accept="".mp4""
-                        mode=""basic""
-                        @select=""(e) => onSelectVideos(e, newItem)""
-                        customUpload
-                        auto
-                        class=""p-button-outlined""
-                        :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                    />
-
-                    <!-- videos -->
                     <div class=""w-full"">
-                        <!-- old -->
-                        <div v-if=""newItem.{prop.Name.GetCamelCaseName()}Urls"" class=""flex flex-wrap gap-4 w-full"">
-                            <div v-for=""(videoUrl, index) in newItem.{prop.Name.GetCamelCaseName()}Urls"" :key=""index"" class=""relative"">
-                                <button
-                                    @click=""removeExistingVideo(index, newItem)""
-                                    :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                                    class=""absolute z-50 top-2.5 right-2.5 bg-black/50 border border-white text-white flex justify-center items-center rounded-lg w-[32px] h-[32px] hover:bg-[#FF4C51] transition""
-                                >
-                                    <i class=""pi pi-trash""></i>
-                                </button>
-                                <a
-                                    :href=""videoUrl""
-                                    :download=""videoUrl.slice(46)""
-                                    class=""absolute z-[100] top-2.5 left-2.5 bg-black/50 border border-white text-white flex justify-center items-center rounded-lg w-[32px] h-[32px] hover:bg-green-500 transition""
-                                >
-                                    <i class=""pi pi-download""></i>
-                                </a>
-                                <video :src=""ASSET_ENDPOINT(videoUrl)"" alt=""Video"" controls class=""shadow-md w-[300px] aspect-video object-cover""></video>
-                            </div>
-                        </div>
-
-                        <!-- new -->
-                        <div v-if=""newItem.{prop.Name.GetCamelCaseName()}Srcs"" class=""flex flex-wrap gap-4 w-full"">
-                            <div v-for=""(video, index) in newItem.{prop.Name.GetCamelCaseName()}Srcs"" :key=""index"" class=""relative"">
-                                <button
-                                    @click=""removeNewVideo(index)""
-                                    :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                                    class=""absolute z-50 top-2.5 right-2.5 bg-black/50 border border-white text-white flex justify-center items-center rounded-lg w-[32px] h-[32px] hover:bg-[#FF4C51] transition""
-                                >
-                                    <i class=""pi pi-trash""></i>
-                                </button>
-                                <video :src=""video"" alt=""Video"" controls class=""shadow-md w-[300px] aspect-video object-cover""></video>
-                            </div>
-                        </div>
+                        <FileUpload
+                            :multiple=""true""
+                            accept="".mp4""
+                            @select=""(e) => onSelectVideos(e, newItem)""
+                            customUpload
+                            auto
+                            class=""p-button-outlined""
+                            :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                        >
+                            <template #header=""{{ chooseCallback }}"">
+                                <div class=""flex flex-wrap justify-between items-center flex-1 gap-4 mb-5"">
+                                    <div class=""flex gap-2"">
+                                        <button @click=""chooseCallback()"" class=""size-[28px] rounded-[8px] bg-white flex items-center justify-center text-gold1 border border-solid border-gold1 hover:bg-green2 hover:text-gold3 transition-colors"">
+                                            <i class=""pi pi-plus text-xs leading-none font-semibold""></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                            <template #content>
+                                <!-- empty state -->
+                                <div v-if=""!newItem.{prop.Name.GetCamelCaseName()}Srcs.length"" class=""flex items-center w-full justify-center text-center p-5 flex-col"">
+                                    <img src=""@/assets/icons/fileUploadIcon.svg"" alt=""file upload icon"" />
+                                    <p class=""mt-[8px] text-green1 font-medium text-[13px]"">{{{{ $t('message.uploadFile') }}}}</p>
+                                    <p class=""mt-[12px] text-lightGrey text-[13px]"">{{{{ $t('message.supportedVideoFormats') }}}}</p>
+                                </div>
+                                <div v-else class=""w-full flex gap-4 flex-wrap p-[10px]"">
+                                    <!-- new -->
+                                    <template v-if=""newItem.{prop.Name.GetCamelCaseName()}Srcs"">
+                                        <div v-for=""(video, index) in newItem.{prop.Name.GetCamelCaseName()}Srcs"" :key=""index"" class=""relative"">
+                                            <div class=""absolute z-50 top-[10px] right-[10px] flex flex-col gap-[10px]"">
+                                                <button
+                                                    @click.stop=""removeNewVideo(index, newItem)""
+                                                    :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                                                    class=""bg-[#D7001F]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#A60018]/80 transition""
+                                                >
+                                                    <img src=""@/assets/icons/trashIcon.svg"" alt=""trash"" />
+                                                </button>
+                                                <button
+                                                    @click.stop=""openVideoDialog(video, 'new')""
+                                                    :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                                                    class=""bg-[#298DA1]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#1E6A79]/80 transition""
+                                                >
+                                                    <img src=""@/assets/icons/eyeIcon.svg"" alt=""preview"" />
+                                                </button>
+                                            </div>
+                                            <video :src=""video"" alt=""Video"" controls class=""shadow-md w-[300px] aspect-video object-cover""></video>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </FileUpload>
                     </div>
                 </div>");
 
                         editDialog.AppendLine($@"
                 <!-- multiple videos -->
-                <div class=""flex flex-col items-start col-span-1 md:col-span-2 gap-2 w-full"">
-                    <label>{{{{ $t('field.multipleAssets(videos)') }}}}</label>
+                <div class=""flex flex-col items-start col-span-1 md:col-span-2 field-gap w-full"">
+                    <label class=""field-label"">{{{{ $t('field.{prop.Name.GetCamelCaseName()}') }}}}</label>
                     <p v-if=""validationErrors.{prop.Name.GetCamelCaseName()}"" class=""text-red-500"">{{{{ $t('message.videosRequired') }}}}</p>
-                    <FileUpload
-                        :multiple=""true""
-                        accept="".mp4""
-                        mode=""basic""
-                        @select=""(e) => onSelectVideos(e, selectedItem)""
-                        customUpload
-                        auto
-                        class=""p-button-outlined""
-                        :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                    />
-
-                    <!-- videos -->
                     <div class=""w-full"">
-                        <!-- old -->
-                        <div v-if=""selectedItem.{prop.Name.GetCamelCaseName()}Urls"" class=""flex flex-wrap gap-4 w-full"">
-                            <div v-for=""(videoUrl, index) in selectedItem.{prop.Name.GetCamelCaseName()}Urls"" :key=""index"" class=""relative"">
-                                <button
-                                    @click=""removeExistingVideo(index, selectedItem)""
-                                    :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                                    class=""absolute z-50 top-2.5 right-2.5 bg-black/50 border border-white text-white flex justify-center items-center rounded-lg w-[32px] h-[32px] hover:bg-[#FF4C51] transition""
-                                >
-                                    <i class=""pi pi-trash""></i>
-                                </button>
-                                <a
-                                    :href=""videoUrl""
-                                    :download=""videoUrl.slice(46)""
-                                    class=""absolute z-[100] top-2.5 left-2.5 bg-black/50 border border-white text-white flex justify-center items-center rounded-lg w-[32px] h-[32px] hover:bg-green-500 transition""
-                                >
-                                    <i class=""pi pi-download""></i>
-                                </a>
-                                <video :src=""ASSET_ENDPOINT(videoUrl)"" alt=""Video"" controls class=""shadow-md w-[300px] aspect-video object-cover""></video>
-                            </div>
-                        </div>
+                        <FileUpload
+                            :multiple=""true""
+                            accept="".mp4""
+                            @select=""(e) => onSelectVideos(e, selectedItem)""
+                            customUpload
+                            auto
+                            class=""p-button-outlined""
+                            :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                        >
+                            <template #header=""{{ chooseCallback }}"">
+                                <div class=""flex flex-wrap justify-between items-center flex-1 gap-4 mb-5"">
+                                    <div class=""flex gap-2"">
+                                        <button @click=""chooseCallback()"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" class=""size-[28px] rounded-[8px] bg-white flex items-center justify-center text-gold1 border border-solid border-gold1 hover:bg-green2 hover:text-gold3 transition-colors"">
+                                            <i class=""pi pi-plus text-xs leading-none font-semibold""></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                            <template #content>
+                                <!-- empty state -->
+                                <div v-if=""!selectedItem.{prop.Name.GetCamelCaseName()}Srcs.length && !selectedItem.{prop.Name.GetCamelCaseName()}Urls.length"" class=""flex items-center w-full justify-center text-center p-5 flex-col"">
+                                    <img src=""@/assets/icons/fileUploadIcon.svg"" alt=""file upload icon"" />
+                                    <p class=""mt-[8px] text-green1 font-medium text-[13px]"">{{{{ $t('message.uploadFile') }}}}</p>
+                                    <p class=""mt-[12px] text-lightGrey text-[13px]"">{{{{ $t('message.supportedVideoFormats') }}}}</p>
+                                </div>
+                                <div v-else class=""w-full flex gap-4 flex-wrap p-[10px]"">
+                                    <!-- old -->
+                                    <template v-if=""selectedItem.{prop.Name.GetCamelCaseName()}Urls"">
+                                        <div v-for=""(videoUrl, index) in selectedItem.{prop.Name.GetCamelCaseName()}Urls"" :key=""index"" class=""relative"">
+                                            <div class=""absolute z-50 top-[10px] right-[10px] flex flex-col gap-[10px]"">
+                                                <button
+                                                    @click.stop=""removeExistingVideo(index, selectedItem)""
+                                                    :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                                                    class=""bg-[#D7001F]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#A60018]/80 transition""
+                                                >
+                                                    <img src=""@/assets/icons/trashIcon.svg"" alt="""" />
+                                                </button>
+                                                <button
+                                                    @click.stop=""openVideoDialog(videoUrl)""
+                                                    class=""bg-[#298DA1]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#1E6A79]/80 transition""
+                                                >
+                                                    <img src=""@/assets/icons/eyeIcon.svg"" alt=""preview"" />
+                                                </button>
+                                                <button
+                                                    @click.stop=""downloadAsset(videoUrl, videoUrl.slice(46))""
+                                                    class=""bg-[#7A8714]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#657016]/80 transition""
+                                                >
+                                                    <img src=""@/assets/icons/downloadIcon.svg"" alt=""download-icon"" />
+                                                </button>
+                                            </div>
+                                            <video :src=""ASSET_ENDPOINT(videoUrl)"" alt=""Video"" controls class=""shadow-md w-[300px] aspect-video object-cover""></video>
+                                        </div>
+                                    </template>
 
-                        <!-- new -->
-                        <div v-if=""selectedItem.{prop.Name.GetCamelCaseName()}Srcs"" class=""flex flex-wrap gap-4 w-full"">
-                            <div v-for=""(video, index) in selectedItem.{prop.Name.GetCamelCaseName()}Srcs"" :key=""index"" class=""relative"">
-                                <button
-                                    @click=""removeNewVideo(index)""
-                                    :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                                    class=""absolute z-50 top-2.5 right-2.5 bg-black/50 border border-white text-white flex justify-center items-center rounded-lg w-[32px] h-[32px] hover:bg-[#FF4C51] transition""
-                                >
-                                    <i class=""pi pi-trash""></i>
-                                </button>
-                                <video :src=""video"" alt=""Video"" controls class=""shadow-md w-[300px] aspect-video object-cover""></video>
-                            </div>
-                        </div>
+                                    <!-- new -->
+                                    <template v-if=""selectedItem.{prop.Name.GetCamelCaseName()}Srcs"">
+                                        <div v-for=""(video, index) in selectedItem.{prop.Name.GetCamelCaseName()}Srcs"" :key=""index"" class=""relative"">
+                                            <div class=""absolute z-50 top-[10px] right-[10px] flex flex-col gap-[10px]"">
+                                                <button
+                                                    @click.stop=""removeNewVideo(index, selectedItem)""
+                                                    :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                                                    class=""bg-[#D7001F]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#A60018]/80 transition""
+                                                >
+                                                    <img src=""@/assets/icons/trashIcon.svg"" alt=""trash"" />
+                                                </button>
+                                                <button
+                                                    @click.stop=""openVideoDialog(video, 'new')""
+                                                    :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                                                    class=""bg-[#298DA1]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#1E6A79]/80 transition""
+                                                >
+                                                    <img src=""@/assets/icons/eyeIcon.svg"" alt=""preview"" />
+                                                </button>
+                                            </div>
+                                            <video :src=""video"" alt=""Video"" controls class=""shadow-md w-[300px] aspect-video object-cover""></video>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </FileUpload>
                     </div>
                 </div>");
                     }
@@ -5997,6 +6804,12 @@ const removeExistingVideo = (index, item) => {{
 // multi files section
 function onSelectFiles(event, item) {{
     const files = Array.from(event.files);
+
+    if (!files.length) {{
+        store.sendErrorMessage(t('message.wrongFileFormat'));
+        return;
+    }}
+
     for (const f of files) {{
         item.{prop.Name.GetCamelCaseName()}.push(f); // item.[property]
         item.{prop.Name.GetCamelCaseName()}Srcs.push(makePreviewObj(f, 'new')); // item.[property]Src
@@ -6023,180 +6836,222 @@ function removePreview(previewFile, item) {{
 
                         addDialog.AppendLine($@"
                 <!-- multi files -->
-                <div class=""flex flex-col items-start gap-2 md:col-span-2 w-full"">
-                    <label>{{{{ $t('field.multiFiles') }}}}</label>
+                <div class=""flex flex-col field-gap md:col-span-2 w-full"">
+                    <label class=""field-label"">{{{{ $t('field.{prop.Name.GetCamelCaseName()}') }}}}</label>
                     <p v-if=""validationErrors.{prop.Name.GetCamelCaseName()}"" class=""text-red-500"">{{{{ $t('message.filesRequired') }}}}</p>
-                    <FileUpload :multiple=""true"" accept="".pdf, .txt, .xlsx, .xls, .docx, .rar, .zip"" mode=""basic"" @select=""(e) => onSelectFiles(e, newItem)"" customUpload auto class=""p-button-outlined"" :disabled=""state.finding || state.saving"" />
-                </div>
-
-                <!-- Previewable files grid -->
-                <div v-if=""newItem.{prop.Name.GetCamelCaseName()}Srcs.filter((p) => !isArchive(p.name)).length"" class=""md:col-span-2 flex flex-col gap-5"">
-                    <!-- <VueFilesPreview :file=""p.file"" height=""200px"" overflow=""auto"" /> -->
-                    <ul class=""space-y-3"">
-                        <li v-for=""(p, i) in newItem.{prop.Name.GetCamelCaseName()}Srcs.filter((p) => !isArchive(p.name))"" :key=""i"" class=""bg-slate-100 flex-wrap p-2 px-3 border border-[#EAEAEA] rounded-lg flex gap-4 justify-between items-center"">
-                            <div class=""flex items-center gap-4"">
-                                <div class=""flex items-center justify-center h-[40px] bg-white border shrink-0 rounded-full w-[40px] gap-2"">
-                                    <i class=""fa-solid fa-file text-lg""></i>
+                    <div class=""w-full"">
+                        <FileUpload :multiple=""true"" accept="".pdf, .txt, .xlsx, .xls, .docx, .rar, .zip"" @select=""(e) => onSelectFiles(e, newItem)"" customUpload auto class=""p-button-outlined"" :disabled=""state.finding || state.saving"">
+                            <template #header=""{{ chooseCallback }}"">
+                                <div class=""flex flex-wrap justify-between items-center flex-1 gap-4"">
+                                    <div class=""flex gap-2"">
+                                        <button @click=""chooseCallback()"" class=""size-[28px] rounded-[8px] bg-white flex items-center justify-center text-gold1 border border-solid border-gold1 hover:bg-green2 hover:text-gold3 transition-colors"">
+                                            <i class=""pi pi-plus text-xs leading-none font-semibold""></i>
+                                        </button>
+                                    </div>
                                 </div>
-                                <p
-                                    v-tooltip.top=""{{
-                                        value: p.name,
-                                        pt: {{
-                                            root: {{
-                                                style: {{
-                                                    maxWidth: '350px',
-                                                    whiteSpace: 'normal',
-                                                    wordBreak: 'break-word'
-                                                }}
-                                            }}
-                                        }}
-                                    }}""
-                                    class=""flex items-center flex-wrap gap-1 gap-y-0.5""
-                                >
-                                    {{{{ shortenFileName(p.name) }}}} <span class="""">({{{{ (p.size / 1024).toFixed(1) }}}} KB)</span>
-                                </p>
-                            </div>
-                            <div class=""flex gap-2"">
-                                <!-- preview button -->
-                                <button @click=""openPreviewModal(p.file)"" class=""px-3 py-2 bg-blue-500 text-white rounded text-sm"">
-                                    <i class=""fa-solid fa-eye""></i>
-                                </button>
-                                <a :href=""p.downloadUrl"" :download=""p.name"" class=""px-3 py-2 bg-green-500 text-white rounded text-sm"">
-                                    <i class=""fa-solid fa-download""></i>
-                                </a>
-                                <button @click=""removePreview(p, newItem)"" class=""px-3 py-2 bg-red-500 text-white rounded text-sm"">
-                                    <i class=""fa-solid fa-trash""></i>
-                                </button>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
-
-                <!-- Archived files list -->
-                <div v-if=""newItem.{prop.Name.GetCamelCaseName()}Srcs.filter((p) => isArchive(p.name)).length"" class=""mt-6 md:col-span-2"">
-                    <label class=""block mb-3"">{{{{ $t('title.archivedFiles') }}}}</label>
-                    <ul class=""space-y-3"">
-                        <li v-for=""(p, i) in newItem.{prop.Name.GetCamelCaseName()}Srcs.filter((p) => isArchive(p.name))"" :key=""`arch-${{i}}`"" class=""bg-slate-100 flex-wrap p-2 px-3 border border-[#EAEAEA] rounded-lg flex gap-4 justify-between items-center"">
-                            <div class=""flex items-center gap-4"">
-                                <div class=""flex items-center justify-center h-[40px] bg-white shrink-0 border rounded-full w-[40px] gap-2"">
-                                    <i class=""fa-solid fa-file-zipper text-lg""></i>
+                            </template>
+                            <template #content>
+                                <!-- empty state -->
+                                <div v-if=""!newItem.{prop.Name.GetCamelCaseName()}Srcs.length"" class=""flex items-center w-full justify-center text-center p-5 flex-col"">
+                                    <img src=""@/assets/icons/fileUploadIcon.svg"" alt=""file upload icon"" />
+                                    <p class=""mt-[8px] text-green1 font-medium text-[13px]"">{{{{ $t('message.uploadFile') }}}}</p>
+                                    <p class=""mt-[12px] text-lightGrey text-[13px]"">{{{{ $t('message.supportedFileFormats') }}}}</p>
                                 </div>
-                                <p
-                                    v-tooltip.top=""{{
-                                        value: p.name,
-                                        pt: {{
-                                            root: {{
-                                                style: {{
-                                                    maxWidth: '350px',
-                                                    whiteSpace: 'normal',
-                                                    wordBreak: 'break-word'
-                                                }}
-                                            }}
-                                        }}
-                                    }}""
-                                >
-                                    {{{{ shortenFileName(p.name) }}}} ({{{{ (p.size / 1024).toFixed(1) }}}} KB)
-                                </p>
-                            </div>
-                            <div class=""flex gap-2"">
-                                <a :href=""p.downloadUrl"" :download=""p.name"" class=""px-3 py-2 bg-green-500 text-white rounded text-sm"">
-                                    <i class=""fa-solid fa-download""></i>
-                                </a>
-                                <button @click=""removePreview(p, newItem)"" class=""px-3 py-2 bg-red-500 text-white rounded text-sm"">
-                                    <i class=""fa-solid fa-trash""></i>
-                                </button>
-                            </div>
-                        </li>
-                    </ul>
+                                <div v-else class=""p-[10px]"">
+                                    <!-- Previewable files grid -->
+                                    <div v-if=""newItem.{prop.Name.GetCamelCaseName()}Srcs.filter((p) => !isArchive(p.name)).length"" class=""md:col-span-2 lg:col-span-3 gap-6"">
+                                        <ul class=""space-y-4"">
+                                            <li v-for=""(p, i) in newItem.{prop.Name.GetCamelCaseName()}Srcs.filter((p) => !isArchive(p.name))"" :key=""i"" class=""bg-[#EEEBE5] flex-wrap py-[12px] px-[14px] rounded-[8px] flex gap-4 justify-between items-center"">
+                                                <div class=""flex items-center gap-4"">
+                                                    <div class=""flex items-center justify-center shrink-0"">
+                                                        <img src=""@/assets/icons/fileIcon.svg"" alt=""fileIcon"" />
+                                                    </div>
+                                                    <p
+                                                        v-tooltip.top=""{{
+                                                            value: p.name,
+                                                            pt: {{
+                                                                root: {{
+                                                                    style: {{
+                                                                        maxWidth: '350px',
+                                                                        whiteSpace: 'normal',
+                                                                        wordBreak: 'break-word'
+                                                                    }}
+                                                                }}
+                                                            }}
+                                                        }}""
+                                                        class=""flex items-center flex-wrap gap-1 gap-y-0.5 text-[14px] font-semibold text-green1""
+                                                    >
+                                                        {{{{ shortenFileName(p.name) }}}}
+                                                        <!-- <span class="""">({{{{ (p.size / 1024).toFixed(1) }}}} KB)</span> -->
+                                                    </p>
+                                                </div>
+                                                <div class=""file-buttons-container"">
+                                                    <a :href=""p.downloadUrl"" :download=""p.name"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FBFFDD] transition-colors rounded-[6px]"">
+                                                        <img src=""@/assets/icons/fileDownloadIcon.svg"" alt=""file download"" />
+                                                    </a>
+                                                    <button @click=""openPreviewModal(p.file)"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#E0FAFF] transition-colors rounded-[6px]"">
+                                                        <img src=""@/assets/icons/filePreviewIcon.svg"" alt=""file preview"" />
+                                                    </button>
+                                                    <button @click=""removePreview(p, newItem)"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FECFD5] transition-colors rounded-[6px]"">
+                                                        <img src=""@/assets/icons/fileDeleteIcon.svg"" alt=""file delete"" />
+                                                    </button>
+                                                </div>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <!-- Archived files list -->
+                                    <div v-if=""newItem.{prop.Name.GetCamelCaseName()}Srcs.filter((p) => isArchive(p.name)).length"" class=""mt-4"">
+                                        <!-- <label class=""block mb-3"">{{{{ $t('title.archivedFiles') }}}}</label> -->
+                                        <ul class=""space-y-4"">
+                                            <li v-for=""(p, i) in newItem.{prop.Name.GetCamelCaseName()}Srcs.filter((p) => isArchive(p.name))"" :key=""`arch-${{i}}`"" class=""bg-[#EEEBE5] flex-wrap py-[12px] px-[14px] rounded-[8px] flex gap-4 justify-between items-center"">
+                                                <div class=""flex items-center gap-4"">
+                                                    <div class=""flex items-center justify-center shrink-0"">
+                                                        <i class=""fa-solid fa-file-zipper text-[20px] text-gold2""></i>
+                                                    </div>
+                                                    <p
+                                                        v-tooltip.top=""{{
+                                                            value: p.name,
+                                                            pt: {{
+                                                                root: {{
+                                                                    style: {{
+                                                                        maxWidth: '350px',
+                                                                        whiteSpace: 'normal',
+                                                                        wordBreak: 'break-word'
+                                                                    }}
+                                                                }}
+                                                            }}
+                                                        }}""
+                                                        class=""flex items-center flex-wrap gap-1 gap-y-0.5 text-[14px] font-semibold text-green1""
+                                                    >
+                                                        {{{{ shortenFileName(p.name) }}}}
+                                                        <!-- ({{{{ (p.size / 1024).toFixed(1) }}}} KB) -->
+                                                    </p>
+                                                </div>
+                                                <div class=""file-buttons-container"">
+                                                    <a :href=""p.downloadUrl"" :download=""p.name"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FBFFDD] transition-colors rounded-[6px]"">
+                                                        <img src=""@/assets/icons/fileDownloadIcon.svg"" alt=""file download"" />
+                                                    </a>
+                                                    <button @click=""removePreview(p, newItem)"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FECFD5] transition-colors rounded-[6px]"">
+                                                        <img src=""@/assets/icons/fileDeleteIcon.svg"" alt=""file delete"" />
+                                                    </button>
+                                                </div>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </template>
+                        </FileUpload>
+                    </div>
                 </div>");
 
                         editDialog.AppendLine($@"
                 <!-- multi files -->
-                <div class=""flex flex-col items-start gap-2 md:col-span-2 w-full"">
-                    <label>{{{{ $t('field.multiFiles') }}}}</label>
+                <div class=""flex flex-col items-start field-gap md:col-span-2 w-full"">
+                    <label class=""field-label"">{{{{ $t('field.{prop.Name.GetCamelCaseName()}') }}}}</label>
                     <p v-if=""validationErrors.{prop.Name.GetCamelCaseName()}"" class=""text-red-500"">{{{{ $t('message.filesRequired') }}}}</p>
-                    <FileUpload :multiple=""true"" accept="".pdf, .txt, .xlsx, .xls, .docx, .rar, .zip"" mode=""basic"" @select=""(e) => onSelectFiles(e, selectedItem)"" customUpload auto class=""p-button-outlined"" :disabled=""state.finding || state.saving"" />
-                </div>
-
-                <!-- Previewable files grid -->
-                <div v-if=""selectedItem.{prop.Name.GetCamelCaseName()}Srcs.filter((p) => !isArchive(p.name)).length"" class=""md:col-span-2 flex flex-col gap-5"">
-                    <!-- <VueFilesPreview :file=""p.file"" height=""200px"" overflow=""auto"" /> -->
-                    <ul class=""space-y-3"">
-                        <li v-for=""(p, i) in selectedItem.{prop.Name.GetCamelCaseName()}Srcs.filter((p) => !isArchive(p.name))"" :key=""i"" class=""bg-slate-100 flex-wrap p-2 px-3 border border-[#EAEAEA] rounded-lg flex gap-4 justify-between items-center"">
-                            <div class=""flex items-center gap-4"">
-                                <div class=""flex items-center justify-center h-[40px] bg-white border shrink-0 rounded-full w-[40px] gap-2"">
-                                    <i class=""fa-solid fa-file text-lg""></i>
+                    <div class=""w-full"">
+                        <FileUpload :multiple=""true"" accept="".pdf, .txt, .xlsx, .xls, .docx, .rar, .zip"" @select=""(e) => onSelectFiles(e, selectedItem)"" customUpload auto class=""p-button-outlined"" :disabled=""state.finding || state.saving"">
+                            <template #header=""{{ chooseCallback }}"">
+                                <div class=""flex flex-wrap justify-between items-center flex-1 gap-4"">
+                                    <div class=""flex gap-2"">
+                                        <button @click=""chooseCallback()"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" class=""size-[28px] rounded-[8px] bg-white flex items-center justify-center text-gold1 border border-solid border-gold1 hover:bg-green2 hover:text-gold3 transition-colors"">
+                                            <i class=""pi pi-plus text-xs leading-none font-semibold""></i>
+                                        </button>
+                                    </div>
                                 </div>
-                                <p
-                                    v-tooltip.top=""{{
-                                        value: p.name,
-                                        pt: {{
-                                            root: {{
-                                                style: {{
-                                                    maxWidth: '350px',
-                                                    whiteSpace: 'normal',
-                                                    wordBreak: 'break-word'
-                                                }}
-                                            }}
-                                        }}
-                                    }}""
-                                    class=""flex items-center flex-wrap gap-1 gap-y-0.5""
-                                >
-                                    {{{{ shortenFileName(p.name) }}}} <span class="""">({{{{ (p.size / 1024).toFixed(1) }}}} KB)</span>
-                                </p>
-                            </div>
-                            <div class=""flex gap-2"">
-                                <!-- preview button -->
-                                <button @click=""openPreviewModal(p.file)"" class=""px-3 py-2 bg-blue-500 text-white rounded text-sm"">
-                                    <i class=""fa-solid fa-eye""></i>
-                                </button>
-                                <a :href=""p.downloadUrl"" :download=""p.name"" class=""px-3 py-2 bg-green-500 text-white rounded text-sm"">
-                                    <i class=""fa-solid fa-download""></i>
-                                </a>
-                                <button @click=""removePreview(p, selectedItem)"" class=""px-3 py-2 bg-red-500 text-white rounded text-sm"">
-                                    <i class=""fa-solid fa-trash""></i>
-                                </button>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
-
-                <!-- Archived files list -->
-                <div v-if=""selectedItem.{prop.Name.GetCamelCaseName()}Srcs.filter((p) => isArchive(p.name)).length"" class=""mt-6 md:col-span-2"">
-                    <label class=""block mb-3"">{{{{ $t('title.archivedFiles') }}}}</label>
-                    <ul class=""space-y-3"">
-                        <li v-for=""(p, i) in selectedItem.{prop.Name.GetCamelCaseName()}Srcs.filter((p) => isArchive(p.name))"" :key=""`arch-${{i}}`"" class=""bg-slate-100 flex-wrap p-2 px-3 border border-[#EAEAEA] rounded-lg flex gap-4 justify-between items-center"">
-                            <div class=""flex items-center gap-4"">
-                                <div class=""flex items-center justify-center h-[40px] bg-white shrink-0 border rounded-full w-[40px] gap-2"">
-                                    <i class=""fa-solid fa-file-zipper text-lg""></i>
+                            </template>
+                            <template #content>
+                                <!-- empty state -->
+                                <div v-if=""!selectedItem.{prop.Name.GetCamelCaseName()}Srcs.length"" class=""flex items-center w-full justify-center text-center p-5 flex-col"">
+                                    <img src=""@/assets/icons/fileUploadIcon.svg"" alt=""file upload icon"" />
+                                    <p class=""mt-[8px] text-green1 font-medium text-[13px]"">{{{{ $t('message.uploadFile') }}}}</p>
+                                    <p class=""mt-[12px] text-lightGrey text-[13px]"">{{{{ $t('message.supportedFileFormats') }}}}</p>
                                 </div>
-                                <p
-                                    v-tooltip.top=""{{
-                                        value: p.name,
-                                        pt: {{
-                                            root: {{
-                                                style: {{
-                                                    maxWidth: '350px',
-                                                    whiteSpace: 'normal',
-                                                    wordBreak: 'break-word'
-                                                }}
-                                            }}
-                                        }}
-                                    }}""
-                                >
-                                    {{{{ shortenFileName(p.name) }}}} ({{{{ (p.size / 1024).toFixed(1) }}}} KB)
-                                </p>
-                            </div>
-                            <div class=""flex gap-2"">
-                                <a :href=""p.downloadUrl"" :download=""p.name"" class=""px-3 py-2 bg-green-500 text-white rounded text-sm"">
-                                    <i class=""fa-solid fa-download""></i>
-                                </a>
-                                <button @click=""removePreview(p, selectedItem)"" class=""px-3 py-2 bg-red-500 text-white rounded text-sm"">
-                                    <i class=""fa-solid fa-trash""></i>
-                                </button>
-                            </div>
-                        </li>
-                    </ul>
+                                <div v-else class=""p-[10px]"">
+                                    <!-- Previewable files grid -->
+                                    <div v-if=""selectedItem.{prop.Name.GetCamelCaseName()}Srcs.filter((p) => !isArchive(p.name)).length"" class=""md:col-span-2 lg:col-span-3 gap-6"">
+                                        <ul class=""space-y-4"">
+                                            <li v-for=""(p, i) in selectedItem.{prop.Name.GetCamelCaseName()}Srcs.filter((p) => !isArchive(p.name))"" :key=""i"" class=""bg-[#EEEBE5] flex-wrap py-[12px] px-[14px] rounded-[8px] flex gap-4 justify-between items-center"">
+                                                <div class=""flex items-center gap-4"">
+                                                    <div class=""flex items-center justify-center shrink-0"">
+                                                        <img src=""@/assets/icons/fileIcon.svg"" alt=""fileIcon"" />
+                                                    </div>
+                                                    <p
+                                                        v-tooltip.top=""{{
+                                                            value: p.name,
+                                                            pt: {{
+                                                                root: {{
+                                                                    style: {{
+                                                                        maxWidth: '350px',
+                                                                        whiteSpace: 'normal',
+                                                                        wordBreak: 'break-word'
+                                                                    }}
+                                                                }}
+                                                            }}
+                                                        }}""
+                                                        class=""flex items-center flex-wrap gap-1 gap-y-0.5 text-[14px] font-semibold text-green1""
+                                                    >
+                                                        {{{{ shortenFileName(p.name) }}}}
+                                                        <!-- <span class="""">({{{{ (p.size / 1024).toFixed(1) }}}} KB)</span> -->
+                                                    </p>
+                                                </div>
+                                                <div class=""file-buttons-container"">
+                                                    <a :href=""p.downloadUrl"" :download=""p.name"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FBFFDD] transition-colors rounded-[6px]"">
+                                                        <img src=""@/assets/icons/fileDownloadIcon.svg"" alt=""file download"" />
+                                                    </a>
+                                                    <button @click=""openPreviewModal(p.file)"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#E0FAFF] transition-colors rounded-[6px]"">
+                                                        <img src=""@/assets/icons/filePreviewIcon.svg"" alt=""file preview"" />
+                                                    </button>
+                                                    <button @click=""removePreview(p, selectedItem)"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FECFD5] transition-colors rounded-[6px]"">
+                                                        <img src=""@/assets/icons/fileDeleteIcon.svg"" alt=""file delete"" />
+                                                    </button>
+                                                </div>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <!-- Archived files list -->
+                                    <div v-if=""selectedItem.{prop.Name.GetCamelCaseName()}Srcs.filter((p) => isArchive(p.name)).length"" class=""mt-4"">
+                                        <!-- <label class=""block mb-3"">{{{{ $t('title.archivedFiles') }}}}</label> -->
+                                        <ul class=""space-y-4"">
+                                            <li v-for=""(p, i) in selectedItem.{prop.Name.GetCamelCaseName()}Srcs.filter((p) => isArchive(p.name))"" :key=""`arch-${{i}}`"" class=""bg-[#EEEBE5] flex-wrap py-[12px] px-[14px] rounded-[8px] flex gap-4 justify-between items-center"">
+                                                <div class=""flex items-center gap-4"">
+                                                    <div class=""flex items-center justify-center shrink-0"">
+                                                        <i class=""fa-solid fa-file-zipper text-[20px] text-gold2""></i>
+                                                    </div>
+                                                    <p
+                                                        v-tooltip.top=""{{
+                                                            value: p.name,
+                                                            pt: {{
+                                                                root: {{
+                                                                    style: {{
+                                                                        maxWidth: '350px',
+                                                                        whiteSpace: 'normal',
+                                                                        wordBreak: 'break-word'
+                                                                    }}
+                                                                }}
+                                                            }}
+                                                        }}""
+                                                        class=""flex items-center flex-wrap gap-1 gap-y-0.5 text-[14px] font-semibold text-green1""
+                                                    >
+                                                        {{{{ shortenFileName(p.name) }}}}
+                                                        <!-- ({{{{ (p.size / 1024).toFixed(1) }}}} KB) -->
+                                                    </p>
+                                                </div>
+                                                <div class=""file-buttons-container"">
+                                                    <a :href=""p.downloadUrl"" :download=""p.name"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FBFFDD] transition-colors rounded-[6px]"">
+                                                        <img src=""@/assets/icons/fileDownloadIcon.svg"" alt=""file download"" />
+                                                    </a>
+                                                    <button @click=""removePreview(p, selectedItem)"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FECFD5] transition-colors rounded-[6px]"">
+                                                        <img src=""@/assets/icons/fileDeleteIcon.svg"" alt=""file delete"" />
+                                                    </button>
+                                                </div>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </template>
+                        </FileUpload>
+                    </div>
                 </div>");
 
                     }
@@ -6249,8 +7104,8 @@ function removePreview(previewFile, item) {{
                         relationConsts.AppendLine($"const {{ items: {entityRelatedPluralLower}, loading: loading{entityRelatedPlural}, search: search{entityRelatedPlural} }} = useList(use{rel.RelatedEntity}Store(), '', {{}});");
 
                         addDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                     <Select
                         :invalid=""validationErrors.{entityRelatedLowerValidation}""
                         :emptyMessage=""$t('message.noAvailableOptions')""
@@ -6261,6 +7116,7 @@ function removePreview(previewFile, item) {{
                         :loading=""loading{entityRelatedPlural}""
                         :placeholder=""$t('field.{propLower}')""
                         class=""w-full""
+                        showClear
                         filter
                         @filter=""(e) => search{entityRelatedPlural}(e.value)""
                     >
@@ -6273,8 +7129,8 @@ function removePreview(previewFile, item) {{
                 </div>");
 
                         editDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                     <Select
                         :invalid=""validationErrors.{entityRelatedLowerValidation}""
                         :emptyMessage=""$t('message.noAvailableOptions')""
@@ -6285,8 +7141,10 @@ function removePreview(previewFile, item) {{
                         :loading=""loading{entityRelatedPlural}""
                         :placeholder=""$t('field.{propLower}')""
                         class=""w-full""
+                        showClear
                         filter
                         @filter=""(e) => search{entityRelatedPlural}(e.value)""
+                        :disabled=""state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
                     >
                         <template #option=""slotProps"">
                             <div class=""flex items-center"">
@@ -6309,8 +7167,8 @@ function removePreview(previewFile, item) {{
                         relationConsts.AppendLine($"const {{ items: {entityRelatedPluralLower}, loading: loading{entityRelatedPlural}, search: search{entityRelatedPlural} }} = useList(use{rel.RelatedEntity}Store(), '', {{}});");
 
                         addDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                     <MultiSelect
                         id=""{propLower}""
                         class=""w-full""
@@ -6330,8 +7188,8 @@ function removePreview(previewFile, item) {{
                 </div>");
 
                         editDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                     <MultiSelect
                         id=""{propLower}""
                         class=""w-full""
@@ -6347,6 +7205,7 @@ function removePreview(previewFile, item) {{
                         @filter=""(e) => search{entityRelatedPlural}(e.value)""
                         :placeholder=""$t('field.{propLower}')""
                         :maxSelectedLabels=""3""
+                        :disabled=""state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
                     />
                 </div>");
                     }
@@ -6358,8 +7217,8 @@ function removePreview(previewFile, item) {{
                         filterSectionInitFilters.Add($"    {propLower}Id: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: FilterMatchMode.EQUALS }}] }},");
 
                         addDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                     <Select
                         :invalid=""validationErrors.{entityUserValidation}""
                         :emptyMessage=""$t('message.noAvailableOptions')""
@@ -6370,6 +7229,7 @@ function removePreview(previewFile, item) {{
                         :loading=""loadingUsers""
                         :placeholder=""$t('field.{propLower}')""
                         class=""w-full""
+                        showClear
                         filter
                         @filter=""(e) => searchUsers(e.value)""
                     >
@@ -6382,8 +7242,8 @@ function removePreview(previewFile, item) {{
                 </div>");
 
                         editDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                     <Select
                         :emptyMessage=""$t('message.noAvailableOptions')""
                         :invalid=""validationErrors.{entityUserValidation}""
@@ -6394,8 +7254,10 @@ function removePreview(previewFile, item) {{
                         :loading=""loadingUsers""
                         :placeholder=""$t('field.{propLower}')""
                         class=""w-full""
+                        showClear
                         filter
                         @filter=""(e) => searchUsers(e.value)""
+                        :disabled=""state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
                     >
                         <template #option=""slotProps"">
                             <div class=""flex items-center"">
@@ -6414,8 +7276,8 @@ function removePreview(previewFile, item) {{
                         filterSectionInitFilters.Add($"    {propLower}Ids: {{ operator: FilterOperator.AND, constraints: [{{ value: null, matchMode: 'arrayIncludes' }}] }},");
 
                         addDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                     <MultiSelect
                         id=""{propLower}""
                         class=""w-full""
@@ -6435,8 +7297,8 @@ function removePreview(previewFile, item) {{
                 </div>");
 
                         editDialog.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                     <MultiSelect
                         id=""{propLower}""
                         class=""w-full""
@@ -6452,6 +7314,7 @@ function removePreview(previewFile, item) {{
                         @filter=""(e) => searchUsers(e.value)""
                         :placeholder=""$t('field.{propLower}')""
                         :maxSelectedLabels=""3""
+                        :disabled=""state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
                     />
                 </div>");
                     }
@@ -6522,21 +7385,56 @@ function removePreview(previewFile, item) {{
 <script setup>
 import LocalListTemplate from '@/components/table/LocalListTemplate.vue';
 import {{ use{parentEntityName}{entityName}Store as useStore }} from '@/store/{parentEntityName.GetCamelCaseName()}/{parentEntityName}{entityName}Store';
+import {{ use{parentEntityName}Store }} from '@/store/{parentEntityName.GetCamelCaseName()}/{parentEntityName}Store';
 import {{ {parentEntityName.GetPluralName().GetCapitalName()}_ROUTE as PAGE_ROUTE, ASSET_ENDPOINT}} from '@/utils/Constants';
-import {{ ref, watch }} from 'vue';
+import {{ ref, watch, onBeforeMount, computed}} from 'vue';
 import {{ FilterMatchMode, FilterService, FilterOperator }} from '@primevue/core';
-import {{ EDIT_ITEM, FIND_ITEM }} from '@/utils/StoreConstant';
+import {{ EDIT_ITEM, FIND_ITEM, VIEW_ITEM, EDIT_PAGE_STATE, VIEW_PAGE_STATE }} from '@/utils/StoreConstant';
 import useSingle from '@/composables/useSingle';
 import useList from '@/composables/useList';
 import {{formatDate}} from '@/utils/utils';
+import TheButton from '@/components/ui/TheButton.vue';
+
 {fileImportPreview}
 {relationImports}
 
 
 const store = useStore();
+const parentStore = use{parentEntityName}Store();
 
 const {{ state, t, onSave }} = useSingle(store, PAGE_ROUTE);
-const {{ isColumnSelected, formattedDate, getOptionLabel }} = useList(store, PAGE_ROUTE, {{ autoLoad: false }});
+const {{ isColumnSelected, formattedDate, getOptionLabel, hasPermission }} = useList(store, PAGE_ROUTE, {{ autoLoad: false }});
+
+onBeforeMount(() => {{
+    // backup
+    const keepCols = store.selectedColumns;
+
+    // full reset
+    store.$reset();
+
+    // restore
+    store.selectedColumns = keepCols;
+    store.itemPageState = parentStore.itemPageState;
+}});
+
+const downloadAsset = async (url, filename) => {{
+    try {{
+        const res = await fetch(ASSET_ENDPOINT(url));
+        console.log('res: ', res);
+        if (!res.ok) throw new Error('Network error');
+        const blob = await res.blob();
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        URL.revokeObjectURL(link.href);
+        document.body.removeChild(link);
+    }} catch (err) {{
+        console.error('Download failed', err);
+    }}
+}}
+
 {enumFilters.ToString().TrimEnd()}
 {enumDisplayOption.ToString().TrimEnd()}
 
@@ -6601,6 +7499,7 @@ const onAddSave = () => {{
     }}
 
     store.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}.push({{ ...newItem.value }});
+    parentStore.isTabsLocked = true;
     isAddModalOpen.value = false;
 
     // reset errors
@@ -6622,9 +7521,13 @@ const isEditModalOpen = ref(false);
 const didUserSave = ref(false);
 const originalItem = ref(null); // store a backup copy
 const originalItemFiles = ref({{}});
+const editDialogMode = computed(() => (store.itemPageState === VIEW_PAGE_STATE ? 'view' : 'edit'));
 
+const onEdit = async (item, mode = 'editMode') => {{
 
-const onEdit = async (item) => {{
+    if (mode === 'viewMode') {{
+        store.itemPageState = VIEW_PAGE_STATE;
+    }}
     // make a deep copy so we can revert later
     originalItem.value = JSON.parse(JSON.stringify(item));
     
@@ -6659,6 +7562,7 @@ const onEditSave = () => {{
         store.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}.splice(idx, 1, selectedItem.value);
     }}
     didUserSave.value = true;
+    parentStore.isTabsLocked = true;
     isEditModalOpen.value = false;
     validationErrors.value = {{}}; // clear old errors
 }};
@@ -6678,12 +7582,15 @@ const onEditCancel = () => {{
         }}
     }}
     didUserSave.value = false;
+    if (parentStore.itemPageState !== VIEW_PAGE_STATE) store.itemPageState = EDIT_PAGE_STATE;
     isEditModalOpen.value = false;
 }};
 {singleImageSection}
 {singleVideoSection}
 {multiImagesSection}
 {multiVideosSection}
+{ImgDialogRelated}
+{VideoDialogRelated}
 {fileHelperSection}
 {singleFileSection}
 {multiFilesSection}
@@ -6702,6 +7609,7 @@ const onDeleteConfirm = () => {{
     if (idx !== -1) {{
         store.{parentEntityName.GetCamelCaseName()}{entityPlural}.splice(idx, 1);
     }}
+    parentStore.isTabsLocked = true;
     isDeleteModalOpen.value = false;
 }};
 
@@ -6752,37 +7660,83 @@ const saveAll = () => {{
 
 
 const handleCancel = () => {{
-    store[FIND_ITEM]({{
-        id: store.{parentEntityName.GetCamelCaseName()}Id,
-        viewState: EDIT_ITEM
-    }});
+    if (store.{parentEntityName.GetCamelCaseName()}Id) {{
+        // backup
+        const keepid = store.{parentEntityName.GetCamelCaseName()}Id;//parent id
+        const keepPageState = store.itemPageState;
+        const keepCols = store.selectedColumns;
+
+        // full reset
+        store.$reset();
+        store[FIND_ITEM]({{
+            id: keepid,
+            viewState: keepPageState === 2 ? EDIT_ITEM : VIEW_ITEM
+        }});
+
+        // restore
+        store.selectedColumns = keepCols;
+        store.itemPageState = keepPageState;
+        parentStore.isTabsLocked = false;
+    }} else {{
+        // backup
+        const keepCols = store.selectedColumns;
+        const keepPageState = store.itemPageState;
+
+        // full reset
+        store.$reset();
+
+        // restore
+        store.selectedColumns = keepCols;
+        store.itemPageState = keepPageState;
+        parentStore.isTabsLocked = false;
+    }}
 }};
+
 </script>
 <template>
     <div class=""theCard"">
-        <div class=""flex flex-wrap items-center justify-between gap-4 mb-8"">
-            <h2 class=""text-3xl font-semibold"">{{{{ $t('title.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}') }}}}</h2>
+        <div class=""flex flex-wrap items-center justify-between gap-4"">
             <!-- actions -->
-            <div v-if=""!store.finding && store.{parentEntityName.GetCamelCaseName()}Id"" class="""">
-                <Button text :label=""$t('button.cancelAll')"" class=""mr-2"" @click=""handleCancel"" />
-                <Button :label=""$t('button.saveAll')"" class=""mr-2"" @click=""saveAll"" />
+            <div v-if=""!store.finding && store.{parentEntityName.GetCamelCaseName()}Id && hasPermission(store.entityName, 'edit') && state.itemPageState !== $StoreConstant('VIEW_PAGE_STATE')"" class=""flex items-center gap-[32px] mb-8"">
+                <TheButton :label=""$t('button.save')"" @click=""saveAll"" :loading=""state.saving"" />
+                <TheButton variant=""cancel"" :label=""$t('button.cancel')"" @click=""handleCancel"" :disabled=""state.saving"" />
             </div>
+
         </div>
         <div v-if=""!store.finding && !store.{parentEntityName.GetCamelCaseName()}Id"">
             {{{{ $t('message.createEntityFirstMessage', {{ entity: $t('field.{parentEntityName.GetCamelCaseName()}') }}) }}}}
         </div>
         <div v-if=""store.finding"" class=""flex justify-center items-center w-full mt-[32px]"">
-            <atom-spinner :size=""50"" color=""#1B80E4"" />
+            <atom-spinner :size=""50"" color=""#988561"" />
         </div>
-        <LocalListTemplate v-if=""!store.finding && store.{parentEntityName.GetCamelCaseName()}Id"" :items=""store.{parentEntityName.GetCamelCaseName()}{entityPlural}"" :use-store=""useStore"" :filters=""filters"" @add=""onAdd"" :global-filter-fields=""globalFields"">
+        <LocalListTemplate v-if=""!store.finding && store.{parentEntityName.GetCamelCaseName()}Id"" title=""title.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}"" :items=""store.{parentEntityName.GetCamelCaseName()}{entityPlural}"" :use-store=""useStore"" :filters=""filters"" :show-add=""state.itemPageState !== $StoreConstant('VIEW_PAGE_STATE') && hasPermission(store.entityName, 'add')"" @add=""onAdd"" :global-filter-fields=""globalFields"">
             <template #columns>
 {colomnBuilder}
-
-                <Column field=""actions"" :header=""$t('field.actions')"">
+                <!-- table actions -->
+                <Column field=""actions"" class=""data-table-actions"" :header=""$t('field.actions')"">
                     <template #body=""{{ data }}"">
-                        <div class=""flex flex-row gap-2 items-center"">
-                            <Button v-tooltip=""$t('tooltip.edit')"" text :severity=""$AppColor('ICON_EDIT_COLOR')"" class=""p-button-rounded mr-2 mb-2"" @click=""onEdit(data)""><i class=""fa-solid fa-pen""></i></Button>
-                            <Button v-tooltip=""$t('tooltip.delete')"" text :severity=""$AppColor('ICON_DELETE_COLOR')"" class=""p-button-rounded mr-2 mb-2"" @click=""onDelete(data)""><i class=""fa-solid fa-trash""></i></Button>
+                        <div class=""flex flex-row gap-2 items-center justify-center"">
+                            <button v-if=""hasPermission(store.entityName, 'edit') || hasPermission(store.entityName, 'view')"" v-tooltip=""$t('tooltip.view')"" class=""size-[36px] rounded-full flex items-center justify-center text-[#298DA1] hover:bg-[#E0FAFF] transition-colors"" @click=""onEdit(data, 'viewMode')"">
+                                <i class=""fa-solid fa-eye leading-none font-semibold""></i>
+                            </button>
+                            <button
+                                v-if=""state.itemPageState !== $StoreConstant('VIEW_PAGE_STATE') && hasPermission(store.entityName, 'edit')""
+                                v-tooltip=""$t('tooltip.edit')""
+                                class=""size-[36px] rounded-full flex items-center justify-center text-[#1E19A4] hover:bg-[#E8E7FF] transition-colors""
+                                @click=""onEdit(data)""
+                            >
+                                <i class=""fa-solid fa-pen leading-none font-semibold""></i>
+                            </button>
+                            <!-- v-if=""state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" -->
+
+                            <button
+                                v-if=""state.itemPageState !== $StoreConstant('VIEW_PAGE_STATE') && hasPermission(store.entityName, 'delete')""
+                                v-tooltip=""$t('tooltip.delete')""
+                                class=""size-[36px] rounded-full flex items-center justify-center text-[#D7001F] hover:bg-[#FFDDE2] transition-colors""
+                                @click=""onDelete(data)""
+                            >
+                                <i class=""fa-solid fa-trash leading-none font-semibold""></i>
+                            </button>
                         </div>
                     </template>
                 </Column>
@@ -6791,25 +7745,25 @@ const handleCancel = () => {{
 
         <!-- -- Dialogs -- -->
         <!-- ADD DIALOG -->
-        <Dialog v-model:visible=""isAddModalOpen"" :header=""t('title.add{parentEntityName}{entityName}')"" modal dismissableMask :draggable=""false"" block-scroll class=""!w-[90%] !max-w-[600px]"">
+        <Dialog v-model:visible=""isAddModalOpen"" :header=""t('title.add{parentEntityName}{entityName}')"" modal dismissableMask :draggable=""false"" block-scroll class=""!w-[90%] !max-w-[800px] !h-[100%]"">
             <div class=""grid grid-cols-1 md:grid-cols-2 gap-4"">
 {addDialog}
             </div>
             <template #footer>
-                <Button :label=""$t('button.cancel')"" text @click=""onAddCancel"" />
-                <Button :label=""$t('button.save')"" @click=""onAddSave"" />
+                <TheButton :label=""$t('button.save')"" @click=""onAddSave""/>
+                <TheButton variant=""cancel"" :label=""$t('button.cancel')"" @click=""onAddCancel""/>
             </template>
         </Dialog>
 
         <!-- EDIT DIALOG -->
-        <Dialog v-model:visible=""isEditModalOpen"" dismissableMask modal :header=""$t('title.edit{parentEntityName}{entityName}')"" :modal=""true"" :draggable=""false"" block-scroll class=""!w-[90%] !max-w-[600px]"">
+        <Dialog v-model:visible=""isEditModalOpen"" dismissableMask modal @hide=""onEditCancel"" :header=""$t(`title.${{editDialogMode}}{parentEntityName}{entityName}`)"" :modal=""true"" :draggable=""false"" block-scroll class=""!w-[90%] !max-w-[800px] !h-[100%]"">
             <!-- your form fields, bound to selectedItem.fullName, etc. -->
             <div class=""w-full grid grid-cols-1 md:grid-cols-2 gap-4"">
 {editDialog}
             </div>
-            <template #footer>
-                <Button :label=""$t('button.cancel')"" text @click=""onEditCancel"" />
-                <Button :label=""$t('button.save')"" @click=""onEditSave"" />
+            <template #footer v-if=""state.itemPageState !== $StoreConstant('VIEW_PAGE_STATE')"">
+                <TheButton :label=""$t('button.save')"" @click=""onEditSave""/>
+                <TheButton variant=""cancel"" :label=""$t('button.cancel')"" @click=""onEditCancel""/>
             </template>
         </Dialog>
 
@@ -6823,13 +7777,9 @@ const handleCancel = () => {{
                 <Button :label=""$t('button.yes')"" severity=""danger"" @click=""onDeleteConfirm"" />
             </template>
         </Dialog>
-
-        <!-- file preview dialog -->
-        <Dialog v-model:visible=""isPreviewModalOpen"" :style=""{{ width: '95%', height: '90%' }}"" :header=""$t('title.filePreview')"" :modal=""true"" :draggable=""false"" :dismissableMask=""true"" block-scroll>
-            <div class=""!h-full"">
-                <VueFilesPreview v-if=""selectedPreviewFile"" :file=""selectedPreviewFile"" overflow=""auto"" />
-            </div>
-        </Dialog>
+{previewDialog}
+{ImgDialogHtml}
+{VideoDialogHtml}
         <!--  -->
     </div>
 </template>
@@ -6837,7 +7787,7 @@ const handleCancel = () => {{
 
             File.WriteAllText(viewBulkPath, content);
 
-            //update parent single view
+            #region update parent single view
             string parentViewPath = Path.Combine(srcDir, "views", $"{parentEntityName.GetCamelCaseName()}", $"{parentEntityName}.vue");
             if (!File.Exists(parentViewPath))
             {
@@ -6857,7 +7807,7 @@ const handleCancel = () => {{
             lines.Clear();
             index = -1;
 
-            string tabPartial = $"{{ key: '{entityName.GetCamelCaseName().GetPluralName()}', label: t('title.{entityName.GetCamelCaseName().GetPluralName()}') }}," +
+            string tabPartial = $"{{ key: '{entityName.GetCamelCaseName().GetPluralName()}', label: t('title.{entityName.GetCamelCaseName().GetPluralName()}'), permissionEntity: '{entityLower}' }}," +
                 $"\n\t//Add tab Partials Here";
 
             lines = File.ReadAllLines(parentViewPath).ToList();
@@ -6881,6 +7831,7 @@ const handleCancel = () => {{
                 lines[index] = componentPartial;
                 File.WriteAllLines(parentViewPath, lines);
             }
+            #endregion
         }
 
         public static void GenerateParentSingleView(string entityName, string srcDir)
@@ -6896,13 +7847,18 @@ import {{ ref, computed }} from 'vue'
 import {entityName}BasicInfo from './parts/{entityName}BasicInfo.vue'
 //Add import Partials Here
 import {{ useI18n }} from 'vue-i18n'
+import {{useAuthStore}} from '@/store/AuthStore';
 
 // back button
 import {{ {entityName.GetPluralName().GetCapitalName()}_ROUTE as PAGE_ROUTE }} from '@/utils/Constants'
 import {{ getLocale }} from '@/utils/Storage'
 import {{ useRouter }} from 'vue-router'
+import {{use{entityName}Store as useStore}} from '@/store/{entityLower}/{entityName}Store';
+import TheButton from '@/components/ui/TheButton.vue';
 
 const router = useRouter()
+const store = useStore();
+const authStore = useAuthStore();
 
 const goBack = () => {{
     router.push(PAGE_ROUTE())
@@ -6913,10 +7869,23 @@ const {{ t }} = useI18n()
 const selected = ref('basicInfo')
 
 const tabs = [
-    {{ key: 'basicInfo', label: t('title.{entityName.GetCamelCaseName()}') }},
+    {{key: 'basicInfo', label: t('title.basicInfo'), permissionEntity: '{entityLower}' }},
     //Add tab Partials Here
 ]
 
+// permission check helper
+function hasBrowsePermission(entityName) {{
+    if (!entityName) return true;
+    const perms = authStore.permissions || [];
+    return perms.some(
+        p => String(p.entityName).toLowerCase() === String(entityName).toLowerCase() && (p.view || p.edit)
+    );
+}}
+
+// filter tabs based on permission
+const filteredTabs = computed(() => {{
+    return tabs.filter(tab => hasBrowsePermission(tab.permissionEntity));
+}});
 
 // return the right component
 const currentComponent = computed(() => {{
@@ -6927,41 +7896,69 @@ const currentComponent = computed(() => {{
     return {entityName}BasicInfo
 }});
 
-</script>
+// handle tab click and tab lock
+const isTabsLockedDialogOpen = ref(false);
 
+const handleTabClick = (key) => {{
+    if (store.isTabsLocked) {{
+        isTabsLockedDialogOpen.value = true;
+        return;
+    }}
+
+    selected.value = key;
+}};
+
+</script>
 
 <template>
     <div class=""flex relative flex-col gap-5"">
-    <!-- back button -->
-        <div class=""flex items-center w-fit gap-5"">
-            <button @click=""goBack"" class=""flex items-center gap-3 px-3 py-2 w-full transition-colors hover:bg-gray-200 rounded-lg"" >
-            <i class=""pi pi-arrow-left text-gray-600"" :class=""getLocale() === 'ar' ? 'rotate-180' : ''""></i>
-            {{{{ $t('button.back') }}}}
-            </button>
-        </div>
+        <!-- back button -->
+        <!-- <div class=""flex items-center w-fit gap-5"">
+      <button @click=""goBack"" class=""flex items-center gap-3 px-3 py-2 w-full transition-colors hover:bg-gray-200 rounded-lg"" >
+        <i class=""pi pi-arrow-left text-gray-600"" :class=""getLocale() === 'ar' ? 'rotate-180' : ''""></i>
+        {{{{ $t('button.back') }}}}
+      </button>
+    </div> -->
 
-    <!-- Sidebar (for sticky: md:sticky md:top-20) -->
-        <aside class=""w-fit shrink-0 bg-white rounded-lg h-fit border p-2 overflow-y-auto"">
-            <div class=""flex flex-wrap gap-2"">
-
-            <button
-                v-for=""tab in tabs""
-                :key=""tab.key""
-                @click=""selected = tab.key""
-                class=""cursor-pointer px-3 py-2 rounded border border-[#EAEAEA] transition-colors""
-                :class=""selected === tab.key ? 'bg-blue-500 border-blue-500 text-white font-medium' : 'hover:bg-gray-200'""
-            >
-                {{{{ tab.label }}}}
-            </button>
+        <!-- Sidebar (for sticky: md:sticky md:top-20) -->
+        <aside class=""w-fit shrink-0 bg-gold3 rounded-[8px] h-fit border p-[8px] overflow-y-auto"">
+            <div class=""flex flex-wrap gap-[8px]"">
+                <button
+                    v-for=""tab in filteredTabs""
+                    :key=""tab.key""
+                    @click=""handleTabClick(tab.key)""
+                    class=""cursor-pointer px-[16px] py-[14px] rounded-[8px] border border-gold3 text-charocal2 font-medium transition-colors""
+                    :class=""selected === tab.key ? 'bg-green2 border-green2 !text-gold2 !font-semibold' : 'hover:bg-gold1/15'""
+                >
+                    <span class=""text-[13px]"">{{{{ tab.label }}}}</span>
+                </button>
             </div>
         </aside>
 
-
-
-    <!-- Main Content -->
+        <!-- Main Content -->
         <main class=""flex-1"">
             <component :is=""currentComponent"" />
         </main>
+
+        <!-- locked tabs dialog -->
+        <Dialog v-model:visible=""isTabsLockedDialogOpen"" dismissableMask modal :header=""$t(`title.unsavedChanges`)"" :modal=""true"" :draggable=""false"" block-scroll class=""!w-[90%] !max-w-[350px]"">
+            <!-- your form fields, bound to selectedItem.fullName, etc. -->
+            <div class=""w-full flex flex-col gap-8 text-center"">
+                <svg xmlns=""http://www.w3.org/2000/svg"" fill=""none"" viewBox=""0 0 24 24"" stroke-width=""1.5"" stroke=""currentColor"" class=""w-20 h-20 mt-8 mx-auto text-gold1"">
+                    <path
+                        stroke-linecap=""round""
+                        stroke-linejoin=""round""
+                        d=""M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z""
+                    />
+                </svg>
+
+                <p>{{{{ $t(`message.unsavedChanges`) }}}}</p>
+
+                <div class=""flex justify-center items-center mt-6"">
+                    <TheButton :label=""$t('button.ok')"" @click=""isTabsLockedDialogOpen = false"" />
+                </div>
+            </div>
+        </Dialog>
     </div>
 </template>
 
@@ -6973,7 +7970,7 @@ const currentComponent = computed(() => {{
             File.WriteAllText(viewSinglePath, content);
         }
 
-        private static string GetSingleColomnControl(string entityName, (string Type, string Name, PropertyValidation Validation) prop, List<(string prop, List<string> enumValues)> enumProps, bool? basicInfoOrPartialForm = null)
+        private static string GetSingleColomnControl(string entityName, (string Type, string Name, PropertyValidation Validation) prop, List<(string prop, List<string> enumValues)> enumProps, bool? basicInfoOrPartialForm = null, bool? partialForm = null)
         {
             var entityLower = char.ToLower(entityName[0]) + entityName.Substring(1);
             var propLower = char.ToLower(prop.Name[0]) + prop.Name.Substring(1);
@@ -6982,9 +7979,20 @@ const currentComponent = computed(() => {{
             var typeWithoutNullable = prop.Type.TrimEnd('?');
             if (typeWithoutNullable == "string" || typeWithoutNullable == "Guid")
             {
+                string? stateOrParentIsTabsLocked = null;
+                if (basicInfoOrPartialForm != null)
+                {
+                    if (partialForm != null)
+                        stateOrParentIsTabsLocked = "parentStore.isTabsLocked = true";
+                    else
+                        stateOrParentIsTabsLocked = "state.isTabsLocked = true";
+                }
+                else
+                    stateOrParentIsTabsLocked = $"(e) => onPropChanged(e.target.value, '{propLower}')";
+
                 return $@"
-                <div class=""flex flex-wrap gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                     <InputText
                         id=""{propLower}""
                         class=""w-full""
@@ -6992,16 +8000,26 @@ const currentComponent = computed(() => {{
                         :invalid=""state.validationErrors.{propLower}""
                         v-model=""state.{propLower}""
                         :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                        @input=""(e) => onPropChanged(e.target.value, '{propLower}')""
+                        @input=""{stateOrParentIsTabsLocked}""
                     />
-                </div>";
+                </div>"; 
             }
             if ((typeWithoutNullable == "int" && !enumProps.Any(ep => ep.prop == prop.Name)) || typeWithoutNullable == "double" || typeWithoutNullable == "decimal" || typeWithoutNullable == "float")
             {
                 string? NumOfDigit = (typeWithoutNullable == "double" || typeWithoutNullable == "decimal" || typeWithoutNullable == "float") ? ":maxFractionDigits=\"4\"" : null;
+                string? stateOrParentIsTabsLocked = null;
+                if (basicInfoOrPartialForm != null)
+                {
+                    if (partialForm != null)
+                        stateOrParentIsTabsLocked = "parentStore.isTabsLocked = true";
+                    else
+                        stateOrParentIsTabsLocked = "state.isTabsLocked = true";
+                }
+                else
+                    stateOrParentIsTabsLocked = $"(e) => onPropChanged(e.value, '{propLower}')";
                 return $@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                     <InputNumber
                         :useGrouping=""false""
                         {NumOfDigit}
@@ -7011,16 +8029,26 @@ const currentComponent = computed(() => {{
                         class=""w-full""
                         :invalid=""state.validationErrors.{propLower}""
                         v-model=""state.{propLower}""
-                        @input=""(e) => onPropChanged(e.value, '{propLower}')""
+                        @input=""{stateOrParentIsTabsLocked}""
                         :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
                     />
                 </div>";
             }
             if (typeWithoutNullable == "int" && enumProps.Any(ep => ep.prop == prop.Name))//enum case
             {
+                string? stateOrParentIsTabsLocked = null;
+                if (basicInfoOrPartialForm != null)
+                {
+                    if (partialForm != null)
+                        stateOrParentIsTabsLocked = "parentStore.isTabsLocked = true";
+                    else
+                        stateOrParentIsTabsLocked = "state.isTabsLocked = true";
+                }
+                else
+                    stateOrParentIsTabsLocked = $"(e) => onPropChanged(e.value, '{propLower}')";
                 return $@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                     <Select
                         :options=""{entityLower}{prop.Name}Options""
                         optionLabel=""label""
@@ -7032,7 +8060,7 @@ const currentComponent = computed(() => {{
                         append-to=""self""
                         filter
                         :invalid=""state.validationErrors.{propLower}""
-                        @change=""(e) => onPropChanged(e.value, '{propLower}')""
+                        @change=""{stateOrParentIsTabsLocked}""
                         :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
                     >
                         <template #option=""slotProps"">
@@ -7045,16 +8073,31 @@ const currentComponent = computed(() => {{
             }
             if (typeWithoutNullable.Contains("Date") || typeWithoutNullable.Contains("Time"))
             {
+                string? stateOrParentIsTabsLocked = null;
+                string? @event = null;
+                if (basicInfoOrPartialForm != null)
+                {
+                    @event = "@update:model-value";
+                    if (partialForm != null)
+                        stateOrParentIsTabsLocked = "parentStore.isTabsLocked = true";
+                    else
+                        stateOrParentIsTabsLocked = "state.isTabsLocked = true";
+                }
+                else
+                {
+                    @event = "@change";
+                    stateOrParentIsTabsLocked = $"(e) => onPropChanged(e.value, '{propLower}')";
+                }
                 return $@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                     <DatePicker
                         v-model=""state.{propLower}""
                         showIcon
                         fluid
                         iconDisplay=""input""
                         dateFormat=""dd/mm/yy""
-                        @change=""(e) => onPropChanged(e.value, '{propLower}')""
+                        {@event}=""{stateOrParentIsTabsLocked}""
                         :invalid=""state.validationErrors.{propLower}""
                         showButtonBar
                         :placeholder=""$t('field.{propLower}')""
@@ -7065,9 +8108,18 @@ const currentComponent = computed(() => {{
             }
             if (typeWithoutNullable == "bool")
             {
+                string? stateOrParentIsTabsLocked = null;
+                if (basicInfoOrPartialForm != null)
+                {
+                    if (partialForm != null)
+                        stateOrParentIsTabsLocked = "parentStore.isTabsLocked = true";
+                    else
+                        stateOrParentIsTabsLocked = "state.isTabsLocked = true";
+                }
+                else
+                    stateOrParentIsTabsLocked = $"onPropChanged($event.target.checked, '{propLower}')";
                 return $@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                <div class=""flex items-center field-gap w-full"">
                     <Checkbox
                         v-model=""state.{propLower}""
                         inputId=""{propLower}""
@@ -7075,45 +8127,89 @@ const currentComponent = computed(() => {{
                         :binary=""true""
                         :invalid=""state.validationErrors.{propLower}""
                         :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                        @change=""onPropChanged($event.target.checked, '{propLower}')""
+                        @change=""{stateOrParentIsTabsLocked}""
                     />
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                 </div>";
             }
             if (typeWithoutNullable == "GPG")
             {
                 string src = basicInfoOrPartialForm != null ? $"state.{prop.Name.GetCamelCaseName()}Src" : $"assetSrc";
                 return $@"
-                <div class=""flex flex-col items-start col-span-1 md:col-span-2 gap-2 w-full"">
-                    <label>{{{{ $t('field.singleAsset(photo)') }}}}</label>
-                    <p v-if=""state.validationErrors.{prop.Name.GetCamelCaseName()}"" class=""text-red-500"">{{{{ $t('message.assetRequired') }}}}</p>
-                    <FileUpload mode=""basic"" accept="".jpg,.jpeg,.png"" @select=""onSelectAsset"" customUpload auto class=""p-button-outlined"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" />
-                    <div v-if=""{src}"" class=""relative"">
-                        <button
-                            @click=""removeAsset""
-                            :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                            class=""absolute z-50 top-2.5 right-2.5 bg-black/50 border border-white text-white flex justify-center items-center rounded-lg w-[32px] h-[32px] hover:bg-[#FF4C51] transition""
-                        >
-                            <i class=""pi pi-trash""></i>
-                        </button>
-                        <img :src=""{src}"" alt=""Image"" class=""shadow-md w-[300px] aspect-video object-cover"" />
-                    </div>
+                <!-- Single Image -->
+                <div class=""flex flex-col items-start col-span-1 md:col-span-2 lg:col-span-3 field-gap w-full"">
+                    <label class=""field-label"">{{{{ $t('field.{prop.Name.GetCamelCaseName()}') }}}}</label>
+                    <p v-if=""state.validationErrors.{prop.Name.GetCamelCaseName()}"" class=""text-red-500"">{{{{ $t('message.imageRequired') }}}}</p>
+                    <div class=""w-full"">
+                        <FileUpload accept="".jpg,.jpeg,.png"" @select=""onSelectAsset"" customUpload auto class=""!w-full"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"">
+                            <template #header=""{{ chooseCallback }}"">
+                                <div class=""flex flex-wrap justify-between items-center flex-1 gap-4"">
+                                    <div class=""flex gap-2"">
+                                        <button @click=""chooseCallback()"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" class=""size-[28px] rounded-[8px] bg-white flex items-center justify-center text-gold1 border border-solid border-gold1 hover:bg-green2 hover:text-gold3 transition-colors"">
+                                            <i class=""pi pi-plus text-xs leading-none font-semibold""></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                            <template #content>
+                                <!-- empty state -->
+                                <div v-if=""!{src} && !state.{prop.Name.GetCamelCaseName()}Url"" class=""flex items-center w-full justify-center text-center p-5 flex-col"">
+                                    <img src=""@/assets/icons/fileUploadIcon.svg"" alt=""file upload icon"" />
+                                    <p class=""mt-[8px] text-green1 font-medium text-[13px]"">{{{{ $t('message.uploadFile') }}}}</p>
+                                    <p class=""mt-[12px] text-lightGrey text-[13px]"">{{{{ $t('message.supportedImageFormats') }}}}</p>
+                                </div>
+                                <!-- uploaded state -->
+                                <div v-else class=""p-[10px]"">
+                                    <!-- new image -->
+                                    <div v-if=""{src}"" class=""relative"">
+                                        <div class=""absolute z-50 top-[10px] right-[10px] flex flex-col gap-[10px]"">
+                                            <button
+                                                @click.stop=""removeAsset""
+                                                :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                                                class=""bg-[#D7001F]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#A60018]/80 transition""
+                                            >
+                                                <img src=""@/assets/icons/trashIcon.svg"" alt=""trash-icon"" />
+                                            </button>
+                                            <button
+                                                @click.stop=""openImgDialog({src}, 'new')""
+                                                :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                                                class=""bg-[#298DA1]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#1E6A79]/80 transition""
+                                            >
+                                                <img src=""@/assets/icons/eyeIcon.svg"" alt=""eye-icon"" />
+                                            </button>
+                                        </div>
 
-                    <div v-if=""state.{prop.Name.GetCamelCaseName()}Url"" class=""relative"">
-                        <button
-                            @click=""removeAsset""
-                            :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                            class=""absolute z-50 top-2.5 right-2.5 bg-black/50 border border-white text-white flex justify-center items-center rounded-lg w-[32px] h-[32px] hover:bg-[#FF4C51] transition""
-                        >
-                            <i class=""pi pi-trash""></i>
-                        </button>
-                        <a
-                            :href=""state.{prop.Name.GetCamelCaseName()}Url""
-                            :download=""state.{prop.Name.GetCamelCaseName()}Url.slice(46)""
-                            class=""absolute z-[100] top-2.5 left-2.5 bg-black/50 border border-white text-white flex justify-center items-center rounded-lg w-[32px] h-[32px] hover:bg-green-500 transition""
-                        >
-                            <i class=""pi pi-download""></i>
-                        </a>
-                        <img :src=""ASSET_ENDPOINT(state.{prop.Name.GetCamelCaseName()}Url)"" alt=""Image"" class=""shadow-md w-[300px] aspect-video object-cover"" />
+                                        <img :src=""{src}"" alt=""Image"" class=""border border-border1 rounded-[4px] w-[120px] aspect-square object-cover"" />
+                                    </div>
+
+                                    <!-- old image -->
+                                    <div v-if=""state.{prop.Name.GetCamelCaseName()}Url"" class=""relative"">
+                                        <div class=""absolute z-50 top-[10px] right-[10px] flex flex-col gap-[10px]"">
+                                            <button
+                                                @click.stop=""removeAsset""
+                                                :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                                                class=""bg-[#D7001F]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#A60018]/80 transition""
+                                            >
+                                                <img src=""@/assets/icons/trashIcon.svg"" alt=""trash-icon"" />
+                                            </button>
+                                            <button
+                                                @click.stop=""openImgDialog(state.{prop.Name.GetCamelCaseName()}Url)""
+                                                class=""bg-[#298DA1]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#1E6A79]/80 transition""
+                                            >
+                                                <img src=""@/assets/icons/eyeIcon.svg"" alt=""eye-icon"" />
+                                            </button>
+                                            <button
+                                                @click.stop=""downloadAsset(state.{prop.Name.GetCamelCaseName()}Url, state.{prop.Name.GetCamelCaseName()}Url.slice(46))""
+                                                class=""bg-[#7A8714]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#657016]/80 transition""
+                                            >
+                                                <img src=""@/assets/icons/downloadIcon.svg"" alt=""download-icon"" />
+                                            </button>
+                                        </div>
+                                        <img :src=""ASSET_ENDPOINT(state.{prop.Name.GetCamelCaseName()}Url)"" alt=""Image"" class=""border border-border1 rounded-[4px] w-[120px] aspect-square object-cover"" />
+                                    </div>
+                                </div>
+                            </template>
+                        </FileUpload>
                     </div>
                 </div>";
             }
@@ -7121,55 +8217,83 @@ const currentComponent = computed(() => {{
             {
                 string src = basicInfoOrPartialForm != null ? $"state.{prop.Name.GetCamelCaseName()}Srcs" : $"assetSrcs";
                 return $@"
-                <div class=""flex flex-col items-start col-span-1 md:col-span-2 gap-2 w-full"">
-                    <label>{{{{ $t('field.multipleAssets(photos)') }}}}</label>
+                <!-- Multiple Images -->
+                <div class=""flex flex-col items-start col-span-1 md:col-span-2 lg:col-span-3 field-gap w-full"">
+                    <label class=""field-label"">{{{{ $t('field.{prop.Name.GetCamelCaseName()}') }}}}</label>
                     <p v-if=""state.validationErrors.{prop.Name.GetCamelCaseName()}"" class=""text-red-500"">{{{{ $t('message.imagesRequired') }}}}</p>
-                    <FileUpload
-                        :multiple=""true""
-                        accept="".jpg,.jpeg,.png""
-                        mode=""basic""
-                        @select=""onSelectAssets""
-                        customUpload
-                        auto
-                        class=""p-button-outlined""
-                        :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                    />
-
-                    <!-- images -->
                     <div class=""w-full"">
-                        <!-- old -->
-                        <div v-if=""state.{prop.Name.GetCamelCaseName()}Urls"" class=""flex flex-wrap gap-4 w-full"">
-                            <div v-for=""(assetUrl, index) in state.{prop.Name.GetCamelCaseName()}Urls"" :key=""index"" class=""relative"">
-                                <button
-                                    @click=""removeExistingAsset(index)""
-                                    :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                                    class=""absolute z-50 top-2.5 right-2.5 bg-black/50 border border-white text-white flex justify-center items-center rounded-lg w-[32px] h-[32px] hover:bg-[#FF4C51] transition""
-                                >
-                                    <i class=""pi pi-trash""></i>
-                                </button>
-                                <a
-                                    :href=""assetUrl""
-                                    :download=""assetUrl.slice(46)""
-                                    class=""absolute z-[100] top-2.5 left-2.5 bg-black/50 border border-white text-white flex justify-center items-center rounded-lg w-[32px] h-[32px] hover:bg-green-500 transition""
-                                >
-                                    <i class=""pi pi-download""></i>
-                                </a>
-                                <img :src=""ASSET_ENDPOINT(assetUrl)"" alt=""Image"" class=""shadow-md w-[300px] aspect-video object-cover"" />
-                            </div>
-                        </div>
-                        <!-- new -->
-                        <div v-if=""{src}"" class=""flex flex-wrap gap-4 w-full"">
-                            <div v-for=""(img, index) in {src}"" :key=""index"" class=""relative"">
-                                <button
-                                    @click=""removeNewAsset(index)""
-                                    :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                                    class=""absolute z-50 top-2.5 right-2.5 bg-black/50 border border-white text-white flex justify-center items-center rounded-lg w-[32px] h-[32px] hover:bg-[#FF4C51] transition""
-                                >
-                                    <i class=""pi pi-trash""></i>
-                                </button>
-                                <img :src=""img"" alt=""Image"" class=""w-[300px] shadow-md aspect-video object-cover"" />
-                            </div>
-                        </div>
+                        <FileUpload :multiple=""true"" accept="".jpg,.jpeg,.png"" @select=""onSelectAssets"" customUpload auto class=""p-button-outlined"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"">
+                            <template #header=""{{ chooseCallback }}"">
+                                <div class=""flex flex-wrap justify-between items-center flex-1 gap-4"">
+                                    <div class=""flex gap-2"">
+                                        <button @click=""chooseCallback()"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" class=""size-[28px] rounded-[8px] bg-white flex items-center justify-center text-gold1 border border-solid border-gold1 hover:bg-green2 hover:text-gold3 transition-colors"">
+                                            <i class=""pi pi-plus text-xs leading-none font-semibold""></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                            <template #content>
+                                <!-- empty state -->
+                                <div v-if=""!{src}.length && !state.{prop.Name.GetCamelCaseName()}Urls.length"" class=""flex items-center w-full justify-center text-center p-5 flex-col"">
+                                    <img src=""@/assets/icons/fileUploadIcon.svg"" alt=""file upload icon"" />
+                                    <p class=""mt-[8px] text-green1 font-medium text-[13px]"">{{{{ $t('message.uploadFile') }}}}</p>
+                                    <p class=""mt-[12px] text-lightGrey text-[13px]"">{{{{ $t('message.supportedImageFormats') }}}}</p>
+                                </div>
+                                <!-- uploaded state -->
+                                <div v-else class=""w-full flex gap-4 flex-wrap p-[10px]"">
+                                    <!-- old -->
+                                    <template v-if=""state.{prop.Name.GetCamelCaseName()}Urls"">
+                                        <div v-for=""(assetUrl, index) in state.{prop.Name.GetCamelCaseName()}Urls"" :key=""index"" class=""relative"">
+                                            <div class=""absolute z-50 top-[10px] right-[10px] flex flex-col gap-[10px]"">
+                                                <button
+                                                    @click.stop=""removeExistingImage(index)""
+                                                    :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                                                    class=""bg-[#D7001F]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#A60018]/80 transition""
+                                                >
+                                                    <img src=""@/assets/icons/trashIcon.svg"" alt="""" />
+                                                </button>
+                                                <button
+                                                    @click.stop=""openImgDialog(assetUrl)""
+                                                    class=""bg-[#298DA1]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#1E6A79]/80 transition""
+                                                >
+                                                    <img src=""@/assets/icons/eyeIcon.svg"" alt=""preview"" />
+                                                </button>
+                                                <button
+                                                    @click.stop=""downloadAsset(assetUrl, assetUrl.slice(46))""
+                                                    class=""bg-[#7A8714]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#657016]/80 transition""
+                                                >
+                                                    <img src=""@/assets/icons/downloadIcon.svg"" alt=""download-icon"" />
+                                                </button>
+                                            </div>
+                                            <img :src=""ASSET_ENDPOINT(assetUrl)"" alt=""Image"" class=""border border-border1 rounded-[4px] w-[120px] aspect-square object-cover"" />
+                                        </div>
+                                    </template>
+
+                                    <!-- new -->
+                                    <template v-if=""{src}"">
+                                        <div v-for=""(img, index) in {src}"" :key=""index"" class=""relative"">
+                                            <div class=""absolute z-50 top-[10px] right-[10px] flex flex-col gap-[10px]"">
+                                                <button
+                                                    @click.stop=""removeNewImage(index)""
+                                                    :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                                                    class=""bg-[#D7001F]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#A60018]/80 transition""
+                                                >
+                                                    <img src=""@/assets/icons/trashIcon.svg"" alt=""trash"" />
+                                                </button>
+                                                <button
+                                                    @click.stop=""openImgDialog(img, 'new')""
+                                                    :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                                                    class=""bg-[#298DA1]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#1E6A79]/80 transition""
+                                                >
+                                                    <img src=""@/assets/icons/eyeIcon.svg"" alt=""preview"" />
+                                                </button>
+                                            </div>
+                                            <img :src=""img"" alt=""Image"" class=""border border-border1 rounded-[4px] w-[120px] aspect-square object-cover"" />
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </FileUpload>
                     </div>
                 </div>";
             }
@@ -7177,39 +8301,78 @@ const currentComponent = computed(() => {{
             {
                 string src = basicInfoOrPartialForm != null ? $"state.{prop.Name.GetCamelCaseName()}Src" : $"videoSrc";
                 return $@"
-                <div class=""flex flex-col items-start col-span-1 md:col-span-2 gap-2 w-full"">
-                    <label>{{{{ $t('field.singleAsset(video)') }}}}</label>
+                <!-- single video -->
+                <div class=""flex flex-col items-start col-span-1 md:col-span-2 lg:col-span-3 field-gap w-full"">
+                    <label class=""field-label"">{{{{ $t('field.{prop.Name.GetCamelCaseName()}') }}}}</label>
                     <p v-if=""state.validationErrors.{prop.Name.GetCamelCaseName()}"" class=""text-red-500"">{{{{ $t('message.videoRequired') }}}}</p>
-                    <FileUpload mode=""basic"" accept="".mp4"" @select=""onSelectVideo"" customUpload auto class=""p-button-outlined"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" />
-                    <!-- new video -->
-                    <div v-if=""{src}"" class=""relative"">
-                        <button
-                            @click=""removeVideo""
-                            :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                            class=""absolute z-50 top-2.5 right-2.5 bg-black/50 border border-white text-white flex justify-center items-center rounded-lg w-[32px] h-[32px] hover:bg-[#FF4C51] transition""
-                        >
-                            <i class=""pi pi-trash""></i>
-                        </button>
-                        <video :src=""{src}"" alt=""Video"" controls class=""shadow-md w-[300px] aspect-video object-cover"" ></video>
-                    </div>
+                    <div class=""w-full"">
+                        <FileUpload accept="".mp4"" @select=""onSelectVideo"" customUpload auto class=""p-button-outlined"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"">
+                            <template #header=""{{ chooseCallback }}"">
+                                <div class=""flex flex-wrap justify-between items-center flex-1 gap-4"">
+                                    <div class=""flex gap-2"">
+                                        <button @click=""chooseCallback()"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" class=""size-[28px] rounded-[8px] bg-white flex items-center justify-center text-gold1 border border-solid border-gold1 hover:bg-green2 hover:text-gold3 transition-colors"">
+                                            <i class=""pi pi-plus text-xs leading-none font-semibold""></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                            <template #content>
+                                <!-- empty state -->
+                                <div v-if=""!{src} && !state.{prop.Name.GetCamelCaseName()}Url"" class=""flex items-center w-full justify-center text-center p-5 flex-col"">
+                                    <img src=""@/assets/icons/fileUploadIcon.svg"" alt=""file upload icon"" />
+                                    <p class=""mt-[8px] text-green1 font-medium text-[13px]"">{{{{ $t('message.uploadFile') }}}}</p>
+                                    <p class=""mt-[12px] text-lightGrey text-[13px]"">{{{{ $t('message.supportedVideoFormats') }}}}</p>
+                                </div>
+                                <div v-else class=""p-[10px]"">
+                                    <!-- new video -->
+                                    <div v-if=""{src}"" class=""relative"">
+                                        <div class=""absolute z-50 top-[10px] right-[10px] flex flex-col gap-[10px]"">
+                                            <button
+                                                @click.stop=""removeVideo""
+                                                :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                                                class=""bg-[#D7001F]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#A60018]/80 transition""
+                                            >
+                                                <img src=""@/assets/icons/trashIcon.svg"" alt=""trash-icon"" />
+                                            </button>
+                                            <button
+                                                @click.stop=""openVideoDialog({src}, 'new')""
+                                                :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                                                class=""bg-[#298DA1]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#1E6A79]/80 transition""
+                                            >
+                                                <img src=""@/assets/icons/eyeIcon.svg"" alt=""eye-icon"" />
+                                            </button>
+                                        </div>
+                                        <video :src=""{src}"" alt=""Video"" controls class=""shadow-md w-[300px] aspect-video object-cover""></video>
+                                    </div>
 
-                    <!-- old video -->
-                    <div v-if=""state.{prop.Name.GetCamelCaseName()}Url"" class=""relative"">
-                        <button
-                            @click=""removeVideo""
-                            :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                            class=""absolute z-50 top-2.5 right-2.5 bg-black/50 border border-white text-white flex justify-center items-center rounded-lg w-[32px] h-[32px] hover:bg-[#FF4C51] transition""
-                        >
-                            <i class=""pi pi-trash""></i>
-                        </button>
-                        <a
-                            :href=""state.{prop.Name.GetCamelCaseName()}Url""
-                            :download=""state.{prop.Name.GetCamelCaseName()}Url.slice(46)""
-                            class=""absolute z-[100] top-2.5 left-2.5 bg-black/50 border border-white text-white flex justify-center items-center rounded-lg w-[32px] h-[32px] hover:bg-green-500 transition""
-                        >
-                            <i class=""pi pi-download""></i>
-                        </a>
-                        <video :src=""ASSET_ENDPOINT(state.{prop.Name.GetCamelCaseName()}Url)"" alt=""Video"" controls class=""shadow-md w-[300px] aspect-video object-cover"" ></video>
+                                    <!-- old video -->
+                                    <div v-if=""state.{prop.Name.GetCamelCaseName()}Url"" class=""relative"">
+                                        <div class=""absolute z-50 top-[10px] right-[10px] flex flex-col gap-[10px]"">
+                                            <button
+                                                @click.stop=""removeVideo""
+                                                :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                                                class=""bg-[#D7001F]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#A60018]/80 transition""
+                                            >
+                                                <img src=""@/assets/icons/trashIcon.svg"" alt=""trash-icon"" />
+                                            </button>
+                                            <button
+                                                @click.stop=""openVideoDialog(state.{prop.Name.GetCamelCaseName()}Url)""
+                                                class=""bg-[#298DA1]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#1E6A79]/80 transition""
+                                            >
+                                                <img src=""@/assets/icons/eyeIcon.svg"" alt=""eye-icon"" />
+                                            </button>
+                                            <button
+                                                @click.stop=""downloadAsset(state.{prop.Name.GetCamelCaseName()}Url, state.{prop.Name.GetCamelCaseName()}Url.slice(46))""
+                                                class=""bg-[#7A8714]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#657016]/80 transition""
+                                            >
+                                                <img src=""@/assets/icons/downloadIcon.svg"" alt=""download-icon"" />
+                                            </button>
+                                        </div>
+                                        <video :src=""ASSET_ENDPOINT(state.{prop.Name.GetCamelCaseName()}Url)"" alt=""Video"" controls class=""shadow-md w-[300px] aspect-video object-cover""></video>
+                                    </div>
+                                </div>
+                            </template>
+                        </FileUpload>
                     </div>
                 </div>";
             }
@@ -7217,410 +8380,533 @@ const currentComponent = computed(() => {{
             {
                 string src = basicInfoOrPartialForm != null ? $"state.{prop.Name.GetCamelCaseName()}Srcs" : $"videoSrcs";
                 return $@"
-                <div class=""flex flex-col items-start col-span-1 md:col-span-2 gap-2 w-full"">
-                    <label>{{{{ $t('field.multipleAssets(videos)') }}}}</label>
+                <!-- multiple videos -->
+                <div class=""flex flex-col items-start col-span-1 md:col-span-2 lg:col-span-3 field-gap w-full"">
+                    <label class=""field-label"">{{{{ $t('field.{prop.Name.GetCamelCaseName()}') }}}}</label>
                     <p v-if=""state.validationErrors.{prop.Name.GetCamelCaseName()}"" class=""text-red-500"">{{{{ $t('message.videosRequired') }}}}</p>
-                    <FileUpload
-                        :multiple=""true""
-                        accept="".mp4""
-                        mode=""basic""
-                        @select=""onSelectVideos""
-                        customUpload
-                        auto
-                        class=""p-button-outlined""
-                        :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                    />
-
-                    <!-- videos -->
                     <div class=""w-full"">
-                        <!-- old -->
-                        <div v-if=""state.{prop.Name.GetCamelCaseName()}Urls"" class=""flex flex-wrap gap-4 w-full"">
-                            <div v-for=""(videoUrl, index) in state.{prop.Name.GetCamelCaseName()}Urls"" :key=""index"" class=""relative"">
-                                <button
-                                    @click=""removeExistingVideo(index)""
-                                    :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                                    class=""absolute z-50 top-2.5 right-2.5 bg-black/50 border border-white text-white flex justify-center items-center rounded-lg w-[32px] h-[32px] hover:bg-[#FF4C51] transition""
-                                >
-                                    <i class=""pi pi-trash""></i>
-                                </button>
-                                <a
-                                    :href=""videoUrl""
-                                    :download=""videoUrl.slice(46)""
-                                    class=""absolute z-[100] top-2.5 left-2.5 bg-black/50 border border-white text-white flex justify-center items-center rounded-lg w-[32px] h-[32px] hover:bg-green-500 transition""
-                                >
-                                    <i class=""pi pi-download""></i>
-                                </a>
-                                <video :src=""ASSET_ENDPOINT(videoUrl)"" alt=""Viedo"" controls class=""shadow-md w-[300px] aspect-video object-cover"" />
-                            </div>
-                        </div>
-                        <!-- new -->
-                        <div v-if=""{src}"" class=""flex flex-wrap gap-4 w-full"">
-                            <div v-for=""(video, index) in {src}"" :key=""index"" class=""relative"">
-                                <button
-                                    @click=""removeNewVideo(index)""
-                                    :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
-                                    class=""absolute z-50 top-2.5 right-2.5 bg-black/50 border border-white text-white flex justify-center items-center rounded-lg w-[32px] h-[32px] hover:bg-[#FF4C51] transition""
-                                >
-                                    <i class=""pi pi-trash""></i>
-                                </button>
-                                <video :src=""video"" alt=""Video"" controls class=""w-[300px] shadow-md aspect-video object-cover"" />
-                            </div>
-                        </div>
+                        <FileUpload :multiple=""true"" accept="".mp4"" @select=""onSelectVideos"" customUpload auto class=""p-button-outlined"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"">
+                            <template #header=""{{ chooseCallback }}"">
+                                <div class=""flex flex-wrap justify-between items-center flex-1 gap-4 mb-5"">
+                                    <div class=""flex gap-2"">
+                                        <button @click=""chooseCallback()"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" class=""size-[28px] rounded-[8px] bg-white flex items-center justify-center text-gold1 border border-solid border-gold1 hover:bg-green2 hover:text-gold3 transition-colors"">
+                                            <i class=""pi pi-plus text-xs leading-none font-semibold""></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                            <template #content>
+                                <!-- empty state -->
+                                <div v-if=""!{src}.length && !state.{prop.Name.GetCamelCaseName()}Urls.length"" class=""flex items-center w-full justify-center text-center p-5 flex-col"">
+                                    <img src=""@/assets/icons/fileUploadIcon.svg"" alt=""file upload icon"" />
+                                    <p class=""mt-[8px] text-green1 font-medium text-[13px]"">{{{{ $t('message.uploadFile') }}}}</p>
+                                    <p class=""mt-[12px] text-lightGrey text-[13px]"">{{{{ $t('message.supportedVideoFormats') }}}}</p>
+                                </div>
+                                <div v-else class=""w-full flex gap-4 flex-wrap p-[10px]"">
+                                    <!-- old -->
+                                    <template v-if=""state.{prop.Name.GetCamelCaseName()}Urls"">
+                                        <div v-for=""(videoUrl, index) in state.{prop.Name.GetCamelCaseName()}Urls"" :key=""index"" class=""relative"">
+                                            <div class=""absolute z-50 top-[10px] right-[10px] flex flex-col gap-[10px]"">
+                                                <button
+                                                    @click.stop=""removeExistingVideo(index)""
+                                                    :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                                                    class=""bg-[#D7001F]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#A60018]/80 transition""
+                                                >
+                                                    <img src=""@/assets/icons/trashIcon.svg"" alt="""" />
+                                                </button>
+                                                <button
+                                                    @click.stop=""openVideoDialog(videoUrl)""
+                                                    class=""bg-[#298DA1]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#1E6A79]/80 transition""
+                                                >
+                                                    <img src=""@/assets/icons/eyeIcon.svg"" alt=""preview"" />
+                                                </button>
+                                                <button
+                                                    @click.stop=""downloadAsset(videoUrl, videoUrl.slice(46))""
+                                                    class=""bg-[#7A8714]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#657016]/80 transition""
+                                                >
+                                                    <img src=""@/assets/icons/downloadIcon.svg"" alt=""download-icon"" />
+                                                </button>
+                                            </div>
+                                            <video :src=""ASSET_ENDPOINT(videoUrl)"" alt=""Video"" controls class=""shadow-md w-[300px] aspect-video object-cover""></video>
+                                        </div>
+                                    </template>
+
+                                    <!-- new -->
+                                    <template v-if=""{src}"">
+                                        <div v-for=""(video, index) in {src}"" :key=""index"" class=""relative"">
+                                            <div class=""absolute z-50 top-[10px] right-[10px] flex flex-col gap-[10px]"">
+                                                <button
+                                                    @click.stop=""removeNewVideo(index)""
+                                                    :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                                                    class=""bg-[#D7001F]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#A60018]/80 transition""
+                                                >
+                                                    <img src=""@/assets/icons/trashIcon.svg"" alt=""trash"" />
+                                                </button>
+                                                <button
+                                                    @click.stop=""openVideoDialog(video, 'new')""
+                                                    :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
+                                                    class=""bg-[#298DA1]/80 border border-white text-white flex justify-center items-center rounded-[4px] w-[24px] h-[24px] hover:bg-[#1E6A79]/80 transition""
+                                                >
+                                                    <img src=""@/assets/icons/eyeIcon.svg"" alt=""preview"" />
+                                                </button>
+                                            </div>
+                                            <video :src=""video"" alt=""Video"" controls class=""shadow-md w-[300px] aspect-video object-cover""></video>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </FileUpload>
                     </div>
                 </div>";
             }
             if (typeWithoutNullable == "FL")
             {
-                if (basicInfoOrPartialForm == null)
+                if (basicInfoOrPartialForm != null)
+                {
                     return $@"
-                <div class=""mb-8 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6"">
-                    <div class=""flex flex-col items-start gap-2 md:col-span-2 w-full"">
-                        <label>{{{{ $t('field.{prop.Name.GetCamelCaseName()}') }}}}</label> <!-- [property] -->
-                        <p v-if=""state.validationErrors.{prop.Name.GetCamelCaseName()}"" class=""text-red-500"">{{{{ $t('message.fileRequired') }}}}</p> <!-- [validationErrors property] -->
-                        <FileUpload :multiple=""false"" accept="".pdf, .txt, .xlsx, .xls, .docx, .rar, .zip"" mode=""basic"" @select=""onSelectFile"" customUpload auto class=""p-button-outlined"" :disabled=""state.finding || state.saving"" />
-                    </div>
-
-                    <!-- Preview of the single file -->
-                    <div v-if=""singlePreviewUrl && !isArchive(singlePreviewUrl.name)"" class=""bg-slate-100 flex-wrap p-2 px-3 border border-[#EAEAEA] rounded-lg flex gap-4 justify-between items-center"">
-                        <!-- File preview -->
-
-                        <div class=""flex items-center gap-4"">
-                            <div class=""flex items-center justify-center h-[40px] bg-white border shrink-0 rounded-full w-[40px] gap-2"">
-                                <i class=""fa-solid fa-file text-lg""></i>
-                            </div>
-                            <p
-                                v-tooltip.top=""{{
-                                    value: singleFile.name,
-                                    pt: {{
-                                        root: {{
-                                            style: {{
-                                                maxWidth: '350px',
-                                                whiteSpace: 'normal',
-                                                wordBreak: 'break-word'
-                                            }}
-                                        }}
-                                    }}
-                                }}""
-                                class=""flex items-center flex-wrap gap-1 gap-y-0.5""
-                            >
-                                {{{{ shortenFileName(singleFile.name) }}}} <span class="""">({{{{ (singleFile.size / 1024).toFixed(1) }}}} KB)</span>
-                            </p>
-                        </div>
-                        <div class=""flex gap-2"">
-                            <!-- preview button -->
-                            <button @click=""openPreviewModal(singleFile)"" class=""px-3 py-2 bg-blue-500 text-white rounded text-sm"">
-                                <i class=""fa-solid fa-eye""></i>
-                            </button>
-                            <a :href=""singlePreviewUrl"" :download=""singleFile.name"" class=""px-3 py-2 bg-green-500 text-white rounded text-sm"">
-                                <i class=""fa-solid fa-download""></i>
-                            </a>
-                            <button @click=""removeFile"" class=""px-3 py-2 bg-red-500 text-white rounded text-sm"">
-                                <i class=""fa-solid fa-trash""></i>
-                            </button>
-                        </div>
-                    </div>
-                    <!-- single archive -->
-                    <div v-if=""singlePreviewUrl && isArchive(singleFile.name)"" class="""">
-                        <label class=""block mb-3"">{{{{ $t('title.{prop.Name.GetCamelCaseName()}') }}}}</label>
-                        <div class=""bg-slate-100 flex-wrap p-2 px-3 border border-[#EAEAEA] rounded-lg flex gap-4 justify-between items-center"">
-                            <div class=""flex items-center gap-4"">
-                                <div class=""flex items-center justify-center h-[40px] bg-white shrink-0 border rounded-full w-[40px] gap-2"">
-                                    <i class=""fa-solid fa-file-zipper text-lg""></i>
+                <!-- single file -->
+                <div class=""flex flex-col items-start field-gap md:col-span-2 lg:col-span-3 w-full"">
+                    <label class=""field-label"">{{{{ $t('field.{prop.Name.GetCamelCaseName()}') }}}}</label>
+                    <p v-if=""state.validationErrors.{prop.Name.GetCamelCaseName()}"" class=""text-red-500"">{{{{ $t('message.fileRequired') }}}}</p>
+                    <div class=""w-full"">
+                        <FileUpload :multiple=""false"" accept="".pdf, .txt, .xlsx, .xls, .docx, .rar, .zip"" @select=""onSelectFile"" customUpload auto class=""p-button-outlined"" :disabled=""state.finding || state.saving"">
+                            <template #header=""{{ chooseCallback }}"">
+                                <div class=""flex flex-wrap justify-between items-center flex-1 gap-4"">
+                                    <div class=""flex gap-2"">
+                                        <button @click=""chooseCallback()"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" class=""size-[28px] rounded-[8px] bg-white flex items-center justify-center text-gold1 border border-solid border-gold1 hover:bg-green2 hover:text-gold3 transition-colors"">
+                                            <i class=""pi pi-plus text-xs leading-none font-semibold""></i>
+                                        </button>
+                                    </div>
                                 </div>
-                                <p
-                                    v-tooltip.top=""{{
-                                        value: singleFile.name,
-                                        pt: {{
-                                            root: {{
-                                                style: {{
-                                                    maxWidth: '350px',
-                                                    whiteSpace: 'normal',
-                                                    wordBreak: 'break-word'
-                                                }}
-                                            }}
-                                        }}
-                                    }}""
-                                >
-                                    {{{{ singleFile.name }}}} ({{{{ (singleFile.size / 1024).toFixed(1) }}}} KB)
-                                </p>
-                            </div>
-                            <div class=""flex gap-2"">
-                                <a :href=""singlePreviewUrl"" :download=""singleFile.name"" class=""px-3 py-2 bg-green-500 text-white rounded text-sm"">
-                                    <i class=""fa-solid fa-download""></i>
-                                </a>
-                                <button @click=""removeFile"" class=""px-3 py-2 bg-red-500 text-white rounded text-sm"">
-                                    <i class=""fa-solid fa-trash""></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-";
-                else
-                    return $@"
-                <div class=""mb-8 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6"">
-                    <div class=""flex flex-col items-start gap-2 md:col-span-2 w-full"">
-                        <label>{{{{ $t('field.singleFile') }}}}</label>
-                        <p v-if=""state.validationErrors.{prop.Name.GetCamelCaseName()}"" class=""text-red-500"">{{{{ $t('message.fileRequired') }}}}</p>
-                        <FileUpload :multiple=""false"" accept="".pdf, .txt, .xlsx, .xls, .docx, .rar, .zip"" mode=""basic"" @select=""onSelectFile"" customUpload auto class=""p-button-outlined"" :disabled=""state.finding || state.saving"" />
-                    </div>
-
-                    <!-- Preview of the single file -->
-                    <div v-if=""state.{prop.Name.GetCamelCaseName()}Src && !isArchive(state.{prop.Name.GetCamelCaseName()}Src.name)"" class=""bg-slate-100 flex-wrap p-2 px-3 border border-[#EAEAEA] rounded-lg flex gap-4 justify-between items-center"">
-                        <!-- File preview -->
-
-                        <div class=""flex items-center gap-4"">
-                            <div class=""flex items-center justify-center h-[40px] bg-white border shrink-0 rounded-full w-[40px] gap-2"">
-                                <i class=""fa-solid fa-file text-lg""></i>
-                            </div>
-                            <p
-                                v-tooltip.top=""{{
-                                    value: state.{prop.Name.GetCamelCaseName()}Src.name,
-                                    pt: {{
-                                        root: {{
-                                            style: {{
-                                                maxWidth: '350px',
-                                                whiteSpace: 'normal',
-                                                wordBreak: 'break-word'
-                                            }}
-                                        }}
-                                    }}
-                                }}""
-                                class=""flex items-center flex-wrap gap-1 gap-y-0.5""
-                            >
-                                {{{{ shortenFileName(state.{prop.Name.GetCamelCaseName()}Src.name) }}}} <span class="""">({{{{ (state.{prop.Name.GetCamelCaseName()}Src.size / 1024).toFixed(1) }}}} KB)</span>
-                            </p>
-                        </div>
-                        <div class=""flex gap-2"">
-                            <!-- preview button -->
-                            <button @click=""openPreviewModal(state.{prop.Name.GetCamelCaseName()}Src.file)"" class=""px-3 py-2 bg-blue-500 text-white rounded text-sm"">
-                                <i class=""fa-solid fa-eye""></i>
-                            </button>
-                            <a :href=""state.{prop.Name.GetCamelCaseName()}Src.downloadUrl"" :download=""state.{prop.Name.GetCamelCaseName()}Src.name"" class=""px-3 py-2 bg-green-500 text-white rounded text-sm"">
-                                <i class=""fa-solid fa-download""></i>
-                            </a>
-                            <button @click=""removeFile"" class=""px-3 py-2 bg-red-500 text-white rounded text-sm"">
-                                <i class=""fa-solid fa-trash""></i>
-                            </button>
-                        </div>
-                    </div>
-                    <!-- single archive -->
-                    <div v-if=""state.{prop.Name.GetCamelCaseName()}Src && isArchive(state.{prop.Name.GetCamelCaseName()}Src.name)"" class="""">
-                        <label class=""block mb-3"">{{{{ $t('title.archivedFile') }}}}</label>
-                        <div class=""bg-slate-100 flex-wrap p-2 px-3 border border-[#EAEAEA] rounded-lg flex gap-4 justify-between items-center"">
-                            <div class=""flex items-center gap-4"">
-                                <div class=""flex items-center justify-center h-[40px] bg-white shrink-0 border rounded-full w-[40px] gap-2"">
-                                    <i class=""fa-solid fa-file-zipper text-lg""></i>
+                            </template>
+                            <template #content>
+                                <!-- empty state -->
+                                <div v-if=""!state.{prop.Name.GetCamelCaseName()}Src && !state.{prop.Name.GetCamelCaseName()}Url"" class=""flex items-center w-full justify-center text-center p-5 flex-col"">
+                                    <img src=""@/assets/icons/fileUploadIcon.svg"" alt=""file upload icon"" />
+                                    <p class=""mt-[8px] text-green1 font-medium text-[13px]"">{{{{ $t('message.uploadFile') }}}}</p>
+                                    <p class=""mt-[12px] text-lightGrey text-[13px]"">{{{{ $t('message.supportedFileFormats') }}}}</p>
                                 </div>
-                                <p
-                                    v-tooltip.top=""{{
-                                        value: state.{prop.Name.GetCamelCaseName()}Src.name,
-                                        pt: {{
-                                            root: {{
-                                                style: {{
-                                                    maxWidth: '350px',
-                                                    whiteSpace: 'normal',
-                                                    wordBreak: 'break-word'
-                                                }}
-                                            }}
-                                        }}
-                                    }}""
-                                >
-                                    {{{{ state.{prop.Name.GetCamelCaseName()}Src.name }}}} ({{{{ (state.{prop.Name.GetCamelCaseName()}Src.size / 1024).toFixed(1) }}}} KB)
-                                </p>
-                            </div>
-                            <div class=""flex gap-2"">
-                                <a :href=""state.{prop.Name.GetCamelCaseName()}Src.downloadUrl"" :download=""state.{prop.Name.GetCamelCaseName()}Src.name"" class=""px-3 py-2 bg-green-500 text-white rounded text-sm"">
-                                    <i class=""fa-solid fa-download""></i>
-                                </a>
-                                <button @click=""removeFile"" class=""px-3 py-2 bg-red-500 text-white rounded text-sm"">
-                                    <i class=""fa-solid fa-trash""></i>
-                                </button>
-                            </div>
-                        </div>
+                                <!-- uploaded state -->
+                                <div v-else class=""p-[10px]"">
+                                    <!-- Preview of the single file -->
+                                    <div v-if=""state.{prop.Name.GetCamelCaseName()}Src && !isArchive(state.{prop.Name.GetCamelCaseName()}Src.name)"" class=""bg-[#EEEBE5] flex-wrap py-[12px] px-[14px] rounded-[8px] flex gap-4 justify-between items-center"">
+                                        <!-- File preview -->
+
+                                        <div class=""flex items-center gap-4"">
+                                            <div class=""flex items-center justify-center shrink-0"">
+                                                <img src=""@/assets/icons/fileIcon.svg"" alt=""fileIcon"" />
+                                            </div>
+                                            <p
+                                                v-tooltip.top=""{{
+                                                    value: state.{prop.Name.GetCamelCaseName()}Src.name,
+                                                    pt: {{
+                                                        root: {{
+                                                            style: {{
+                                                                maxWidth: '350px',
+                                                                whiteSpace: 'normal',
+                                                                wordBreak: 'break-word'
+                                                            }}
+                                                        }}
+                                                    }}
+                                                }}""
+                                                class=""flex items-center flex-wrap gap-1 gap-y-0.5 text-[14px] font-semibold text-green1""
+                                            >
+                                                {{{{ shortenFileName(state.{prop.Name.GetCamelCaseName()}Src.name) }}}}
+                                                <!-- <span class="""">({{{{ (singleFile.size / 1024).toFixed(1) }}}} KB)</span> -->
+                                            </p>
+                                        </div>
+                                        <div class=""file-buttons-container"">
+                                            <a :href=""state.{prop.Name.GetCamelCaseName()}Src.downloadUrl"" :download=""state.{prop.Name.GetCamelCaseName()}Src.name"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FBFFDD] transition-colors rounded-[6px]"">
+                                                <img src=""@/assets/icons/fileDownloadIcon.svg"" alt=""file download"" />
+                                            </a>
+                                            <button @click=""openPreviewModal(state.{prop.Name.GetCamelCaseName()}Src.file)"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#E0FAFF] transition-colors rounded-[6px]"">
+                                                <img src=""@/assets/icons/filePreviewIcon.svg"" alt=""file preview"" />
+                                            </button>
+                                            <button @click=""removeFile"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FECFD5] transition-colors rounded-[6px]"">
+                                                <img src=""@/assets/icons/fileDeleteIcon.svg"" alt=""file delete"" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <!-- single archive -->
+                                    <div v-if=""state.{prop.Name.GetCamelCaseName()}Src && isArchive(state.{prop.Name.GetCamelCaseName()}Src.name)"" class="""">
+                                        <!-- <label class=""block mb-3"">{{{{ $t('title.archivedFile') }}}}</label> -->
+                                        <div class=""bg-[#EEEBE5] flex-wrap py-[12px] px-[14px] rounded-[8px] flex gap-4 justify-between items-center"">
+                                            <div class=""flex items-center gap-4"">
+                                                <div class=""flex items-center justify-center shrink-0"">
+                                                    <i class=""fa-solid fa-file-zipper text-[20px] text-gold2""></i>
+                                                </div>
+                                                <p
+                                                    v-tooltip.top=""{{
+                                                        value: state.{prop.Name.GetCamelCaseName()}Src.name,
+                                                        pt: {{
+                                                            root: {{
+                                                                style: {{
+                                                                    maxWidth: '350px',
+                                                                    whiteSpace: 'normal',
+                                                                    wordBreak: 'break-word'
+                                                                }}
+                                                            }}
+                                                        }}
+                                                    }}""
+                                                    class=""flex items-center flex-wrap gap-1 gap-y-0.5 text-[14px] font-semibold text-green1""
+                                                >
+                                                    {{{{ state.{prop.Name.GetCamelCaseName()}Src.name }}}}
+                                                    <!-- ({{{{ (singleFile.size / 1024).toFixed(1) }}}} KB) -->
+                                                </p>
+                                            </div>
+                                            <div class=""file-buttons-container"">
+                                                <a :href=""state.{prop.Name.GetCamelCaseName()}Src.downloadUrl"" :download=""state.{prop.Name.GetCamelCaseName()}Src.name"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FBFFDD] transition-colors rounded-[6px]"">
+                                                    <img src=""@/assets/icons/fileDownloadIcon.svg"" alt=""file download"" />
+                                                </a>
+                                                <button @click=""removeFile"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FECFD5] transition-colors rounded-[6px]"">
+                                                    <img src=""@/assets/icons/fileDeleteIcon.svg"" alt=""file delete"" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </FileUpload>
                     </div>
                 </div>";
+                }  
+                else
+                {
+                    return $@"
+                <!-- single file -->
+                <div class=""flex flex-col items-start field-gap md:col-span-2 lg:col-span-3 w-full"">
+                    <label class=""field-label"">{{{{ $t('field.{prop.Name.GetCamelCaseName()}') }}}}</label>
+                    <p v-if=""state.validationErrors.{prop.Name.GetCamelCaseName()}"" class=""text-red-500"">{{{{ $t('message.fileRequired') }}}}</p>
+                    <div class=""w-full"">
+                        <FileUpload :multiple=""false"" accept="".pdf, .txt, .xlsx, .xls, .docx, .rar, .zip"" @select=""onSelectFile"" customUpload auto class=""p-button-outlined"" :disabled=""state.finding || state.saving"">
+                            <template #header=""{{ chooseCallback }}"">
+                                <div class=""flex flex-wrap justify-between items-center flex-1 gap-4"">
+                                    <div class=""flex gap-2"">
+                                        <button @click=""chooseCallback()"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" class=""size-[28px] rounded-[8px] bg-white flex items-center justify-center text-gold1 border border-solid border-gold1 hover:bg-green2 hover:text-gold3 transition-colors"">
+                                            <i class=""pi pi-plus text-xs leading-none font-semibold""></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                            <template #content>
+                                <!-- empty state -->
+                                <div v-if=""!singlePreviewUrl"" class=""flex items-center w-full justify-center text-center p-5 flex-col"">
+                                    <img src=""@/assets/icons/fileUploadIcon.svg"" alt=""file upload icon"" />
+                                    <p class=""mt-[8px] text-green1 font-medium text-[13px]"">{{{{ $t('message.uploadFile') }}}}</p>
+                                    <p class=""mt-[12px] text-lightGrey text-[13px]"">{{{{ $t('message.supportedFileFormats') }}}}</p>
+                                </div>
+                                <!-- uploaded state -->
+                                <div v-else class=""p-[10px]"">
+                                    <!-- Preview of the single file -->
+                                    <div v-if=""singlePreviewUrl && !isArchive(singleFile.name)"" class=""bg-[#EEEBE5] flex-wrap py-[12px] px-[14px] rounded-[8px] flex gap-4 justify-between items-center"">
+                                        <!-- File preview -->
+
+                                        <div class=""flex items-center gap-4"">
+                                            <div class=""flex items-center justify-center shrink-0"">
+                                                <img src=""@/assets/icons/fileIcon.svg"" alt=""fileIcon"" />
+                                            </div>
+                                            <p
+                                                v-tooltip.top=""{{
+                                                    value: singleFile.name,
+                                                    pt: {{
+                                                        root: {{
+                                                            style: {{
+                                                                maxWidth: '350px',
+                                                                whiteSpace: 'normal',
+                                                                wordBreak: 'break-word'
+                                                            }}
+                                                        }}
+                                                    }}
+                                                }}""
+                                                class=""flex items-center flex-wrap gap-1 gap-y-0.5 text-[14px] font-semibold text-green1""
+                                            >
+                                                {{{{ shortenFileName(singleFile.name) }}}}
+                                                <!-- <span class="""">({{{{ (singleFile.size / 1024).toFixed(1) }}}} KB)</span> -->
+                                            </p>
+                                        </div>
+                                        <div class=""file-buttons-container"">
+                                            <a :href=""singlePreviewUrl"" :download=""singleFile.name"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FBFFDD] transition-colors rounded-[6px]"">
+                                                <img src=""@/assets/icons/fileDownloadIcon.svg"" alt=""file download"" />
+                                            </a>
+                                            <button @click=""openPreviewModal(singleFile)"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#E0FAFF] transition-colors rounded-[6px]"">
+                                                <img src=""@/assets/icons/filePreviewIcon.svg"" alt=""file preview"" />
+                                            </button>
+                                            <button @click=""removeFile"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FECFD5] transition-colors rounded-[6px]"">
+                                                <img src=""@/assets/icons/fileDeleteIcon.svg"" alt=""file delete"" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <!-- single archive -->
+                                    <div v-if=""singlePreviewUrl && isArchive(singleFile.name)"" class="""">
+                                        <!-- <label class=""block mb-3"">{{{{ $t('title.archivedFile') }}}}</label> -->
+                                        <div class=""bg-[#EEEBE5] flex-wrap py-[12px] px-[14px] rounded-[8px] flex gap-4 justify-between items-center"">
+                                            <div class=""flex items-center gap-4"">
+                                                <div class=""flex items-center justify-center shrink-0"">
+                                                    <i class=""fa-solid fa-file-zipper text-[20px] text-gold2""></i>
+                                                </div>
+                                                <p
+                                                    v-tooltip.top=""{{
+                                                        value: singleFile.name,
+                                                        pt: {{
+                                                            root: {{
+                                                                style: {{
+                                                                    maxWidth: '350px',
+                                                                    whiteSpace: 'normal',
+                                                                    wordBreak: 'break-word'
+                                                                }}
+                                                            }}
+                                                        }}
+                                                    }}""
+                                                    class=""flex items-center flex-wrap gap-1 gap-y-0.5 text-[14px] font-semibold text-green1""
+                                                >
+                                                    {{{{ singleFile.name }}}}
+                                                    <!-- ({{{{ (singleFile.size / 1024).toFixed(1) }}}} KB) -->
+                                                </p>
+                                            </div>
+                                            <div class=""file-buttons-container"">
+                                                <a :href=""singlePreviewUrl"" :download=""singleFile.name"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FBFFDD] transition-colors rounded-[6px]"">
+                                                    <img src=""@/assets/icons/fileDownloadIcon.svg"" alt=""file download"" />
+                                                </a>
+                                                <button @click=""removeFile"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FECFD5] transition-colors rounded-[6px]"">
+                                                    <img src=""@/assets/icons/fileDeleteIcon.svg"" alt=""file delete"" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </FileUpload>
+                    </div>
+                </div>";
+                }
             }
             if (typeWithoutNullable == "FLs")
             {
-                if (basicInfoOrPartialForm == null)
+                if (basicInfoOrPartialForm != null)
+                {
                     return $@"
-                <div class=""flex flex-col items-start gap-2 md:col-span-2 w-full"">
-                    <label>{{{{ $t('field.{prop.Name.GetCamelCaseName()}') }}}}</label> <!-- [property] -->
-                    <p v-if=""state.validationErrors.{prop.Name.GetCamelCaseName()}"" class=""text-red-500"">{{{{ $t('message.filesRequired') }}}}</p><!-- [validationErrors property] -->
-                    <FileUpload :multiple=""true"" accept="".pdf, .txt, .xlsx, .xls, .docx, .rar, .zip"" mode=""basic"" @select=""onSelectFiles"" customUpload auto class=""p-button-outlined"" :disabled=""state.finding || state.saving"" />
-                </div>
-
-                <!-- Previewable files grid -->
-                <div v-if=""previewableFiles.length"" class=""md:col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-6"">
-                    <!-- <VueFilesPreview :file=""p.file"" height=""200px"" overflow=""auto"" /> -->
-                    <ul class=""space-y-2"">
-                        <li v-for=""(p, i) in previewableFiles"" :key=""i"" class=""bg-slate-100 flex-wrap p-2 px-3 border border-[#EAEAEA] rounded-lg flex gap-4 justify-between items-center"">
-                            <div class=""flex items-center gap-4"">
-                                <div class=""flex items-center justify-center h-[40px] bg-white border shrink-0 rounded-full w-[40px] gap-2"">
-                                    <i class=""fa-solid fa-file text-lg""></i>
-                                </div>
-                                <p
-                                    v-tooltip.top=""{{
-                                        value: p.name,
-                                        pt: {{
-                                            root: {{
-                                                style: {{
-                                                    maxWidth: '350px',
-                                                    whiteSpace: 'normal',
-                                                    wordBreak: 'break-word'
-                                                }}
-                                            }}
-                                        }}
-                                    }}""
-                                    class=""flex items-center flex-wrap gap-1 gap-y-0.5""
-                                >
-                                    {{{{ shortenFileName(p.name) }}}} <span class="""">({{{{ (p.size / 1024).toFixed(1) }}}} KB)</span>
-                                </p>
-                            </div>
-                            <div class=""flex gap-2"">
-                                <!-- preview button -->
-                                <button @click=""openPreviewModal(p.file)"" class=""px-3 py-2 bg-blue-500 text-white rounded text-sm"">
-                                    <i class=""fa-solid fa-eye""></i>
-                                </button>
-                                <a :href=""p.downloadUrl"" :download=""p.name"" class=""px-3 py-2 bg-green-500 text-white rounded text-sm"">
-                                    <i class=""fa-solid fa-download""></i>
-                                </a>
-                                <button @click=""removePreview(previews.indexOf(p))"" class=""px-3 py-2 bg-red-500 text-white rounded text-sm"">
-                                    <i class=""fa-solid fa-trash""></i>
-                                </button>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
-
-                <!-- Archived files list -->
-                <div v-if=""archiveFiles.length"" class=""mt-8"">
-                    <label class=""block mb-3"">{{{{ $t('title.{prop.Name.GetCamelCaseName()}') }}}}</label>
-                    <ul class=""space-y-2"">
-                        <li v-for=""(p, i) in archiveFiles"" :key=""`arch-${{i}}`"" class=""bg-slate-100 flex-wrap p-2 px-3 border border-[#EAEAEA] rounded-lg flex gap-4 justify-between items-center"">
-                            <div class=""flex items-center gap-4"">
-                                <div class=""flex items-center justify-center h-[40px] bg-white shrink-0 border rounded-full w-[40px] gap-2"">
-                                    <i class=""fa-solid fa-file-zipper text-lg""></i>
-                                </div>
-                                <p
-                                    v-tooltip.top=""{{
-                                        value: p.name,
-                                        pt: {{
-                                            root: {{
-                                                style: {{
-                                                    maxWidth: '350px',
-                                                    whiteSpace: 'normal',
-                                                    wordBreak: 'break-word'
-                                                }}
-                                            }}
-                                        }}
-                                    }}""
-                                >
-                                    {{{{ shortenFileName(p.name) }}}} ({{{{ (p.size / 1024).toFixed(1) }}}} KB)
-                                </p>
-                            </div>
-                            <div class=""flex gap-2"">
-                                <a :href=""p.downloadUrl"" :download=""p.name"" class=""px-3 py-2 bg-green-500 text-white rounded text-sm"">
-                                    <i class=""fa-solid fa-download""></i>
-                                </a>
-                                <button @click=""removePreview(previews.indexOf(p))"" class=""px-3 py-2 bg-red-500 text-white rounded text-sm"">
-                                    <i class=""fa-solid fa-trash""></i>
-                                </button>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
-";
-                else
-                    return $@"
-                <div class=""flex flex-col items-start gap-2 md:col-span-2 w-full"">
-                    <label>{{{{ $t('field.multiFiles') }}}}</label>
+                <div class=""flex flex-col items-start field-gap md:col-span-2 lg:col-span-3 w-full"">
+                    <label class=""field-label"">{{{{ $t('field.{prop.Name.GetCamelCaseName()}') }}}}</label>
                     <p v-if=""state.validationErrors.{prop.Name.GetCamelCaseName()}"" class=""text-red-500"">{{{{ $t('message.filesRequired') }}}}</p>
-                    <FileUpload :multiple=""true"" accept="".pdf, .txt, .xlsx, .xls, .docx, .rar, .zip"" mode=""basic"" @select=""onSelectFiles"" customUpload auto class=""p-button-outlined"" :disabled=""state.finding || state.saving"" />
-                </div>
-
-                <!-- Previewable files grid -->
-                <div v-if=""previewableFiles.length"" class=""md:col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-6"">
-                    <!-- <VueFilesPreview :file=""p.file"" height=""200px"" overflow=""auto"" /> -->
-                    <ul class=""space-y-2"">
-                        <li v-for=""(p, i) in previewableFiles"" :key=""i"" class=""bg-slate-100 flex-wrap p-2 px-3 border border-[#EAEAEA] rounded-lg flex gap-4 justify-between items-center"">
-                            <div class=""flex items-center gap-4"">
-                                <div class=""flex items-center justify-center h-[40px] bg-white border shrink-0 rounded-full w-[40px] gap-2"">
-                                    <i class=""fa-solid fa-file text-lg""></i>
+                    <div class=""w-full"">
+                        <FileUpload :multiple=""true"" accept="".pdf, .txt, .xlsx, .xls, .docx, .rar, .zip"" @select=""onSelectFiles"" customUpload auto class=""p-button-outlined"" :disabled=""state.finding || state.saving"">
+                            <template #header=""{{ chooseCallback }}"">
+                                <div class=""flex flex-wrap justify-between items-center flex-1 gap-4"">
+                                    <div class=""flex gap-2"">
+                                        <button @click=""chooseCallback()"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" class=""size-[28px] rounded-[8px] bg-white flex items-center justify-center text-gold1 border border-solid border-gold1 hover:bg-green2 hover:text-gold3 transition-colors"">
+                                            <i class=""pi pi-plus text-xs leading-none font-semibold""></i>
+                                        </button>
+                                    </div>
                                 </div>
-                                <p
-                                    v-tooltip.top=""{{
-                                        value: p.name,
-                                        pt: {{
-                                            root: {{
-                                                style: {{
-                                                    maxWidth: '350px',
-                                                    whiteSpace: 'normal',
-                                                    wordBreak: 'break-word'
-                                                }}
-                                            }}
-                                        }}
-                                    }}""
-                                    class=""flex items-center flex-wrap gap-1 gap-y-0.5""
-                                >
-                                    {{{{ shortenFileName(p.name) }}}} <span class="""">({{{{ (p.size / 1024).toFixed(1) }}}} KB)</span>
-                                </p>
-                            </div>
-                            <div class=""flex gap-2"">
-                                <!-- preview button -->
-                                <button @click=""openPreviewModal(p.file)"" class=""px-3 py-2 bg-blue-500 text-white rounded text-sm"">
-                                    <i class=""fa-solid fa-eye""></i>
-                                </button>
-                                <a :href=""p.downloadUrl"" :download=""p.name"" class=""px-3 py-2 bg-green-500 text-white rounded text-sm"">
-                                    <i class=""fa-solid fa-download""></i>
-                                </a>
-                                <button @click=""removePreview(state.{prop.Name.GetCamelCaseName()}Srcs.indexOf(p))"" class=""px-3 py-2 bg-red-500 text-white rounded text-sm"">
-                                    <i class=""fa-solid fa-trash""></i>
-                                </button>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
-
-                <!-- Archived files list -->
-                <div v-if=""archiveFiles.length"" class=""mt-8"">
-                    <label class=""block mb-3"">{{{{ $t('title.archivedFiles') }}}}</label>
-                    <ul class=""space-y-2"">
-                        <li v-for=""(p, i) in archiveFiles"" :key=""`arch-${{i}}`"" class=""bg-slate-100 flex-wrap p-2 px-3 border border-[#EAEAEA] rounded-lg flex gap-4 justify-between items-center"">
-                            <div class=""flex items-center gap-4"">
-                                <div class=""flex items-center justify-center h-[40px] bg-white shrink-0 border rounded-full w-[40px] gap-2"">
-                                    <i class=""fa-solid fa-file-zipper text-lg""></i>
+                            </template>
+                            <template #content>
+                                <!-- empty state -->
+                                <div v-if=""!previewableFiles.length && !archiveFiles.length"" class=""flex items-center w-full justify-center text-center p-5 flex-col"">
+                                    <img src=""@/assets/icons/fileUploadIcon.svg"" alt=""file upload icon"" />
+                                    <p class=""mt-[8px] text-green1 font-medium text-[13px]"">{{{{ $t('message.uploadFile') }}}}</p>
+                                    <p class=""mt-[12px] text-lightGrey text-[13px]"">{{{{ $t('message.supportedFileFormats') }}}}</p>
                                 </div>
-                                <p
-                                    v-tooltip.top=""{{
-                                        value: p.name,
-                                        pt: {{
-                                            root: {{
-                                                style: {{
-                                                    maxWidth: '350px',
-                                                    whiteSpace: 'normal',
-                                                    wordBreak: 'break-word'
-                                                }}
-                                            }}
-                                        }}
-                                    }}""
-                                >
-                                    {{{{ shortenFileName(p.name) }}}} ({{{{ (p.size / 1024).toFixed(1) }}}} KB)
-                                </p>
-                            </div>
-                            <div class=""flex gap-2"">
-                                <a :href=""p.downloadUrl"" :download=""p.name"" class=""px-3 py-2 bg-green-500 text-white rounded text-sm"">
-                                    <i class=""fa-solid fa-download""></i>
-                                </a>
-                                <button @click=""removePreview(state.{prop.Name.GetCamelCaseName()}Srcs.indexOf(p))"" class=""px-3 py-2 bg-red-500 text-white rounded text-sm"">
-                                    <i class=""fa-solid fa-trash""></i>
-                                </button>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
-";
+                                <div v-else class=""p-[10px]"">
+                                    <!-- Previewable files grid -->
+                                    <div v-if=""previewableFiles.length"" class=""md:col-span-2 lg:col-span-3 gap-6"">
+                                        <ul class=""space-y-4"">
+                                            <li v-for=""(p, i) in previewableFiles"" :key=""i"" class=""bg-[#EEEBE5] flex-wrap py-[12px] px-[14px] rounded-[8px] flex gap-4 justify-between items-center"">
+                                                <div class=""flex items-center gap-4"">
+                                                    <div class=""flex items-center justify-center shrink-0"">
+                                                        <img src=""@/assets/icons/fileIcon.svg"" alt=""fileIcon"" />
+                                                    </div>
+                                                    <p
+                                                        v-tooltip.top=""{{
+                                                            value: p.name,
+                                                            pt: {{
+                                                                root: {{
+                                                                    style: {{
+                                                                        maxWidth: '350px',
+                                                                        whiteSpace: 'normal',
+                                                                        wordBreak: 'break-word'
+                                                                    }}
+                                                                }}
+                                                            }}
+                                                        }}""
+                                                        class=""flex items-center flex-wrap gap-1 gap-y-0.5 text-[14px] font-semibold text-green1""
+                                                    >
+                                                        {{{{ shortenFileName(p.name) }}}}
+                                                        <!-- <span class="""">({{{{ (p.size / 1024).toFixed(1) }}}} KB)</span> -->
+                                                    </p>
+                                                </div>
+                                                <div class=""file-buttons-container"">
+                                                    <a :href=""p.downloadUrl"" :download=""p.name"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FBFFDD] transition-colors rounded-[6px]"">
+                                                        <img src=""@/assets/icons/fileDownloadIcon.svg"" alt=""file download"" />
+                                                    </a>
+                                                    <button @click=""openPreviewModal(p.file)"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#E0FAFF] transition-colors rounded-[6px]"">
+                                                        <img src=""@/assets/icons/filePreviewIcon.svg"" alt=""file preview"" />
+                                                    </button>
+                                                    <button @click=""removePreview(state.{prop.Name.GetCamelCaseName()}Srcs.indexOf(p))"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FECFD5] transition-colors rounded-[6px]"">
+                                                        <img src=""@/assets/icons/fileDeleteIcon.svg"" alt=""file delete"" />
+                                                    </button>
+                                                </div>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <!-- Archived files list -->
+                                    <div v-if=""archiveFiles.length"" class=""mt-4"">
+                                        <!-- <label class=""block mb-3"">{{{{ $t('title.archivedFiles') }}}}</label> -->
+                                        <ul class=""space-y-4"">
+                                            <li v-for=""(p, i) in archiveFiles"" :key=""`arch-${{i}}`"" class=""bg-[#EEEBE5] flex-wrap py-[12px] px-[14px] rounded-[8px] flex gap-4 justify-between items-center"">
+                                                <div class=""flex items-center gap-4"">
+                                                    <div class=""flex items-center justify-center shrink-0"">
+                                                        <i class=""fa-solid fa-file-zipper text-[20px] text-gold2""></i>
+                                                    </div>
+                                                    <p
+                                                        v-tooltip.top=""{{
+                                                            value: p.name,
+                                                            pt: {{
+                                                                root: {{
+                                                                    style: {{
+                                                                        maxWidth: '350px',
+                                                                        whiteSpace: 'normal',
+                                                                        wordBreak: 'break-word'
+                                                                    }}
+                                                                }}
+                                                            }}
+                                                        }}""
+                                                        class=""flex items-center flex-wrap gap-1 gap-y-0.5 text-[14px] font-semibold text-green1""
+                                                    >
+                                                        {{{{ shortenFileName(p.name) }}}}
+                                                        <!-- ({{{{ (p.size / 1024).toFixed(1) }}}} KB) -->
+                                                    </p>
+                                                </div>
+                                                <div class=""file-buttons-container"">
+                                                    <a :href=""p.downloadUrl"" :download=""p.name"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FBFFDD] transition-colors rounded-[6px]"">
+                                                        <img src=""@/assets/icons/fileDownloadIcon.svg"" alt=""file download"" />
+                                                    </a>
+                                                    <button @click=""removePreview(state.{prop.Name.GetCamelCaseName()}Srcs.indexOf(p))"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FECFD5] transition-colors rounded-[6px]"">
+                                                        <img src=""@/assets/icons/fileDeleteIcon.svg"" alt=""file delete"" />
+                                                    </button>
+                                                </div>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </template>
+                        </FileUpload>
+                    </div>
+                </div>";
+                }
+                    
+                else
+                {
+                    return $@"
+                <!-- multi files -->
+                <div class=""flex flex-col items-start field-gap md:col-span-2 lg:col-span-3 w-full"">
+                    <label class=""field-label"">{{{{ $t('field.{prop.Name.GetCamelCaseName()}') }}}}</label>
+                    <p v-if=""state.validationErrors.{prop.Name.GetCamelCaseName()}"" class=""text-red-500"">{{{{ $t('message.filesRequired') }}}}</p>
+                    <div class=""w-full"">
+                        <FileUpload :multiple=""true"" accept="".pdf, .txt, .xlsx, .xls, .docx, .rar, .zip"" @select=""onSelectFiles"" customUpload auto class=""p-button-outlined"" :disabled=""state.finding || state.saving"">
+                            <template #header=""{{ chooseCallback }}"">
+                                <div class=""flex flex-wrap justify-between items-center flex-1 gap-4"">
+                                    <div class=""flex gap-2"">
+                                        <button @click=""chooseCallback()"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" class=""size-[28px] rounded-[8px] bg-white flex items-center justify-center text-gold1 border border-solid border-gold1 hover:bg-green2 hover:text-gold3 transition-colors"">
+                                            <i class=""pi pi-plus text-xs leading-none font-semibold""></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                            <template #content>
+                                <!-- empty state -->
+                                <div v-if=""!previewableFiles.length && !archiveFiles.length"" class=""flex items-center w-full justify-center text-center p-5 flex-col"">
+                                    <img src=""@/assets/icons/fileUploadIcon.svg"" alt=""file upload icon"" />
+                                    <p class=""mt-[8px] text-green1 font-medium text-[13px]"">{{{{ $t('message.uploadFile') }}}}</p>
+                                    <p class=""mt-[12px] text-lightGrey text-[13px]"">{{{{ $t('message.supportedFileFormats') }}}}</p>
+                                </div>
+                                <div v-else class=""p-[10px]"">
+                                    <!-- Previewable files grid -->
+                                    <div v-if=""previewableFiles.length"" class=""md:col-span-2 lg:col-span-3 gap-6"">
+                                        <ul class=""space-y-4"">
+                                            <li v-for=""(p, i) in previewableFiles"" :key=""i"" class=""bg-[#EEEBE5] flex-wrap py-[12px] px-[14px] rounded-[8px] flex gap-4 justify-between items-center"">
+                                                <div class=""flex items-center gap-4"">
+                                                    <div class=""flex items-center justify-center shrink-0"">
+                                                        <img src=""@/assets/icons/fileIcon.svg"" alt=""fileIcon"" />
+                                                    </div>
+                                                    <p
+                                                        v-tooltip.top=""{{
+                                                            value: p.name,
+                                                            pt: {{
+                                                                root: {{
+                                                                    style: {{
+                                                                        maxWidth: '350px',
+                                                                        whiteSpace: 'normal',
+                                                                        wordBreak: 'break-word'
+                                                                    }}
+                                                                }}
+                                                            }}
+                                                        }}""
+                                                        class=""flex items-center flex-wrap gap-1 gap-y-0.5 text-[14px] font-semibold text-green1""
+                                                    >
+                                                        {{{{ shortenFileName(p.name) }}}}
+                                                        <!-- <span class="""">({{{{ (p.size / 1024).toFixed(1) }}}} KB)</span> -->
+                                                    </p>
+                                                </div>
+                                                <div class=""file-buttons-container"">
+                                                    <a :href=""p.downloadUrl"" :download=""p.name"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FBFFDD] transition-colors rounded-[6px]"">
+                                                        <img src=""@/assets/icons/fileDownloadIcon.svg"" alt=""file download"" />
+                                                    </a>
+                                                    <button @click=""openPreviewModal(p.file)"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#E0FAFF] transition-colors rounded-[6px]"">
+                                                        <img src=""@/assets/icons/filePreviewIcon.svg"" alt=""file preview"" />
+                                                    </button>
+                                                    <button @click=""removePreview(previews.indexOf(p))"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FECFD5] transition-colors rounded-[6px]"">
+                                                        <img src=""@/assets/icons/fileDeleteIcon.svg"" alt=""file delete"" />
+                                                    </button>
+                                                </div>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <!-- Archived files list -->
+                                    <div v-if=""archiveFiles.length"" class=""mt-4"">
+                                        <!-- <label class=""block mb-3"">{{{{ $t('title.archivedFiles') }}}}</label> -->
+                                        <ul class=""space-y-4"">
+                                            <li v-for=""(p, i) in archiveFiles"" :key=""`arch-${{i}}`"" class=""bg-[#EEEBE5] flex-wrap py-[12px] px-[14px] rounded-[8px] flex gap-4 justify-between items-center"">
+                                                <div class=""flex items-center gap-4"">
+                                                    <div class=""flex items-center justify-center shrink-0"">
+                                                        <i class=""fa-solid fa-file-zipper text-[20px] text-gold2""></i>
+                                                    </div>
+                                                    <p
+                                                        v-tooltip.top=""{{
+                                                            value: p.name,
+                                                            pt: {{
+                                                                root: {{
+                                                                    style: {{
+                                                                        maxWidth: '350px',
+                                                                        whiteSpace: 'normal',
+                                                                        wordBreak: 'break-word'
+                                                                    }}
+                                                                }}
+                                                            }}
+                                                        }}""
+                                                        class=""flex items-center flex-wrap gap-1 gap-y-0.5 text-[14px] font-semibold text-green1""
+                                                    >
+                                                        {{{{ shortenFileName(p.name) }}}}
+                                                        <!-- ({{{{ (p.size / 1024).toFixed(1) }}}} KB) -->
+                                                    </p>
+                                                </div>
+                                                <div class=""file-buttons-container"">
+                                                    <a :href=""p.downloadUrl"" :download=""p.name"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FBFFDD] transition-colors rounded-[6px]"">
+                                                        <img src=""@/assets/icons/fileDownloadIcon.svg"" alt=""file download"" />
+                                                    </a>
+                                                    <button @click=""removePreview(previews.indexOf(p))"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FECFD5] transition-colors rounded-[6px]"">
+                                                        <img src=""@/assets/icons/fileDeleteIcon.svg"" alt=""file delete"" />
+                                                    </button>
+                                                </div>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </template>
+                        </FileUpload>
+                    </div>
+                </div>";
+                }
+                    
             }
             if (typeWithoutNullable.Contains("List<"))
             {
@@ -7631,7 +8917,7 @@ const currentComponent = computed(() => {{
         }
 
 
-        private static string GetSingleColomnRelationControl(string entityName, List<Relation> relations)
+        private static string GetSingleColomnRelationControl(string entityName, List<Relation> relations, bool? basicInfoOrPartialForm = null, bool? partialForm = null)
         {
             StringBuilder sb = new StringBuilder();
             if (relations != null && relations.Any())
@@ -7647,9 +8933,21 @@ const currentComponent = computed(() => {{
                         var propLower = rel.Type != RelationType.OneToOneSelfJoin ? lowerRelatedEntity
                             : lowerRelatedEntity + "Parent";
                         var displayedProp = char.ToLower(rel.DisplayedProperty[0]) + rel.DisplayedProperty.Substring(1);
+
+                        string? stateOrParentIsTabsLocked = null;
+                        if (basicInfoOrPartialForm != null)
+                        {
+                            if (partialForm != null)
+                                stateOrParentIsTabsLocked = "parentStore.isTabsLocked = true";
+                            else
+                                stateOrParentIsTabsLocked = "state.isTabsLocked = true";
+                        }
+                        else
+                            stateOrParentIsTabsLocked = $"(e) => onPropChanged(e.value, '{propLower}Id')";
+
                         sb.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}{rel.DisplayedProperty}"">{{{{ $t('field.{propLower}{rel.DisplayedProperty}') }}}}</label>
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}{rel.DisplayedProperty}"">{{{{ $t('field.{propLower}{rel.DisplayedProperty}') }}}}</label>
                     <Select
                         :emptyMessage=""$t('message.noAvailableOptions')""
                         :options=""{entityRelatedPluralLower}""
@@ -7664,7 +8962,7 @@ const currentComponent = computed(() => {{
                         showClear
                         filter
                         @filter=""(e) => search{entityRelatedPlural}(e.value)""
-                        @change=""(e) => onPropChanged(e.value, '{propLower}Id')""
+                        @change=""{stateOrParentIsTabsLocked}""
                         :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
                     >
                         <template #option=""slotProps"">
@@ -7683,9 +8981,21 @@ const currentComponent = computed(() => {{
                         string displayedPropPlural = rel.DisplayedProperty.EndsWith("y") ? rel.DisplayedProperty[..^1] + "ies" : rel.DisplayedProperty + "s";
                         var propLower = lowerRelatedEntity + displayedPropPlural;
                         var displayedProp = char.ToLower(rel.DisplayedProperty[0]) + rel.DisplayedProperty.Substring(1);
+
+                        string? stateOrParentIsTabsLocked = null;
+                        if (basicInfoOrPartialForm != null)
+                        {
+                            if (partialForm != null)
+                                stateOrParentIsTabsLocked = "parentStore.isTabsLocked = true";
+                            else
+                                stateOrParentIsTabsLocked = "state.isTabsLocked = true";
+                        }
+                        else
+                            stateOrParentIsTabsLocked = $"(e) => onPropChanged(JSON.parse(JSON.stringify(e.value)), '{propLower}')";
+
                         sb.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}"">{{{{ $t('field.{propLower}') }}}}</label>
                     <MultiSelect class=""w-full"" id=""{propLower}"" type=""text"" dataKey=""id""
                         optionLabel=""{displayedProp}"" optionValue='id'
                         :placeholder=""$t('field.select{rel.DisplayedProperty}')"" 
@@ -7697,7 +9007,7 @@ const currentComponent = computed(() => {{
                         append-to=""self""
                         filter
                         @filter=""(e) => search{entityRelatedPlural}(e.value)""
-                        @change=""(e) => onPropChanged(JSON.parse(JSON.stringify(e.value)), '{propLower}')""
+                        @change=""{stateOrParentIsTabsLocked}""
                         :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
                     />
                 </div>");
@@ -7706,9 +9016,21 @@ const currentComponent = computed(() => {{
                     if (rel.Type == RelationType.UserSingle || rel.Type == RelationType.UserSingleNullable)
                     {
                         var propLower = rel.DisplayedProperty.GetCamelCaseName();
+
+                        string? stateOrParentIsTabsLocked = null;
+                        if (basicInfoOrPartialForm != null)
+                        {
+                            if (partialForm != null)
+                                stateOrParentIsTabsLocked = "parentStore.isTabsLocked = true";
+                            else
+                                stateOrParentIsTabsLocked = "state.isTabsLocked = true";
+                        }
+                        else
+                            stateOrParentIsTabsLocked = $"(e) => onPropChanged(e.value, '{propLower}Id')";
+
                         sb.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}Name"">{{{{ $t('field.{propLower}Name') }}}}</label>
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}Name"">{{{{ $t('field.{propLower}Name') }}}}</label>
                     <Select
                         :emptyMessage=""$t('message.noAvailableOptions')""
                         :options=""users""
@@ -7720,9 +9042,10 @@ const currentComponent = computed(() => {{
                         :placeholder=""$t('field.selectUser')""
                         class=""w-full""
                         showClear
+                        append-to=""self""
                         filter
                         @filter=""(e) => searchUsers(e.value)""
-                        @change=""(e) => onPropChanged(e.value, '{propLower}Id')""
+                        @change=""{stateOrParentIsTabsLocked}""
                         :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
                     >
                         <template #option=""slotProps"">
@@ -7737,9 +9060,21 @@ const currentComponent = computed(() => {{
                     if (rel.Type == RelationType.UserMany)
                     {
                         var propLower = rel.DisplayedProperty.GetCamelCaseName().GetPluralName();
+
+                        string? stateOrParentIsTabsLocked = null;
+                        if (basicInfoOrPartialForm != null)
+                        {
+                            if (partialForm != null)
+                                stateOrParentIsTabsLocked = "parentStore.isTabsLocked = true";
+                            else
+                                stateOrParentIsTabsLocked = "state.isTabsLocked = true";
+                        }
+                        else
+                            stateOrParentIsTabsLocked = $"(e) => onPropChanged(JSON.parse(JSON.stringify(e.value)), '{propLower}')";
+
                         sb.AppendLine($@"
-                <div class=""flex flex-col gap-2 w-full"">
-                    <label for=""{propLower}Names"">{{{{ $t('field.{propLower}Names') }}}}</label>
+                <div class=""flex flex-col field-gap w-full"">
+                    <label class=""field-label"" for=""{propLower}Names"">{{{{ $t('field.{propLower}Names') }}}}</label>
                     <MultiSelect class=""w-full"" id=""{propLower}"" type=""text"" dataKey=""id""
                         optionLabel=""fullName"" optionValue='id'
                         :placeholder=""$t('field.selectUser')"" 
@@ -7751,7 +9086,7 @@ const currentComponent = computed(() => {{
                         append-to=""self""
                         filter
                         @filter=""(e) => searchUsers(e.value)""
-                        @change=""(e) => onPropChanged(JSON.parse(JSON.stringify(e.value)), '{propLower}')""
+                        @change=""{stateOrParentIsTabsLocked}""
                         :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')""
                     />
                 </div>");

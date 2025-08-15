@@ -596,12 +596,13 @@ namespace Api.NeededDto.{entityName}
         }
 
 
-        public static void GenerateController(string entityName, string entityPlural, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, string solutionDir, bool hasLocalization, bool hasPermissions, bool bulk)
+        public static void GenerateController(string entityName, string entityPlural, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, string solutionDir, bool hasLocalization, bool hasPermissions)
         {
             var controllerName = $"{entityPlural}Controller.cs";
             var filePath = Path.Combine(solutionDir, "Api", "Controllers", controllerName);
             string? createPermission = null!;
             string? UpdatePermission = null!;
+            string? GetAllPermission = null!;
             string? GetPermission = null!;
             string? GetWithLocalizationPermission = null!;
             string? DeletePermission = null!;
@@ -611,7 +612,8 @@ namespace Api.NeededDto.{entityName}
             {
                 createPermission = $"[Permission(RoleConsistent.{entityName}.Add)]";
                 UpdatePermission = $"[Permission(RoleConsistent.{entityName}.Edit)]";
-                GetPermission = $"[Permission(RoleConsistent.{entityName}.Browse)]";
+                GetAllPermission = $"[Permission(RoleConsistent.{entityName}.Browse)]";
+                GetPermission = $"[Permission(RoleConsistent.{entityName}.View)]";
                 DeletePermission = $"[Permission(RoleConsistent.{entityName}.Delete)]";
                 GetWithLocalizationPermission = $"[Permission(RoleConsistent.{entityName}.BrowseWithLocalization)]";
             }
@@ -677,65 +679,10 @@ namespace Api.NeededDto.{entityName}
         }}
 ";
 
-            string? bulkEndpoints = !bulk ? null :
-                $@"
-        [Route(ApiRoutes.{entityName}.CreateBulk)]
-        [HttpPost]
-        {createPermission}
-        public async Task<IActionResult> CreateBulk({fromType} CreateBulk{entityName}CommandDto dto)
-        {{
-            try
-            {{
-                var command = _mapper.Map<CreateBulk{entityName}Command>(dto);
-                await _sender.Send(command);
-                return Ok();
-            }}
-            catch (Exception ex)
-            {{
-                List<string> messages = JsonParser.ParseMessages(ex.Message);
-                return BadRequest(new {{ Errors = messages }});
-            }}
-        }}
-
-        [Route(ApiRoutes.{entityName}.UpdateBulk)]
-        [HttpPut]
-        {UpdatePermission}
-        public async Task<IActionResult> UpdateBulk({fromType} UpdateBulk{entityName}CommandDto dto)
-        {{
-            try
-            {{
-                var command = _mapper.Map<UpdateBulk{entityName}Command>(dto);
-                await _sender.Send(command);
-                return NoContent();
-            }}
-            catch (Exception ex)
-            {{
-                List<string> messages = JsonParser.ParseMessages(ex.Message);
-                return BadRequest(new {{ Errors = messages }});
-            }}
-        }}
-
-        [Route(ApiRoutes.{entityName}.DeleteBulk)]
-        [HttpDelete]
-        {DeletePermission}
-        public async Task<IActionResult> DeleteBulk([FromBody] DeleteBulk{entityName}Command command)
-        {{
-            try
-            {{
-                await _sender.Send(command);
-                return NoContent();
-            }}
-            catch (Exception ex)
-            {{
-                List<string> messages = JsonParser.ParseMessages(ex.Message);
-                return BadRequest(new {{ Errors = messages }});
-            }}
-        }}
-";
+            
             //string filledProperties = string.Join(Environment.NewLine, properties.Select(p =>
             //    $"                    {p.Name} = dto.{p.Name},"));
             string? usingLocalizationQuery = hasLocalization ? $"using Application.{entityPlural}.Queries.Get{entityName}WithLocalization;" : null;
-            string? usingBulk = bulk ? $"using Application.{entityPlural}.Commands.CreateBulk{entityName};using Application.{entityPlural}.Commands.UpdateBulk{entityName};using Application.{entityPlural}.Commands.DeleteBulk{entityName};" : null;
             string content = $@"using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
@@ -750,7 +697,6 @@ using Application.{entityPlural}.Commands.Update{entityName};
 using Application.{entityPlural}.Queries.Get{entityName}Query;
 using Application.{entityPlural}.Queries.Get{entityPlural}WithPagination;
 {usingLocalizationQuery}
-{usingBulk}
 using Infrastructure.Utilities;
 using AutoMapper;
 using Domain.Entities;
@@ -791,7 +737,7 @@ namespace Api.Controllers
 
         [Route(ApiRoutes.{entityName}.GetAll)]
         [HttpGet]
-        {GetPermission}
+        {GetAllPermission}
         public async Task<IActionResult> GetAll([FromQuery] Get{entityPlural}WithPaginationQueryDto dto)
         {{
             try
@@ -876,8 +822,6 @@ namespace Api.Controllers
                 return BadRequest(new {{ Errors = messages }});
             }}
         }}
-
-        {bulkEndpoints}
     }}
 }}";
 
@@ -896,7 +840,7 @@ namespace Api.Controllers
             if (hasPermissions)
             {
                 UpdatePermission = $"[Permission(RoleConsistent.{entityName}.Edit)]";
-                GetPermission = $"[Permission(RoleConsistent.{entityName}.Browse)]";
+                GetPermission = $"[Permission(RoleConsistent.{entityName}.View)]";
                 GetWithLocalizationPermission = $"[Permission(RoleConsistent.{entityName}.BrowseWithLocalization)]";
             }
             var lowerEntity = entityName.ToLower();
@@ -1036,7 +980,7 @@ namespace Api.Controllers
             var controllerName = $"{entityPlural}Controller.cs";
             var filePath = Path.Combine(solutionDir, "Api", "Controllers", controllerName);
             string? UpdatePermission = null!;
-            string? GetPermission = null!;
+            string? GetAllPermission = null!;
             string? GetWithLocalizationPermission = null!;
             string aggregator = parentEntityName;
             string fromType = "[FromBody]";
@@ -1044,7 +988,7 @@ namespace Api.Controllers
             if (hasPermissions)
             {
                 UpdatePermission = $"[Permission(RoleConsistent.{entityName}.Edit)]";
-                GetPermission = $"[Permission(RoleConsistent.{entityName}.Browse)]";
+                GetAllPermission = $"[Permission(RoleConsistent.{entityName}.Browse)]";
                 GetWithLocalizationPermission = $"[Permission(RoleConsistent.{entityName}.BrowseWithLocalization)]";
             }
             var lowerEntity = entityName.ToLower();
@@ -1135,7 +1079,7 @@ namespace Api.Controllers
 
         [Route(ApiRoutes.{parentEntityName}.Get{entityPlural})]
         [HttpGet]
-        {GetPermission}
+        {GetAllPermission}
         public async Task<IActionResult> Get({getParam})
         {{
             try

@@ -260,6 +260,7 @@
             chkHasColumn.Text = "GenerateTableColumn";
             chkHasColumn.UseVisualStyleBackColor = true;
             chkHasColumn.CheckedChanged += chkHasColumn_CheckedChanged;
+            chkHasColumn.Enabled = !Bulk ? true : false;
             // 
             // chkHiddenColumn
             // 
@@ -270,6 +271,8 @@
             chkHiddenColumn.TabIndex = 39;
             chkHiddenColumn.Text = "Hide in Table";
             chkHiddenColumn.UseVisualStyleBackColor = true;
+            chkHiddenColumn.Enabled = !Bulk ? true : false;
+
             // 
             // lblFileHint
             // 

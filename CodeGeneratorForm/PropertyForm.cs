@@ -17,13 +17,15 @@ namespace CodeGeneratorForm
     {
         public PropertyInfo PropertyInfo { get; set; } = new PropertyInfo();
         public bool HasLocalization { get; set; } = false;
+        public bool Bulk {  get; set; } = false;
         public PropertyForm()
         {
             InitializeComponent();
         }
-        public PropertyForm(bool hasLocalization)
+        public PropertyForm(bool hasLocalization,bool bulk)
         {
             this.HasLocalization = hasLocalization;
+            Bulk = bulk;
             InitializeComponent();
         }
 
@@ -35,6 +37,7 @@ namespace CodeGeneratorForm
                     cmboListType.Visible = true;
                 else
                     cmboListType.Visible = false;
+
                 if (cmboType.SelectedIndex == 6)
                 {
                     lblEnum.Visible = true;
@@ -44,6 +47,19 @@ namespace CodeGeneratorForm
                 {
                     lblEnum.Visible = false;
                     txtEnums.Visible = false;
+                }
+                if(!Bulk)
+                {
+                    if (cmboType.SelectedIndex == 8 || cmboType.SelectedIndex == 9 || cmboType.SelectedIndex == 10 || cmboType.SelectedIndex == 11 || cmboType.SelectedIndex == 12 || cmboType.SelectedIndex == 13)
+                    {
+                        chkHasColumn.Checked = false;
+                        chkHasColumn.Visible = false;
+                    }
+                    else
+                    {
+                        chkHasColumn.Checked = true;
+                        chkHasColumn.Visible = true;
+                    }
                 }
                 if (cmboType.SelectedIndex == 12 || cmboType.SelectedIndex == 13)
                     lblFileHint.Visible = true;

@@ -48,7 +48,7 @@ namespace CodeGeneratorForm
         private void btnProperty_Click(object sender, EventArgs e)
         {
             var isLocalized = this.checkBoxLocalization.Checked;
-            PropertyForm propertyForm = new PropertyForm(isLocalized);
+            PropertyForm propertyForm = new PropertyForm(isLocalized,checkBoxBulk.Checked);
             propertyForm.StartPosition = FormStartPosition.Manual;
             propertyForm.Location = new Point(
                 this.Location.X + this.Width / 2 - propertyForm.Width / 2,
@@ -234,6 +234,10 @@ namespace CodeGeneratorForm
                 {
                     Infrastructure.GeneratePermission(entityName, domainPath, hasLocalization);
                 }
+                else
+                {
+                    Application.UpdateProfileQuery(entityName, domainPath);
+                }
                 Domain.GenerateEntityClass(entityName, domainPath, (properties.PropertiesList, properties.LocalizedProp, properties.EnumProps), hasLocalization, Relations, bulk, isChild, parentEntityName);
                 //GenerateEntityLocalizationClass(entityName, domainPath);
                 Infrastructure.UpdateAppDbContext(entityName, domainPath);
@@ -354,7 +358,7 @@ namespace CodeGeneratorForm
                 Api.GenerateNeededDtos(entityName, entityPlural, properties.PropertiesList, properties.EnumProps, solutionDir, hasLocalization, Relations, bulk, parentEntityName);
                 Api.AddRoutesToApiRoutes(entityName, entityPlural, solutionDir, hasLocalization, bulk, isParent, parentEntityName);
                 if ((isChild == null && isParent == null) || isParent != null)
-                    Api.GenerateController(entityName, entityPlural, properties.PropertiesList, properties.EnumProps, solutionDir, hasLocalization, hasPermissions, bulk);
+                    Api.GenerateController(entityName, entityPlural, properties.PropertiesList, properties.EnumProps, solutionDir, hasLocalization, hasPermissions);
                 else if (!bulk)
                     Api.GeneratePartialController(entityName, entityPlural, properties.PropertiesList, properties.EnumProps, solutionDir, hasLocalization, hasPermissions, parentEntityName);
                 else
@@ -539,6 +543,11 @@ namespace CodeGeneratorForm
             string relationEntityRelated = ((Button)sender).Tag.ToString();
             var oldRelationInfo = GetRelationInfo(relationEntityRelated);
             RelationForm editForm = new RelationForm(solutionDir, properties, txtEntityName.Text);
+            editForm.StartPosition = FormStartPosition.Manual;
+            editForm.Location = new Point(
+                this.Location.X + this.Width / 2 - editForm.Width / 2,
+                this.Location.Y + this.Height / 2 - editForm.Height / 2
+                );
             editForm.Relation.RelatedEntity = oldRelationInfo.RelatedEntity;
             editForm.Relation.Type = oldRelationInfo.Type;
             editForm.Relation.DisplayedProperty = oldRelationInfo.DisplayedProperty;
@@ -567,6 +576,11 @@ namespace CodeGeneratorForm
             string displayedProperty = ((Button)sender).Tag.ToString();
             var oldRelationInfo = GetUserRelationInfo(displayedProperty);
             UserRelationForm editForm = new UserRelationForm();
+            editForm.StartPosition = FormStartPosition.Manual;
+            editForm.Location = new Point(
+                this.Location.X + this.Width / 2 - editForm.Width / 2,
+                this.Location.Y + this.Height / 2 - editForm.Height / 2
+                );
             editForm.Relation.RelatedEntity = oldRelationInfo.RelatedEntity;
             editForm.Relation.Type = oldRelationInfo.Type;
             editForm.Relation.DisplayedProperty = oldRelationInfo.DisplayedProperty;
@@ -713,6 +727,10 @@ namespace CodeGeneratorForm
             properties = null!;
             properties = new SharedClasses.Properties();
             Relations.Clear();
+            NotGeneratedTableColumns.Clear();
+            HiddenTableColumns.Clear();
+            NotGeneratedTableRelations.Clear();
+            HiddenTableRelations.Clear();
         }
         private bool ValidateSolution()
         {
@@ -1076,7 +1094,12 @@ namespace CodeGeneratorForm
             string propertyName = ((Button)sender).Tag.ToString();
             var oldPropertyInfo = GetPropertyInfo(propertyName);
 
-            PropertyForm editForm = new PropertyForm(this.checkBoxLocalization.Checked);
+            PropertyForm editForm = new PropertyForm(this.checkBoxLocalization.Checked,this.checkBoxBulk.Checked);
+            editForm.StartPosition = FormStartPosition.Manual;
+            editForm.Location = new Point(
+                this.Location.X + this.Width / 2 - editForm.Width / 2,
+                this.Location.Y + this.Height / 2 - editForm.Height / 2
+                );
             editForm.PropertyInfo.Localized = oldPropertyInfo.Localized;
             editForm.PropertyInfo.EnumValues = oldPropertyInfo.EnumValues;
             editForm.PropertyInfo.GeneralInfo = oldPropertyInfo.GeneralInfo;

@@ -1988,7 +1988,7 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                 {eventVersionCode}
                 lstObjs.First().AddDomainEvent({lowerEntityName}Event);";
 
-            var eventDeleteAndDeleteLineCode = !(hasVersioning || hasNotification || hasUserAction) ? null :
+            var eventDeleteAndDeleteLineCode = !(hasVersioning || hasNotification || hasUserAction) ? $"await {entityRepoName}Repository.DeleteBulk(existingObjects);" :
                 $@"
                 var {lowerEntityName}Event = new {entityName}DeletedBulkEvent(existingObjects, request.{aggregator}Id);
                 {eventVersionCode}
@@ -2769,8 +2769,8 @@ namespace Application.{entityPlural}.Commands.UpdateBulk{entityName}
     
                 await _unitOfWork.CommitAsync();
                 
-                {deleteOldImageCode}
                 }}
+{deleteOldImageCode}
             }}
             catch (Exception)
             {{
@@ -6347,5 +6347,51 @@ namespace Application.{entityPlural}.Commands.DeleteBulk{entityName}
             return methods.ToString();
         }
 
+
+
+        public static void UpdateProfileQuery(string entityName, string domainPath)
+        {
+            string profileQueryPath = Path.Combine(domainPath, "..", "..", "Application", "Identity", "Queries", "GetProfile", "GetProfileQuery.cs");
+            if (!File.Exists(profileQueryPath))
+            {
+                //Console.WriteLine("⚠️ RoleConsistent.cs not found.");
+                return;
+            }
+            string entityBasePermissions = $@"
+            EntityBasePermissions {entityName.GetCamelCaseName()} = new EntityBasePermissions
+            {{
+                EntityName = ""{entityName}"",
+                Add = true,
+                Delete = true,
+                View = true,
+                Edit = true,
+                Browse = true
+            }};
+" + "\n\t\t\t//Add No Permission Entity Here";
+
+            var lines = File.ReadAllLines(profileQueryPath).ToList();
+            var index = lines.FindIndex(line => line.Contains("//Add No Permission Entity Here"));
+
+            if (index >= 0)
+            {
+                lines[index] = entityBasePermissions;
+                File.WriteAllLines(profileQueryPath, lines);
+            }
+
+            lines.Clear();
+            index = -1;
+
+            string profileAddPermissions = $"\t\t\tprofile.Permissions.Add({entityName.GetCamelCaseName()});" + "\n\t\t\t//Add To Permissions Here";
+
+            lines = File.ReadAllLines(profileQueryPath).ToList();
+            index = lines.FindIndex(line => line.Contains("//Add To Permissions Here"));
+
+            if (index >= 0)
+            {
+                lines[index] = profileAddPermissions;
+                File.WriteAllLines(profileQueryPath, lines);
+            }
+
+        }
     }
 }
