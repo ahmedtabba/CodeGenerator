@@ -550,16 +550,16 @@ namespace Api.NeededDto.{entityName}
             string? childAddLine = isParent != null ? "//Add Child Route Here" : null;
 
             string className = $"public static class {entityName}";
-            string? GetWithLocalizationRoute = hasLocalization ? $"public const string GetWithLocalization = Base + \"/{entityPlural.ToLower()}/{{{entityName.ToLower()}Id}}/localization\";" : null;
+            string? GetWithLocalizationRoute = hasLocalization ? $"public const string GetWithLocalization = Base + \"/{entityPlural.GetCamelCaseName()}/{{{entityName.GetCamelCaseName()}Id}}/localization\";" : null;
 
             string routeClass = $@"
         public static class {entityName}
         {{
-            public const string Create = Base + ""/{entityPlural.ToLower()}"";
-            public const string Get = Base + ""/{entityPlural.ToLower()}/{{{entityName.ToLower()}Id}}"";
-            public const string GetAll = Base + ""/{entityPlural.ToLower()}"";
-            public const string Update = Base + ""/{entityPlural.ToLower()}/{{{entityName.ToLower()}Id}}"";
-            public const string Delete = Base + ""/{entityPlural.ToLower()}/{{{entityName.ToLower()}Id}}"";
+            public const string Create = Base + ""/{entityPlural.GetCamelCaseName()}"";
+            public const string Get = Base + ""/{entityPlural.GetCamelCaseName()}/{{{entityName.GetCamelCaseName()}Id}}"";
+            public const string GetAll = Base + ""/{entityPlural.GetCamelCaseName()}"";
+            public const string Update = Base + ""/{entityPlural.GetCamelCaseName()}/{{{entityName.GetCamelCaseName()}Id}}"";
+            public const string Delete = Base + ""/{entityPlural.GetCamelCaseName()}/{{{entityName.GetCamelCaseName()}Id}}"";
             {GetWithLocalizationRoute}
             {childAddLine}
         }}";
@@ -807,12 +807,12 @@ namespace Api.Controllers
         [Route(ApiRoutes.{entityName}.Update)]
         [HttpPut]
         {UpdatePermission}
-        public async Task<IActionResult> Update({fromType} Update{entityName}CommandDto dto, Guid {lowerEntity}Id)
+        public async Task<IActionResult> Update({fromType} Update{entityName}CommandDto dto, Guid {entityName.GetCamelCaseName()}Id)
         {{
             try
             {{
                 var command = _mapper.Map<Update{entityName}Command>(dto);
-                command.{entityName}Id = {lowerEntity}Id;
+                command.{entityName}Id = {entityName.GetCamelCaseName()}Id;
                 await _sender.Send(command);
                 return NoContent();
             }}

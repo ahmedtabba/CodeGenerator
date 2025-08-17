@@ -164,11 +164,13 @@ namespace Application.Common.Models.Versioning
 ";
             string eventCreateClassName = $"{entityName}CreatedEvent";
             string eventEditClassName = $"{entityName}EditedEvent";
+            string eventGetClassName = $"{entityName}GetEvent";
             string eventDeletedClassName = $"{entityName}DeletedEvent";
             string eventDirectory = Path.Combine(path, "..", "Events", $"{entityName}Events");
             string eventCreatePath = Path.Combine(path, "..", "Events", $"{entityName}Events", $"{eventCreateClassName}.cs");
             string eventEditPath = Path.Combine(path, "..", "Events", $"{entityName}Events", $"{eventEditClassName}.cs");
             string eventDeletePath = Path.Combine(path, "..", "Events", $"{entityName}Events", $"{eventDeletedClassName}.cs");
+            string eventGetPath = Path.Combine(path, "..", "Events", $"{entityName}Events", $"{eventGetClassName}.cs");
 
             Directory.CreateDirectory(eventDirectory);
 
@@ -221,9 +223,24 @@ namespace Domain.Events.{entityName}Events
     }}              
 }}
 ";
+            var getContent = $@"using System;
+
+namespace Domain.Events.{entityName}Events
+{{
+    public class {entityName}GetEvent : BaseEvent
+    {{
+        public {entityName}GetEvent({entityName} {lowerEntityName})
+        {{
+            {entityName} = {lowerEntityName};
+        }}
+        public {entityName} {entityName} {{ get; }}
+    }}              
+}}
+";
             File.WriteAllText(eventCreatePath, createContent);
             File.WriteAllText(eventEditPath, editContent);
             File.WriteAllText(eventDeletePath, deletedContent);
+            File.WriteAllText(eventGetPath, getContent);
         }
 
         public static void GenerateChildEvents(string entityName, string path, bool hasVersioning, bool bulk)
@@ -251,6 +268,8 @@ namespace Domain.Events.{entityName}Events
             string eventEditClassNameBulk = $"{entityName}EditedBulkEvent";
             string eventDeletedClassName = $"{entityName}DeletedEvent";
             string eventDeletedClassNameBulk = $"{entityName}DeletedBulkEvent";
+            string eventGetClassName = $"{entityName}GetEvent";
+            string eventGetClassNameBulk = $"{entityName}GetBulkEvent";
             string eventDirectory = Path.Combine(path, "..", "Events", $"{entityName}Events");
             string eventCreatePath = Path.Combine(path, "..", "Events", $"{entityName}Events", $"{eventCreateClassName}.cs");
             string eventCreateBulkPath = Path.Combine(path, "..", "Events", $"{entityName}Events", $"{eventCreateClassNameBulk}.cs");
@@ -258,6 +277,8 @@ namespace Domain.Events.{entityName}Events
             string eventEditBulkPath = Path.Combine(path, "..", "Events", $"{entityName}Events", $"{eventEditClassNameBulk}.cs");
             string eventDeletePath = Path.Combine(path, "..", "Events", $"{entityName}Events", $"{eventDeletedClassName}.cs");
             string eventDeleteBulkPath = Path.Combine(path, "..", "Events", $"{entityName}Events", $"{eventDeletedClassNameBulk}.cs");
+            string eventGetPath = Path.Combine(path, "..", "Events", $"{entityName}Events", $"{eventGetClassName}.cs");
+            string eventGetBulkPath = Path.Combine(path, "..", "Events", $"{entityName}Events", $"{eventGetClassNameBulk}.cs");
 
             Directory.CreateDirectory(eventDirectory);
             if (!bulk)
@@ -311,9 +332,25 @@ namespace Domain.Events.{entityName}Events
     }}              
 }}
 ";
+
+                var getContent = $@"using System;
+
+namespace Domain.Events.{entityName}Events
+{{
+    public class {entityName}GetEvent : BaseEvent
+    {{
+        public {entityName}GetEvent({entityName} {lowerEntityName})
+        {{
+            {entityName} = {lowerEntityName};
+        }}
+        public {entityName} {entityName} {{ get; }}
+    }}              
+}}
+";
                 File.WriteAllText(eventCreatePath, createContent);
                 File.WriteAllText(eventEditPath, editContent);
                 File.WriteAllText(eventDeletePath, deletedContent);
+                File.WriteAllText(eventGetPath, getContent);
             }
             else
             {
@@ -371,10 +408,25 @@ namespace Domain.Events.{entityName}Events
     }}              
 }}
 ";
+                var getBulkContent = $@"using System;
+
+namespace Domain.Events.{entityName}Events
+{{
+    public class {entityName}GetBulkEvent : BaseEvent
+    {{
+        public {entityName}GetBulkEvent(Guid aggregatorId)
+        {{
+            AggregatorId = aggregatorId;
+        }}
+        public Guid AggregatorId {{ get; }}
+    }}              
+}}
+";
 
                 File.WriteAllText(eventCreateBulkPath, createBulkContent);
                 File.WriteAllText(eventEditBulkPath, editBulkContent);
                 File.WriteAllText(eventDeleteBulkPath, deleteBulkContent);
+                File.WriteAllText(eventGetBulkPath, getBulkContent);
             }
         }
 
@@ -518,6 +570,10 @@ namespace Domain.Events.{entityName}Events
                 GenerateCreatedHandler(entityName, entityPlural, path, properties, relations, versioning, userActon, notification);
                 GenerateUpdateHandler(entityName, entityPlural, path, properties, relations, versioning, userActon, notification);
                 GenerateDeleteHandler(entityName, entityPlural, path, properties, relations, versioning, userActon, notification);
+                if (userActon)
+                {
+                    GenerateGetHandler(entityName, entityPlural, path);
+                }
             }
             else
             {
@@ -526,12 +582,20 @@ namespace Domain.Events.{entityName}Events
                     GenerateCreatedHandler(entityName, entityPlural, path, properties, relations, versioning, userActon, notification,parentEntityName);
                     GenerateUpdateHandler(entityName, entityPlural, path, properties, relations, versioning, userActon, notification, parentEntityName);
                     GenerateDeleteHandler(entityName, entityPlural, path, properties, relations, versioning, userActon, notification, parentEntityName);
+                    if (userActon)
+                    {
+                        GenerateGetHandler(entityName, entityPlural, path);
+                    }
                 }
                 else
                 {
                     GenerateCreatedBulkHandler(entityName, entityPlural, path, properties, relations, versioning, userActon, notification, parentEntityName);
                     GenerateUpdatedBulkHandler(entityName, entityPlural, path, properties, relations, versioning, userActon, notification, parentEntityName);
                     GenerateDeleteBulkHandler(entityName, entityPlural, path, properties, relations, versioning, userActon, notification,parentEntityName);
+                    if (userActon)
+                    {
+                        GenerateGetBulkHandler(entityName, entityPlural, path);
+                    }
                 }
             }
 
@@ -1829,6 +1893,83 @@ namespace Application.{entityPlural}.EventHandlers
 ";
             File.WriteAllText(handlerDeletePath, handlerDeleteBulkContent);
         }
+
+        static void GenerateGetHandler(string entityName, string entityPlural, string path)
+        {
+            string handlerGetClassName = $"Get{entityName}EventHandler";
+            string handlerGetPath = Path.Combine(path, "..", "..", "Application", $"{entityPlural}", "EventHandlers", $"{handlerGetClassName}.cs");
+            var handleGetContent = $@"using System;
+using Microsoft.Extensions.Logging;
+using System.Text;
+using Application.Common.Interfaces.Services;
+using Domain.Enums;
+using Domain.Events.{entityName}Events;
+
+namespace Application.{entityPlural}.EventHandlers
+{{
+    public class Get{entityName}EventHandler : INotificationHandler<{entityName}GetEvent>
+    {{
+        private readonly ILogger<Get{entityName}EventHandler> _logger;
+        private readonly IUserActionService _userActionService;
+
+        public Get{entityName}EventHandler(ILogger<Get{entityName}EventHandler> logger,
+                                        IUserActionService userActionService)
+        {{
+            _logger = logger;
+            _userActionService = userActionService;
+        }}
+        public async Task Handle({entityName}GetEvent notification, CancellationToken cancellationToken)
+        {{
+            await HandleUserAction(notification);
+        }}
+        private async Task HandleUserAction({entityName}GetEvent notification)
+        {{
+            await _userActionService.AddUserAction(UserActionType.Open, UserActionEntityType.{entityName}, notification.{entityName}.Id.ToString());
+        }}
+    }}
+}}
+";
+            File.WriteAllText(handlerGetPath, handleGetContent);
+        }
+
+        static void GenerateGetBulkHandler(string entityName, string entityPlural, string path)
+        {
+            string handlerGetClassName = $"GetBulk{entityName}EventHandler";
+            string handlerGetPath = Path.Combine(path, "..", "..", "Application", $"{entityPlural}", "EventHandlers", $"{handlerGetClassName}.cs");
+            var handleGetContent = $@"using System;
+using Microsoft.Extensions.Logging;
+using System.Text;
+using Application.Common.Interfaces.Services;
+using Domain.Enums;
+using Domain.Events.{entityName}Events;
+
+namespace Application.{entityPlural}.EventHandlers
+{{
+    public class GetBulk{entityName}EventHandler : INotificationHandler<{entityName}GetBulkEvent>
+    {{
+        private readonly ILogger<GetBulk{entityName}EventHandler> _logger;
+        private readonly IUserActionService _userActionService;
+
+        public GetBulk{entityName}EventHandler(ILogger<GetBulk{entityName}EventHandler> logger,
+                                        IUserActionService userActionService)
+        {{
+            _logger = logger;
+            _userActionService = userActionService;
+        }}
+        public async Task Handle({entityName}GetBulkEvent notification, CancellationToken cancellationToken)
+        {{
+            await HandleUserAction(notification);
+        }}
+        private async Task HandleUserAction({entityName}GetBulkEvent notification)
+        {{
+            await _userActionService.AddUserAction(UserActionType.Open, UserActionEntityType.{entityName}, notification.AggregatorId.ToString());
+        }}
+    }}
+}}
+";
+            File.WriteAllText(handlerGetPath, handleGetContent);
+        }
+
         static List<string> GetVersionDTOProp(List<(string Type, string Name, PropertyValidation Validation)> properties, List<Relation> relations)
         {
             List<string> propList = new List<string>();

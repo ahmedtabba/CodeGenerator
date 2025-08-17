@@ -11,7 +11,7 @@ namespace Frontend.VueJsHelper
 {
     public class VueJsHelper
     {
-        public static string VueJsSolutionPath = "C:\\EvaLogoFrontendTemplateV1.4\\src"; // ضع المسار الجذري لمشروع Vue هنا
+        public static string VueJsSolutionPath = "C:\\Users\\HP\\source\\repos\\DCIPPFrontend\\src"; // ضع المسار الجذري لمشروع Vue هنا
 
         public static void GenerateStoreFile(string entityName, SharedClasses.Properties properties, List<string> notGeneratedTableProperties, List<string> hiddenTableProperties, List<Relation> relations, string srcDir, bool? isParent = null)
         {

@@ -341,11 +341,11 @@ namespace CodeGeneratorForm
                 }
                 var childNotBulk = isChild != null && !bulk;
                 if ((isChild == null && isParent == null) || isParent != null || childNotBulk)
-                    Application.GenerateGetByIdQuery(entityName, entityPlural, queryPath, hasLocalization, properties.PropertiesList, properties.EnumProps, Relations, isParent, parentEntityName);
+                    Application.GenerateGetByIdQuery(entityName, entityPlural, queryPath, hasLocalization, properties.PropertiesList, properties.EnumProps, Relations, hasUserAction,isParent, parentEntityName);
                 else
                 {
                     //Bulk case
-                    Application.GenerateGetBulkQuery(entityName, entityPlural, queryPath, hasLocalization, properties.PropertiesList, properties.EnumProps, Relations, parentEntityName);
+                    Application.GenerateGetBulkQuery(entityName, entityPlural, queryPath, hasLocalization, properties.PropertiesList, properties.EnumProps, Relations,hasUserAction, parentEntityName);
                 }
                 if ((isChild == null && isParent == null) || isParent != null)
                     Application.GenerateGetAllQuery(entityName, entityPlural, queryPath, hasLocalization, properties.PropertiesList, properties.EnumProps, Relations, parentEntityName);

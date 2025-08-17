@@ -3388,13 +3388,13 @@ namespace Application.{entityPlural}.Commands.Delete{entityName}
             File.WriteAllText(filePath, content);
         }
         ////
-        public static void GenerateGetByIdQuery(string entityName, string entityPlural, string path, bool hasLocalization, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, List<Relation> relations, bool? isParent = null, string? parentEntityName = null)
+        public static void GenerateGetByIdQuery(string entityName, string entityPlural, string path, bool hasLocalization, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, List<Relation> relations,bool hasUserAction, bool? isParent = null, string? parentEntityName = null)
         {
             var folderPath = Path.Combine(path, $"Get{entityName}");
             Directory.CreateDirectory(folderPath);
 
             GenerateGetByIdDto(entityName, entityPlural, folderPath, properties, enumProps, relations, isParent, parentEntityName);
-            GenerateGetByIdQueryFile(entityName, entityPlural, folderPath, hasLocalization, relations, parentEntityName);
+            GenerateGetByIdQueryFile(entityName, entityPlural, folderPath, hasLocalization, relations, hasUserAction,parentEntityName);
             if (parentEntityName == null)
                 GenerateGetByIdValidator(entityName, entityPlural, folderPath);
         }
@@ -3540,7 +3540,7 @@ namespace Application.{entityPlural}.Queries.Get{entityName}Query
 }}";
             File.WriteAllText(filePath, content);
         }
-        static void GenerateGetByIdQueryFile(string entityName, string entityPlural, string path, bool hasLocalization, List<Relation> relations, string? parentEntityName = null)
+        static void GenerateGetByIdQueryFile(string entityName, string entityPlural, string path, bool hasLocalization, List<Relation> relations,bool hasUserAction, string? parentEntityName = null)
         {
             string fileName = $"Get{entityName}Query.cs";
             string filePath = Path.Combine(path, fileName);
@@ -3616,11 +3616,19 @@ namespace Application.{entityPlural}.Queries.Get{entityName}Query
             }}";
             string? queryParam = parentEntityName == null ? $"{entityName}Id" : $"{parentEntityName}Id";
 
+            string? injectCTORMediateR1 = hasUserAction ? ",IMediator mediator" : null;
+            string? injectCTORMediateR2 = hasUserAction ? "_mediator = mediator;" : null;
+            string? injectCTORMediateR3 = hasUserAction ? "private readonly IMediator _mediator;" : null;
+            string? usingEvent = hasUserAction ? $"using Domain.Events.{entityName}Events;" : null;
+            string ? getEventCode = !hasUserAction ? null : $@"
+            {entityName}GetEvent getEvent = new {entityName}GetEvent({entityName.ToLower()});
+            await _mediator.Publish(getEvent);";
             string content = $@"
 using Microsoft.Extensions.Logging;
 using Application.Common.Interfaces.IRepositories;
 using Application.Common.Interfaces.Services;
 {identityUsing}
+{usingEvent}
 
 namespace Application.{entityPlural}.Queries.Get{entityName}Query
 {{
@@ -3637,17 +3645,19 @@ namespace Application.{entityPlural}.Queries.Get{entityName}Query
         private readonly I{entityName}Repository {entityRepoName}Repository;
         private readonly ILocalizationService _localizationService;
         {injectCTORIdentity3}
+        {injectCTORMediateR3}
 
         public Get{entityName}QueryHandler(ILogger<Get{entityName}QueryHandler> logger,
                                            IMapper mapper,
                                            ILocalizationService localizationService,
-                                           I{entityName}Repository {lowerEntityName}Repository{injectCTORIdentity1})
+                                           I{entityName}Repository {lowerEntityName}Repository{injectCTORIdentity1}{injectCTORMediateR1})
         {{
             _logger = logger;
             _mapper = mapper;
             _localizationService = localizationService;
             {entityRepoName}Repository = {lowerEntityName}Repository;
             {injectCTORIdentity2}
+            {injectCTORMediateR2}
         }}
 
         public async Task<Get{entityName}Dto> Handle(Get{entityName}Query request, CancellationToken cancellationToken)
@@ -3658,6 +3668,7 @@ namespace Application.{entityPlural}.Queries.Get{entityName}Query
             dto = _mapper.Map<Get{entityName}Dto>({entityName.ToLower()});
             {UserRelationCode}
             {localizationCode}
+            {getEventCode}
             return dto;
         }}
     }}
@@ -3696,7 +3707,7 @@ namespace Application.{entityPlural}.Queries.Get{entityName}Query
                 {{
                     if (!await Is{entityName}Exists(context.InstanceToValidate))
                     {{
-                        context.AddFailure(""Get {entityName}"", ""{entityName} not found"");
+                        context.AddFailure(""Get {entityName}"", ""{entityName} is not found"");
                     }}
                 }});
         }}
@@ -3954,7 +3965,7 @@ namespace Application.{entityPlural}.Queries.Get{entityName}WithLocalization
                 {{
                     if (!await Is{entityName}Exists(context.InstanceToValidate))
                     {{
-                        context.AddFailure(""Get {entityName}"", ""{entityName} not found"");
+                        context.AddFailure(""Get {entityName}"", ""{entityName} is not found"");
                     }}
                 }});
         }}
@@ -3977,13 +3988,13 @@ namespace Application.{entityPlural}.Queries.Get{entityName}WithLocalization
             GenerateGetWithPaginationQueryFile(entityName, entityPlural, folderPath, hasLocalization, relations);
             GenerateGetWithPaginationValidator(entityName, entityPlural, folderPath);
         }
-        public static void GenerateGetBulkQuery(string entityName, string entityPlural, string path, bool hasLocalization, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, List<Relation> relations, string? parentEntityName)
+        public static void GenerateGetBulkQuery(string entityName, string entityPlural, string path, bool hasLocalization, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, List<Relation> relations, bool hasUserAction, string? parentEntityName)
         {
             var folderPath = Path.Combine(path, $"GetBulk{entityPlural}");
             Directory.CreateDirectory(folderPath);
 
             GenerateGetAllDto(entityName, entityPlural, folderPath, properties, enumProps, relations, parentEntityName);
-            GenerateGetBulkQueryFile(entityName, entityPlural, folderPath, hasLocalization, relations, parentEntityName);
+            GenerateGetBulkQueryFile(entityName, entityPlural, folderPath, hasLocalization, relations, hasUserAction, parentEntityName);
         }
         static void GenerateGetAllDto(string entityName, string entityPlural, string path, List<(string Type, string Name, PropertyValidation Validation)> properties, List<(string prop, List<string> enumValues)> enumProps, List<Relation> relations, string? parentEntityName)
         {
@@ -4410,7 +4421,7 @@ namespace Application.{entityPlural}.Queries.Get{entityPlural}WithPagination
 }}";
             File.WriteAllText(filePath, content);
         }
-        static void GenerateGetBulkQueryFile(string entityName, string entityPlural, string path, bool hasLocalization, List<Relation> relations, string? parentEntityName)
+        static void GenerateGetBulkQueryFile(string entityName, string entityPlural, string path, bool hasLocalization, List<Relation> relations, bool hasUserAction, string? parentEntityName)
         {
             string fileName = $"GetBulk{entityPlural}Query.cs";
             string filePath = Path.Combine(path, fileName);
@@ -4502,6 +4513,14 @@ namespace Application.{entityPlural}.Queries.Get{entityPlural}WithPagination
 
             bool getMethodCondition = relations.Any() && !(relations.Count == 1 && relations.Any(r => r.Type == RelationType.UserSingle || r.Type == RelationType.UserSingleNullable));
             string GetAllMethod = getMethodCondition ? $"Get{entityPlural}()" : "GetAll()";
+
+            string? injectCTORMediateR1 = hasUserAction ? ",IMediator mediator" : null;
+            string? injectCTORMediateR2 = hasUserAction ? "_mediator = mediator;" : null;
+            string? injectCTORMediateR3 = hasUserAction ? "private readonly IMediator _mediator;" : null;
+            string? usingEvent = hasUserAction ? $"using Domain.Events.{entityName}Events;" : null;
+            string? getEventCode = !hasUserAction ? null : $@"
+            {entityName}GetBulkEvent getEvent = new {entityName}GetBulkEvent(request.{parentEntityName}Id);
+            await _mediator.Publish(getEvent);";
             string content = $@"
 using Microsoft.Extensions.Logging;
 using Application.Common.Interfaces.IRepositories;
@@ -4512,6 +4531,7 @@ using Application.Common.Mappings;
 using Application.Common.Interfaces.Services;
 using Application.Common.Extensions;
 {identityUsing}
+{usingEvent}
 
 namespace Application.{entityPlural}.Queries.GetBulk{entityPlural}
 {{
@@ -4527,17 +4547,19 @@ namespace Application.{entityPlural}.Queries.GetBulk{entityPlural}
         private readonly I{entityName}Repository _{lowerEntityName}Repository;
         private readonly ILocalizationService _localizationService;
         {injectCTORIdentity3}
+        {injectCTORMediateR3}
 
         public GetBulk{entityPlural}QueryHandler(ILogger<GetBulk{entityPlural}QueryHandler> logger,
                                                            IMapper mapper,
                                                            ILocalizationService localizationService,
-                                                           I{entityName}Repository repository{injectCTORIdentity1})
+                                                           I{entityName}Repository repository{injectCTORIdentity1}{injectCTORMediateR1})
         {{
             _logger = logger;
             _mapper = mapper;
             _localizationService = localizationService;
             _{lowerEntityName}Repository = repository;
             {injectCTORIdentity2}
+            {injectCTORMediateR2}
         }}
 
         public async Task<{entityName}BulkDto> Handle(GetBulk{entityPlural}Query request, CancellationToken cancellationToken)
@@ -4552,6 +4574,7 @@ namespace Application.{entityPlural}.Queries.GetBulk{entityPlural}
             var res = new {entityName}BulkDto();
             res.{parentEntityName}Id = request.{parentEntityName}Id;
             res.{parentEntityName}{entityPlural} = result;
+            {getEventCode}
             return res;
         }}
     }}
