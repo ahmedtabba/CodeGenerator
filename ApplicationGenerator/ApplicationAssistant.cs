@@ -727,7 +727,7 @@ $@"
             string notificationConsistent;
 
             StringBuilder messageBuilder = new StringBuilder(""{entityName} : "");
-            messageBuilder.Append(notification.{entityName}.Id {parentNotification}); //TODO:AfterGenerateCode:Replace Id with the proper property
+            messageBuilder.Append(notification.{entityName}.Id + ""{parentNotification}""); //TODO:AfterGenerateCode:Replace Id with the proper property
             {HandleNotificationMethodVersionCase}
 
             signalRMessage = await _userNotificationService.Push(NotificationObjectTypes.{entityName}, notification.{entityName}.Id,
@@ -1198,7 +1198,7 @@ $@"
             string notificationConsistent;
 
             StringBuilder messageBuilder = new StringBuilder(""{entityName} : "");
-            messageBuilder.Append(notification.Old{entityName}.Id {parentNotification}); //TODO:AfterGenerateCode:Replace Id with the proper property
+            messageBuilder.Append(notification.Old{entityName}.Id + ""{parentNotification}""); //TODO:AfterGenerateCode:Replace Id with the proper property
             {HandleNotificationMethodVersionCase}
 
             signalRMessage = await _userNotificationService.Push(NotificationObjectTypes.{entityName}, notification.Old{entityName}.Id,
@@ -1615,7 +1615,7 @@ $@"
             string notificationConsistent;
 
             StringBuilder messageBuilder = new StringBuilder(""{entityName} : "");
-            messageBuilder.Append(notification.{entityName}.Id {parentNotification}); //TODO:AfterGenerateCode:Replace Id with the proper property
+            messageBuilder.Append(notification.{entityName}.Id + ""{parentNotification}""); //TODO:AfterGenerateCode:Replace Id with the proper property
             {HandleNotificationMethodVersionCase}
 
             signalRMessage = await _userNotificationService.Push(NotificationObjectTypes.{entityName}, notification.{entityName}.Id,
