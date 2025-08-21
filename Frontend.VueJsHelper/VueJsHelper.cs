@@ -11,8 +11,9 @@ namespace Frontend.VueJsHelper
 {
     public class VueJsHelper
     {
-        public static string VueJsSolutionPath = "C:\\Users\\HP\\source\\repos\\DCIPPFrontend\\src"; // ضع المسار الجذري لمشروع Vue هنا
-
+        //public static string VueJsSolutionPath = "C:\\Users\\HP\\source\\repos\\DCIPPFrontend\\src"; // ضع المسار الجذري لمشروع Vue هنا
+        public static string VueJsSolutionPath = "C:\\EvaLogoFrontendTemplateV1.6\\src"; // ضع المسار الجذري لمشروع Vue هنا
+        
         public static void GenerateStoreFile(string entityName, SharedClasses.Properties properties, List<string> notGeneratedTableProperties, List<string> hiddenTableProperties, List<Relation> relations, string srcDir, bool? isParent = null)
         {
             if (srcDir.Length == 0)
@@ -255,7 +256,7 @@ export const {storeName} = defineStore('{entityLower}', {{
         {
             if (srcDir.Length == 0)
                 throw new Exception("من فضلك ادخل المسار الجذري لمشروع Vue");
-            string fileName = $"{parentEntityName}{entityName}Store";
+            string fileName = $"{entityName}Store";
             string filePath = Path.Combine(srcDir, "store", parentEntityName.GetCamelCaseName(), $"{fileName}.js");
 
 
@@ -265,7 +266,7 @@ export const {storeName} = defineStore('{entityLower}', {{
             string entityPluralLower = entityPlural.GetCamelCaseName();
             string capitalEntityPlural = entityPlural.GetCapitalName();
 
-            var storeName = $"use{parentEntityName}{entityName}Store";
+            var storeName = $"use{entityName}Store";
 
             var initialStateBuilder = new StringBuilder();
             initialStateBuilder.AppendLine($"        {parentEntityName.GetCamelCaseName()}Id: null,");
@@ -418,7 +419,7 @@ import * as generalBackend from '@/backend/Backend';
 import {{formatDate}} from '@/utils/utils';
 import {{{parentEntityName.GetPluralName().GetCapitalName()}_ROUTE as PAGE_ROUTE}} from '@/utils/Constants';
 
-const REST_ENDPOINT = (id) => `{parentEntityName.GetCamelCaseName().GetPluralName()}${{id ? '/' + id : ''}}/{parentEntityName.GetCamelCaseName()}{entityName}`;
+const REST_ENDPOINT = (id) => `{parentEntityName.GetCamelCaseName().GetPluralName()}${{id ? '/' + id : ''}}/{entityName.GetCamelCaseName()}`;
 
 // all columns options
 const ALL_COLUMNS = [{string.Join(',', allColumns)}];
@@ -483,7 +484,7 @@ export const {storeName} = defineStore('{entityLower}', {{
         {
             if (srcDir.Length == 0)
                 throw new Exception("من فضلك ادخل المسار الجذري لمشروع Vue");
-            string fileName = $"{parentEntityName}{entityName}Store";
+            string fileName = $"{entityName}Store";
 
 
             string filePath = Path.Combine(srcDir, "store", parentEntityName.GetCamelCaseName(), $"{fileName}.js");
@@ -495,7 +496,7 @@ export const {storeName} = defineStore('{entityLower}', {{
             string entityPluralLower = entityPlural.GetCamelCaseName();
             string capitalEntityPlural = entityPlural.ToUpper();
 
-            var storeName = $"use{parentEntityName}{entityName}Store";
+            var storeName = $"use{entityName}Store";
 
             List<string> allColumns = new List<string>();
             List<string> defaultColumns = new List<string>();
@@ -588,7 +589,7 @@ import * as generalBackend from '@/backend/Backend';
 import {{{parentEntityName.GetPluralName().GetCapitalName()}_ROUTE as PAGE_ROUTE}} from '@/utils/Constants';
 import {{use{parentEntityName}Store as useParentStore}} from './{parentEntityName}Store';
 
-const REST_ENDPOINT = (id) => `{parentEntityName.GetCamelCaseName().GetPluralName()}${{id ? '/' + id : ''}}/{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}`;
+const REST_ENDPOINT = (id) => `{parentEntityName.GetCamelCaseName().GetPluralName()}${{id ? '/' + id : ''}}/{entityName.GetPluralName().GetCamelCaseName()}`;
 
 // all columns options
 const ALL_COLUMNS = [{string.Join(',', allColumns)}];
@@ -604,10 +605,10 @@ const INITIAL_STATE = {{
     defaultColumns: DEFAULT_COLUMNS,
     entityName: '{entityName.GetCamelCaseName()}',
     {parentEntityName.GetCamelCaseName()}Id: null,
-    {parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}: []
+    {entityName.GetPluralName().GetCamelCaseName()}: []
 }};
 
-export const {storeName} = defineStore('{parentEntityName.GetCamelCaseName()}{entityName}', {{
+export const {storeName} = defineStore('{entityName.GetCamelCaseName()}', {{
     state: () => ({{...INITIAL_STATE, selectedColumns: [...DEFAULT_COLUMNS]}}),
     actions: {{
         ...generalActions(INITIAL_STATE, REST_ENDPOINT, PAGE_ROUTE),
@@ -624,7 +625,7 @@ export const {storeName} = defineStore('{parentEntityName.GetCamelCaseName()}{en
         }},
         async [SAVE_ITEM]() {{
             this[SAVE]();
-            const item = this.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}
+            const item = this.{entityName.GetPluralName().GetCamelCaseName()}
             // validation
             const isValid = this[VALIDATE_FORM]();
             if (!isValid) {{
@@ -1131,7 +1132,7 @@ export const {storeName} = defineStore('{entityLower}', {{
         {
             if (srcDir.Length == 0)
                 throw new Exception("من فضلك ادخل المسار الجذري لمشروع Vue");
-            string fileName = $"{parentEntityName}{entityName}Store";
+            string fileName = $"{entityName}Store";
             string filePath = Path.Combine(srcDir, "store", parentEntityName.GetCamelCaseName(), $"{fileName}.js");
 
             var entityLower = entityName.GetCamelCaseName();
@@ -1139,7 +1140,7 @@ export const {storeName} = defineStore('{entityLower}', {{
             string entityPluralLower = entityPlural.GetCamelCaseName();
             string capitalEntityPlural = entityPlural.GetCapitalName();
 
-            var storeName = $"use{parentEntityName}{entityName}Store";
+            var storeName = $"use{entityName}Store";
 
             //var restEndpoint = entityPluralLower;
             var initialStateBuilder = new StringBuilder();
@@ -1519,7 +1520,7 @@ import * as generalBackend from '@/backend/Backend';
 import {{{parentEntityName.GetPluralName().GetCapitalName()}_ROUTE as PAGE_ROUTE}} from '@/utils/Constants';
 import {{formatDate}} from '@/utils/utils';
 
-const REST_ENDPOINT = (id) => `{parentEntityName.GetCamelCaseName().GetPluralName()}${{id ? '/' + id : ''}}/{parentEntityName.GetCamelCaseName()}{entityName}`;
+const REST_ENDPOINT = (id) => `{parentEntityName.GetCamelCaseName().GetPluralName()}${{id ? '/' + id : ''}}/{entityName.GetCamelCaseName()}`;
 
 // all columns options
 const ALL_COLUMNS = [{string.Join(',', allColumns)}];
@@ -1587,7 +1588,7 @@ export const {storeName} = defineStore('{entityLower}', {{
         {
             if (srcDir.Length == 0)
                 throw new Exception("من فضلك ادخل المسار الجذري لمشروع Vue");
-            string fileName = $"{parentEntityName}{entityName}Store";
+            string fileName = $"{entityName}Store";
 
 
             string filePath = Path.Combine(srcDir, "store", parentEntityName.GetCamelCaseName(), $"{fileName}.js");
@@ -1599,7 +1600,7 @@ export const {storeName} = defineStore('{entityLower}', {{
             string entityPluralLower = char.ToLower(entityPlural[0]) + entityPlural.Substring(1);
             string capitalEntityPlural = entityPlural.ToUpper();
 
-            var storeName = $"use{parentEntityName}{entityName}Store";
+            var storeName = $"use{entityName}Store";
 
             List<string> allColumns = new List<string>();
             List<string> defaultColumns = new List<string>();
@@ -1785,7 +1786,7 @@ import * as generalBackend from '@/backend/Backend';
 import {{{parentEntityName.GetPluralName().GetCapitalName()}_ROUTE as PAGE_ROUTE}} from '@/utils/Constants';
 import {{use{parentEntityName}Store as useParentStore}} from './{parentEntityName}Store';
 
-const REST_ENDPOINT = (id) => `{parentEntityName.GetCamelCaseName().GetPluralName()}${{id ? '/' + id : ''}}/{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}`;
+const REST_ENDPOINT = (id) => `{parentEntityName.GetCamelCaseName().GetPluralName()}${{id ? '/' + id : ''}}/{entityName.GetPluralName().GetCamelCaseName()}`;
 
 // all columns options
 const ALL_COLUMNS = [{string.Join(',', allColumns)}];
@@ -1801,10 +1802,10 @@ const INITIAL_STATE = {{
     defaultColumns: DEFAULT_COLUMNS,
     entityName: '{entityName.GetCamelCaseName()}',
     {parentEntityName.GetCamelCaseName()}Id: null,
-    {parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}: []
+    {entityName.GetPluralName().GetCamelCaseName()}: []
 }};
 
-export const {storeName} = defineStore('{parentEntityName.GetCamelCaseName()}{entityName}', {{
+export const {storeName} = defineStore('{entityName.GetCamelCaseName()}', {{
     state: () => ({{...INITIAL_STATE, selectedColumns: [...DEFAULT_COLUMNS]}}),
     actions: {{
         ...generalActions(INITIAL_STATE, REST_ENDPOINT, PAGE_ROUTE),
@@ -1821,7 +1822,7 @@ export const {storeName} = defineStore('{parentEntityName.GetCamelCaseName()}{en
         }},
         async [SAVE_ITEM]() {{
             this[SAVE]();
-            //const item = this.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}
+            //const item = this.{entityName.GetPluralName().GetCamelCaseName()}
             // validation
             const isValid = this[VALIDATE_FORM]();
             if (!isValid) {{
@@ -1840,7 +1841,7 @@ export const {storeName} = defineStore('{parentEntityName.GetCamelCaseName()}{en
             // BulkEntity[index][key] = value
 
             // this.[children]
-            this.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}.forEach((child, index) => {{
+            this.{entityName.GetPluralName().GetCamelCaseName()}.forEach((child, index) => {{
                 // Handle dynamic single files
                 {handleSingleFileKeys}
                 {handleMultiFileKeys}
@@ -3871,7 +3872,7 @@ const handleCancel = () => {{
             Directory.CreateDirectory(viewDirectory);
 
             //string fileSingleName = entityName;
-            string viewSinglePath = Path.Combine(viewDirectory, $"{parentEntityName}{entityName}.vue");
+            string viewSinglePath = Path.Combine(viewDirectory, $"{entityName}.vue");
             string? fileImportsRef = properties.Any(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD" || p.Type == "VDs" || p.Type == "FL" || p.Type == "FLs") ? ", watch, onUnmounted, computed" : null;
             string? fileImportPreview = properties.Any(p => p.Type == "FL" || p.Type == "FLs") ? "import { VueFilesPreview } from 'vue-files-preview';" : null;
 
@@ -4377,7 +4378,7 @@ const archiveFiles = computed(() => store.{prop.Name.GetCamelCaseName()}Srcs.fil
 
             string content = $@"
 <script setup>
-import {{ use{parentEntityName}{entityName}Store as useStore }} from '@/store/{parentEntityName.GetCamelCaseName()}/{parentEntityName}{entityName}Store';
+import {{ use{entityName}Store as useStore }} from '@/store/{parentEntityName.GetCamelCaseName()}/{entityName}Store';
 import {{ {parentEntityName.GetPluralName().GetCapitalName()}_ROUTE as PAGE_ROUTE{importAssetEndpoint} }} from '@/utils/Constants';
 {relationImports}
 import useSingle from '@/composables/useSingle';
@@ -4490,7 +4491,7 @@ const handleCancel = () => {{
             {
                 return;
             }
-            string importPartial = $"import {parentEntityName}{entityName} from './parts/{parentEntityName}{entityName}.vue'" +
+            string importPartial = $"import {entityName} from './parts/{entityName}.vue'" +
                 $"\n//Add import Partials Here";
             var lines = File.ReadAllLines(parentViewPath).ToList();
             var index = lines.FindIndex(line => line.Contains("//Add import Partials Here"));
@@ -4518,7 +4519,7 @@ const handleCancel = () => {{
             lines.Clear();
             index = -1;
 
-            string componentPartial = $"if (selected.value === '{entityName.GetCamelCaseName()}') return {parentEntityName}{entityName};" +
+            string componentPartial = $"if (selected.value === '{entityName.GetCamelCaseName()}') return {entityName};" +
                 $"\n\t//Add component Partials Here";
 
             lines = File.ReadAllLines(parentViewPath).ToList();
@@ -4543,7 +4544,7 @@ const handleCancel = () => {{
             Directory.CreateDirectory(viewDirectory);
 
             //string fileSingleName = entityName;
-            string viewBulkPath = Path.Combine(viewDirectory, $"{parentEntityName}{entityName.GetPluralName()}.vue");
+            string viewBulkPath = Path.Combine(viewDirectory, $"{entityName.GetPluralName()}.vue");
 
             StringBuilder enumFilters = new StringBuilder();
             StringBuilder enumDisplayOption = new StringBuilder();
@@ -5054,7 +5055,7 @@ watch(
             string content = $@"
 <script setup>
 import LocalListTemplate from '@/components/table/LocalListTemplate.vue';
-import {{ use{parentEntityName}{entityName}Store as useStore }} from '@/store/{parentEntityName.GetCamelCaseName()}/{parentEntityName}{entityName}Store';
+import {{ use{entityName}Store as useStore }} from '@/store/{parentEntityName.GetCamelCaseName()}/{entityName}Store';
 import {{ {parentEntityName.GetPluralName().GetCapitalName()}_ROUTE as PAGE_ROUTE}} from '@/utils/Constants';
 import {{ ref, watch, onBeforeMount, computed }} from 'vue';
 import {{ use{parentEntityName}Store }} from '@/store/{parentEntityName.GetCamelCaseName()}/{parentEntityName}Store';
@@ -5149,7 +5150,7 @@ const onAddSave = () => {{
         return;
     }}
 
-    store.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}.push({{ ...newItem.value }});
+    store.{entityName.GetPluralName().GetCamelCaseName()}.push({{ ...newItem.value }});
     parentStore.isTabsLocked = true;
     isAddModalOpen.value = false;
 
@@ -5162,7 +5163,7 @@ const onAddCancel = () => {{
 }};
 
 function findIndex(item) {{
-    return store.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}.findIndex((x) => (item.id && x.id === item.id) || (item.tempId && x.tempId === item.tempId));
+    return store.{entityName.GetPluralName().GetCamelCaseName()}.findIndex((x) => (item.id && x.id === item.id) || (item.tempId && x.tempId === item.tempId));
 }}
 
 // -- EDIT LOGIC --
@@ -5195,7 +5196,7 @@ const onEditSave = () => {{
     const idx = findIndex(selectedItem.value);
     if (idx !== -1) {{
         // replace the array item with the edited version
-        store.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}.splice(idx, 1, selectedItem.value);
+        store.{entityName.GetPluralName().GetCamelCaseName()}.splice(idx, 1, selectedItem.value);
     }}
     parentStore.isTabsLocked = true;
     isEditModalOpen.value = false;
@@ -5204,9 +5205,9 @@ const onEditSave = () => {{
 
 const onEditCancel = () => {{
     // restore original into the array
-    const idx = store.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}.findIndex((x) => x.id === originalItem.value.id);
+    const idx = store.{entityName.GetPluralName().GetCamelCaseName()}.findIndex((x) => x.id === originalItem.value.id);
     if (idx !== -1) {{
-        store.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}.splice(idx, 1, originalItem.value);
+        store.{entityName.GetPluralName().GetCamelCaseName()}.splice(idx, 1, originalItem.value);
     }}
     if (parentStore.itemPageState !== VIEW_PAGE_STATE) store.itemPageState = EDIT_PAGE_STATE;
     isEditModalOpen.value = false;
@@ -5225,7 +5226,7 @@ const onDeleteConfirm = () => {{
     const idx = findIndex(itemToDelete.value);
     console.log('idx', idx);
     if (idx !== -1) {{
-        store.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}.splice(idx, 1);
+        store.{entityName.GetPluralName().GetCamelCaseName()}.splice(idx, 1);
     }}
     parentStore.isTabsLocked = true;
     isDeleteModalOpen.value = false;
@@ -5237,10 +5238,10 @@ const onDeleteCancel = () => {{
 {dateWatch}
 const saveAll = () => {{
     // Make a deep copy backup of the original array
-    const backup = JSON.parse(JSON.stringify(store.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}));
+    const backup = JSON.parse(JSON.stringify(store.{entityName.GetPluralName().GetCamelCaseName()}));
 
     // Existing items: change the id → rename it to [partialId]
-    const existing = store.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}
+    const existing = store.{entityName.GetPluralName().GetCamelCaseName()}
         .filter((item) => !!item.id)
         .map(({{ id, tempId, ...rest }}) => ({{
             {entityLower}Id: id,
@@ -5248,7 +5249,7 @@ const saveAll = () => {{
         }}));
 
     // New items: only tempId → strip tempId
-    const newOnes = store.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}
+    const newOnes = store.{entityName.GetPluralName().GetCamelCaseName()}
         .filter((item) => !item.id && item.tempId)
         .map(({{ tempId, ...rest }}) => ({{
             ...rest
@@ -5258,13 +5259,13 @@ const saveAll = () => {{
     const merged = [...existing, ...newOnes];
 {dateSection}
     // Reassign into store
-    store.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()} = merged;
+    store.{entityName.GetPluralName().GetCamelCaseName()} = merged;
 
     // save
     onSave();
 
     // --- RESTORE the original array! ---
-    store.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()} = backup;
+    store.{entityName.GetPluralName().GetCamelCaseName()} = backup;
 }};
 
 
@@ -5316,7 +5317,7 @@ const handleCancel = () => {{
         <div v-if=""store.finding"" class=""flex justify-center items-center w-full mt-[32px]"">
             <atom-spinner :size=""50"" color=""#1B80E4"" />
         </div>
-        <LocalListTemplate v-if=""!store.finding && store.{parentEntityName.GetCamelCaseName()}Id"" title=""title.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}"" :items=""store.{parentEntityName.GetCamelCaseName()}{entityPlural}"" :use-store=""useStore"" :filters=""filters"" :show-add=""state.itemPageState !== $StoreConstant('VIEW_PAGE_STATE') && hasPermission(store.entityName, 'add')"" @add=""onAdd"" :global-filter-fields=""globalFields"">
+        <LocalListTemplate v-if=""!store.finding && store.{parentEntityName.GetCamelCaseName()}Id"" title=""title.{entityName.GetPluralName().GetCamelCaseName()}"" :items=""store.{entityPlural.GetCamelCaseName()}"" :use-store=""useStore"" :filters=""filters"" :show-add=""state.itemPageState !== $StoreConstant('VIEW_PAGE_STATE') && hasPermission(store.entityName, 'add')"" @add=""onAdd"" :global-filter-fields=""globalFields"">
             <template #columns>
 {colomnBuilder}
                 <!-- table actions -->
@@ -5352,7 +5353,7 @@ const handleCancel = () => {{
 
         <!-- -- Dialogs -- -->
         <!-- ADD DIALOG -->
-        <Dialog v-model:visible=""isAddModalOpen"" :header=""t('title.add{parentEntityName}{entityName}')"" modal dismissableMask :draggable=""false"" block-scroll class=""!w-[90%] !max-w-[800px] !h-[100%]"">
+        <Dialog v-model:visible=""isAddModalOpen"" :header=""t('title.add{entityName}')"" modal dismissableMask :draggable=""false"" block-scroll class=""!w-[90%] !max-w-[800px] !h-[100%]"">
             <div class=""grid grid-cols-1 md:grid-cols-2 gap-4"">
 {addDialog}
             </div>
@@ -5363,7 +5364,7 @@ const handleCancel = () => {{
         </Dialog>
 
         <!-- EDIT DIALOG -->
-        <Dialog v-model:visible=""isEditModalOpen"" dismissableMask modal :header=""$t(`title.${{editDialogMode}}{parentEntityName}{entityName}`)"" :modal=""true"" :draggable=""false"" block-scroll class=""!w-[90%] !max-w-[800px] !h-[100%]"">
+        <Dialog v-model:visible=""isEditModalOpen"" dismissableMask modal :header=""$t(`title.${{editDialogMode}}{entityName}`)"" :modal=""true"" :draggable=""false"" block-scroll class=""!w-[90%] !max-w-[800px] !h-[100%]"">
             <!-- your form fields, bound to selectedItem.fullName, etc. -->
             <div class=""w-full grid grid-cols-1 md:grid-cols-2 gap-4"">
 {editDialog}
@@ -5396,7 +5397,7 @@ const handleCancel = () => {{
             {
                 return;
             }
-            string importPartial = $"import {parentEntityName}{entityName.GetPluralName()} from './parts/{parentEntityName}{entityName.GetPluralName()}.vue'" +
+            string importPartial = $"import {entityName.GetPluralName()} from './parts/{entityName.GetPluralName()}.vue'" +
                 $"\n//Add import Partials Here";
             var lines = File.ReadAllLines(parentViewPath).ToList();
             var index = lines.FindIndex(line => line.Contains("//Add import Partials Here"));
@@ -5424,7 +5425,7 @@ const handleCancel = () => {{
             lines.Clear();
             index = -1;
 
-            string componentPartial = $"if (selected.value === '{entityName.GetCamelCaseName().GetPluralName()}') return {parentEntityName}{entityName.GetPluralName()};" +
+            string componentPartial = $"if (selected.value === '{entityName.GetCamelCaseName().GetPluralName()}') return {entityName.GetPluralName()};" +
                 $"\n\t//Add component Partials Here";
 
             lines = File.ReadAllLines(parentViewPath).ToList();
@@ -5448,7 +5449,7 @@ const handleCancel = () => {{
             Directory.CreateDirectory(viewDirectory);
 
             //string fileSingleName = entityName;
-            string viewBulkPath = Path.Combine(viewDirectory, $"{parentEntityName}{entityName.GetPluralName()}.vue");
+            string viewBulkPath = Path.Combine(viewDirectory, $"{entityName.GetPluralName()}.vue");
             string? fileImportPreview = properties.Any(p => p.Type == "FL" || p.Type == "FLs") ? "import { VueFilesPreview } from 'vue-files-preview';" : null;
 
             StringBuilder enumFilters = new StringBuilder();
@@ -7384,7 +7385,7 @@ function removePreview(previewFile, item) {{
             string content = $@"
 <script setup>
 import LocalListTemplate from '@/components/table/LocalListTemplate.vue';
-import {{ use{parentEntityName}{entityName}Store as useStore }} from '@/store/{parentEntityName.GetCamelCaseName()}/{parentEntityName}{entityName}Store';
+import {{ use{entityName}Store as useStore }} from '@/store/{parentEntityName.GetCamelCaseName()}/{entityName}Store';
 import {{ use{parentEntityName}Store }} from '@/store/{parentEntityName.GetCamelCaseName()}/{parentEntityName}Store';
 import {{ {parentEntityName.GetPluralName().GetCapitalName()}_ROUTE as PAGE_ROUTE, ASSET_ENDPOINT}} from '@/utils/Constants';
 import {{ ref, watch, onBeforeMount, computed}} from 'vue';
@@ -7498,7 +7499,7 @@ const onAddSave = () => {{
         return;
     }}
 
-    store.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}.push({{ ...newItem.value }});
+    store.{entityName.GetPluralName().GetCamelCaseName()}.push({{ ...newItem.value }});
     parentStore.isTabsLocked = true;
     isAddModalOpen.value = false;
 
@@ -7511,7 +7512,7 @@ const onAddCancel = () => {{
 }};
 
 function findIndex(item) {{
-    return store.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}.findIndex((x) => (item.id && x.id === item.id) || (item.tempId && x.tempId === item.tempId));
+    return store.{entityName.GetPluralName().GetCamelCaseName()}.findIndex((x) => (item.id && x.id === item.id) || (item.tempId && x.tempId === item.tempId));
 }}
 
 // -- EDIT LOGIC --
@@ -7559,7 +7560,7 @@ const onEditSave = () => {{
     const idx = findIndex(selectedItem.value);
     if (idx !== -1) {{
         // replace the array item with the edited version
-        store.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}.splice(idx, 1, selectedItem.value);
+        store.{entityName.GetPluralName().GetCamelCaseName()}.splice(idx, 1, selectedItem.value);
     }}
     didUserSave.value = true;
     parentStore.isTabsLocked = true;
@@ -7578,7 +7579,7 @@ const onEditCancel = () => {{
             // 2) merge back the real File instances & parallel arrays
             Object.assign(base, originalItemFiles.value);
 
-            store.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}.splice(idx, 1, originalItem.value); // store.[children]
+            store.{entityName.GetPluralName().GetCamelCaseName()}.splice(idx, 1, originalItem.value); // store.[children]
         }}
     }}
     didUserSave.value = false;
@@ -7607,7 +7608,7 @@ const onDelete = (item) => {{
 const onDeleteConfirm = () => {{
     const idx = findIndex(itemToDelete.value);
     if (idx !== -1) {{
-        store.{parentEntityName.GetCamelCaseName()}{entityPlural}.splice(idx, 1);
+        store.{entityName.GetPluralName().GetCamelCaseName()}.splice(idx, 1);
     }}
     parentStore.isTabsLocked = true;
     isDeleteModalOpen.value = false;
@@ -7619,15 +7620,15 @@ const onDeleteCancel = () => {{
 {dateWatch}
 const saveAll = () => {{
     // Make a deep copy backup of the original array
-    const backup = JSON.parse(JSON.stringify(store.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}));
-    const filesBackup = store.{parentEntityName.GetCamelCaseName()}{entityPlural}.map((item) => ({{
+    const backup = JSON.parse(JSON.stringify(store.{entityName.GetPluralName().GetCamelCaseName()}));
+    const filesBackup = store.{entityName.GetPluralName().GetCamelCaseName()}.map((item) => ({{
         // single asset / video / file
         {string.Join(Environment.NewLine, singleFileKeys)}
         // multiple assets / videos / files
         {string.Join(Environment.NewLine, multiFileKeys)}
     }}));
     // Existing items: change the id → rename it to [partialId]
-    const existing = store.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}
+    const existing = store.{entityName.GetPluralName().GetCamelCaseName()}
         .filter((item) => !!item.id)
         .map(({{ id, tempId, ...rest }}) => ({{
             {entityLower}Id: id,
@@ -7635,7 +7636,7 @@ const saveAll = () => {{
         }}));
 
     // New items: only tempId → strip tempId
-    const newOnes = store.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}
+    const newOnes = store.{entityName.GetPluralName().GetCamelCaseName()}
         .filter((item) => !item.id && item.tempId)
         .map(({{ tempId, ...rest }}) => ({{
             ...rest
@@ -7645,14 +7646,14 @@ const saveAll = () => {{
     const merged = [...existing, ...newOnes];
 {dateSection}
     // Reassign into store
-    store.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()} = merged;
+    store.{entityName.GetPluralName().GetCamelCaseName()} = merged;
 
     // save
     onSave();
 
     // --- RESTORE the original array! ---
-    store.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()} = backup;
-    store.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}.forEach((child, idx) => {{
+    store.{entityName.GetPluralName().GetCamelCaseName()} = backup;
+    store.{entityName.GetPluralName().GetCamelCaseName()}.forEach((child, idx) => {{
         // store.[children]
         Object.assign(child, filesBackup[idx]);
     }});
@@ -7709,7 +7710,7 @@ const handleCancel = () => {{
         <div v-if=""store.finding"" class=""flex justify-center items-center w-full mt-[32px]"">
             <atom-spinner :size=""50"" color=""#988561"" />
         </div>
-        <LocalListTemplate v-if=""!store.finding && store.{parentEntityName.GetCamelCaseName()}Id"" title=""title.{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}"" :items=""store.{parentEntityName.GetCamelCaseName()}{entityPlural}"" :use-store=""useStore"" :filters=""filters"" :show-add=""state.itemPageState !== $StoreConstant('VIEW_PAGE_STATE') && hasPermission(store.entityName, 'add')"" @add=""onAdd"" :global-filter-fields=""globalFields"">
+        <LocalListTemplate v-if=""!store.finding && store.{parentEntityName.GetCamelCaseName()}Id"" title=""title.{entityName.GetPluralName().GetCamelCaseName()}"" :items=""store.{entityName.GetPluralName().GetCamelCaseName()}"" :use-store=""useStore"" :filters=""filters"" :show-add=""state.itemPageState !== $StoreConstant('VIEW_PAGE_STATE') && hasPermission(store.entityName, 'add')"" @add=""onAdd"" :global-filter-fields=""globalFields"">
             <template #columns>
 {colomnBuilder}
                 <!-- table actions -->
@@ -7745,7 +7746,7 @@ const handleCancel = () => {{
 
         <!-- -- Dialogs -- -->
         <!-- ADD DIALOG -->
-        <Dialog v-model:visible=""isAddModalOpen"" :header=""t('title.add{parentEntityName}{entityName}')"" modal dismissableMask :draggable=""false"" block-scroll class=""!w-[90%] !max-w-[800px] !h-[100%]"">
+        <Dialog v-model:visible=""isAddModalOpen"" :header=""t('title.add{entityName}')"" modal dismissableMask :draggable=""false"" block-scroll class=""!w-[90%] !max-w-[800px] !h-[100%]"">
             <div class=""grid grid-cols-1 md:grid-cols-2 gap-4"">
 {addDialog}
             </div>
@@ -7756,7 +7757,7 @@ const handleCancel = () => {{
         </Dialog>
 
         <!-- EDIT DIALOG -->
-        <Dialog v-model:visible=""isEditModalOpen"" dismissableMask modal @hide=""onEditCancel"" :header=""$t(`title.${{editDialogMode}}{parentEntityName}{entityName}`)"" :modal=""true"" :draggable=""false"" block-scroll class=""!w-[90%] !max-w-[800px] !h-[100%]"">
+        <Dialog v-model:visible=""isEditModalOpen"" dismissableMask modal @hide=""onEditCancel"" :header=""$t(`title.${{editDialogMode}}{entityName}`)"" :modal=""true"" :draggable=""false"" block-scroll class=""!w-[90%] !max-w-[800px] !h-[100%]"">
             <!-- your form fields, bound to selectedItem.fullName, etc. -->
             <div class=""w-full grid grid-cols-1 md:grid-cols-2 gap-4"">
 {editDialog}
@@ -7793,7 +7794,7 @@ const handleCancel = () => {{
             {
                 return;
             }
-            string importPartial = $"import {parentEntityName}{entityName.GetPluralName()} from './parts/{parentEntityName}{entityName.GetPluralName()}.vue'" +
+            string importPartial = $"import {entityName.GetPluralName()}  from './parts/{entityName.GetPluralName()}.vue'" +
                 $"\n//Add import Partials Here";
             var lines = File.ReadAllLines(parentViewPath).ToList();
             var index = lines.FindIndex(line => line.Contains("//Add import Partials Here"));
@@ -7821,7 +7822,7 @@ const handleCancel = () => {{
             lines.Clear();
             index = -1;
 
-            string componentPartial = $"if (selected.value === '{entityName.GetCamelCaseName().GetPluralName()}') return {parentEntityName}{entityName.GetPluralName()};" +
+            string componentPartial = $"if (selected.value === '{entityName.GetCamelCaseName().GetPluralName()}') return {entityName.GetPluralName()};" +
                 $"\n\t//Add component Partials Here";
 
             lines = File.ReadAllLines(parentViewPath).ToList();

@@ -4138,7 +4138,7 @@ namespace Application.{entityPlural}.Queries.Get{entityName}WithLocalization
 
     public class {entityName}BulkDto
     {{
-        public List<GetBulk{entityPlural}Dto> {parentEntityName}{entityPlural} {{ get; set; }} = new List<GetBulk{entityPlural}Dto>();
+        public List<GetBulk{entityPlural}Dto> {entityPlural} {{ get; set; }} = new List<GetBulk{entityPlural}Dto>();
         public Guid {parentEntityName}Id {{ get; set; }}
 
     }}";
@@ -4573,7 +4573,7 @@ namespace Application.{entityPlural}.Queries.GetBulk{entityPlural}
             {forUserRelationCode}
             var res = new {entityName}BulkDto();
             res.{parentEntityName}Id = request.{parentEntityName}Id;
-            res.{parentEntityName}{entityPlural} = result;
+            res.{entityPlural} = result;
             {getEventCode}
             return res;
         }}

@@ -524,13 +524,13 @@ namespace Api.NeededDto.{entityName}
                 // Define the new routes to add
                 string[] newRoutes = !bulk ? new[]
                 {
-            $"\t\t\tpublic const string Get{entityName} = Base + \"/{parentEntityName.GetCamelCaseName().GetPluralName()}/{{{parentEntityName.GetCamelCaseName()}Id}}/{parentEntityName.GetCamelCaseName()}{entityName}\";",
-            $"\t\t\tpublic const string Update{entityName} = Base + \"/{parentEntityName.GetCamelCaseName().GetPluralName()}/{{{parentEntityName.GetCamelCaseName()}Id}}/{parentEntityName.GetCamelCaseName()}{entityName}\";"
+            $"\t\t\tpublic const string Get{entityName} = Base + \"/{parentEntityName.GetCamelCaseName().GetPluralName()}/{{{parentEntityName.GetCamelCaseName()}Id}}/{entityName.GetCamelCaseName()}\";",
+            $"\t\t\tpublic const string Update{entityName} = Base + \"/{parentEntityName.GetCamelCaseName().GetPluralName()}/{{{parentEntityName.GetCamelCaseName()}Id}}/{entityName.GetCamelCaseName()}\";"
 }
                 : new[]
                 {
-            $"\t\t\tpublic const string Get{entityName.GetPluralName()} = Base + \"/{parentEntityName.GetCamelCaseName().GetPluralName()}/{{{parentEntityName.GetCamelCaseName()}Id}}/{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}\";",
-            $"\t\t\tpublic const string Update{entityName.GetPluralName()} = Base + \"/{parentEntityName.GetCamelCaseName().GetPluralName()}/{{{parentEntityName.GetCamelCaseName()}Id}}/{parentEntityName.GetCamelCaseName()}{entityName.GetPluralName()}\";"
+            $"\t\t\tpublic const string Get{entityName.GetPluralName()} = Base + \"/{parentEntityName.GetCamelCaseName().GetPluralName()}/{{{parentEntityName.GetCamelCaseName()}Id}}/{entityName.GetPluralName().GetCamelCaseName()}\";",
+            $"\t\t\tpublic const string Update{entityName.GetPluralName()} = Base + \"/{parentEntityName.GetCamelCaseName().GetPluralName()}/{{{parentEntityName.GetCamelCaseName()}Id}}/{entityName.GetPluralName().GetCamelCaseName()}\";"
 };
 
                 // Find the closing bracket of the Food class
@@ -1109,7 +1109,7 @@ namespace Api.Controllers
             {{
                 UpdateBulk{entityName}CommandDto dto = new UpdateBulk{entityName}CommandDto
                 {{
-                    {parentEntityName}{entityName.GetPluralName()} = {param},
+                    {entityName.GetPluralName()} = {param},
                     {parentEntityName}Id = {parentEntityName.GetCamelCaseName()}Id
                 }};
                 var command = _mapper.Map<UpdateBulk{entityName}Command>(dto);
@@ -1624,7 +1624,7 @@ namespace Api.NeededDto.{entityName}
 {{
     public class UpdateBulk{entityName}CommandDto
     {{
-        public SingleUpdated{entityName}Dto[] {parentEntityName}{entityPlural} {{ get; set; }} = [];
+        public SingleUpdated{entityName}Dto[] {entityPlural} {{ get; set; }} = [];
         {aggregatorField}
         public class Mapping : Profile
         {{
@@ -1632,7 +1632,7 @@ namespace Api.NeededDto.{entityName}
             {{
                 CreateMap<UpdateBulk{entityName}CommandDto, UpdateBulk{entityName}Command>()
             .ForMember(dest => dest.Bulk{entityPlural}, opt => opt.MapFrom(src =>
-                src.{parentEntityName}{entityPlural}.Select(obj => new SingleUpdated{entityName}
+                src.{entityPlural}.Select(obj => new SingleUpdated{entityName}
                 {{
                     {aggregator}Id = src.{aggregator}Id,
                     {entityName}Id = obj.{entityName}Id,
