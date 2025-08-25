@@ -142,7 +142,7 @@ class Program
         Application.GenerateDeleteCommandValidator(entityName, entityPlural, deleteCommandPath, properties.Item1, relations);
 
          
-        Application.GenerateGetByIdQuery(entityName, entityPlural, queryPath, hasLocalization, properties.Item1,properties.propEnums, relations);
+        Application.GenerateGetByIdQuery(entityName, entityPlural, queryPath, hasLocalization, properties.Item1,properties.propEnums, relations,hasUserAction);
 
         //Application.GenerateGetWithPaginationQuery(entityName, entityPlural, queryPath,hasLocalization,properties.Item1,properties.propEnums,relations);
         //Application.GenerateBaseDto(entityName, entityPlural,properties.Item1, properties.propEnums, solutionDir,relations,hasLocalization);

@@ -145,10 +145,9 @@ namespace Application.Common.Models.Versioning
 
         public static void GenerateEvents(string entityName, string path, bool hasVersioning)
         {
-            string x = entityName;
-            string lowerEntityName = char.ToLower(x[0]) + x.Substring(1);
-            string entityPlural = entityName.EndsWith("y") ? entityName[..^1] + "ies" : entityName + "s";
-            string lowerEntityPlural = char.ToLower(entityPlural[0]) + entityPlural.Substring(1);
+            string lowerEntityName = entityName.GetCamelCaseName();
+            string entityPlural = entityName.GetPluralName();
+            string lowerEntityPlural = entityPlural.GetCamelCaseName();
             string inheritEvent = hasVersioning ? "BaseEvent, IBaseVersionInfo" : "BaseEvent";
             string? baseVersionInfoProp = !hasVersioning ? null : $@"
         public Type EntityType {{ get; set; }} = null!;
@@ -245,10 +244,9 @@ namespace Domain.Events.{entityName}Events
 
         public static void GenerateChildEvents(string entityName, string path, bool hasVersioning, bool bulk)
         {
-            string x = entityName;
-            string lowerEntityName = char.ToLower(x[0]) + x.Substring(1);
-            string entityPlural = entityName.EndsWith("y") ? entityName[..^1] + "ies" : entityName + "s";
-            string lowerEntityPlural = char.ToLower(entityPlural[0]) + entityPlural.Substring(1);
+            string lowerEntityName = entityName.GetCamelCaseName();
+            string entityPlural = entityName.GetPluralName();
+            string lowerEntityPlural = entityPlural.GetCamelCaseName();
             string inheritEvent = hasVersioning ? "BaseEvent, IBaseVersionInfo" : "BaseEvent";
             string? baseVersionInfoProp = !hasVersioning ? null : $@"
         public Type EntityType {{ get; set; }} = null!;
