@@ -50,59 +50,93 @@ namespace ApiGenerator
             string? localizationProp = hasLocalization ? $"\t\tpublic {entityName}LocalizationDto[] {entityName}LocalizationDtos {{ get; set; }} = [];" : null;
             string? localizationMapp = hasLocalization ? $".ForMember(dest => dest.{entityName}LocalizationApps, opt => opt.MapFrom(src => src.{entityName}LocalizationDtos.To{entityName}LocalizationAppList()))" : null;
 
-            string? ImageProp = properties.Any(p => p.Type == "GPG") ?
-                properties.First(t => t.Type == "GPG").Validation != null ? $"\t\tpublic IFormFile {properties.First(t => t.Type == "GPG").Name}FormFile {{ get; set;}}" : $"\t\tpublic IFormFile? {properties.First(t => t.Type == "GPG").Name}FormFile {{ get; set;}}"
-                : null;
+            StringBuilder imageProp = new StringBuilder();
+            StringBuilder videoProp = new StringBuilder();
+            StringBuilder fileProp = new StringBuilder();
+            StringBuilder listImageProp = new StringBuilder();
+            StringBuilder listVideoProp = new StringBuilder();
+            StringBuilder listFileProp = new StringBuilder();
+            StringBuilder imageMapp = new StringBuilder();
+            StringBuilder videoMapp = new StringBuilder();
+            StringBuilder fileMapp = new StringBuilder();
+            StringBuilder listImageMapp = new StringBuilder();
+            StringBuilder listVideoMapp = new StringBuilder();
+            StringBuilder listFileMapp = new StringBuilder();
+            foreach (var prop in properties)
+            {
+                if (prop.Type == "GPG")
+                {
+                    if (prop.Validation != null && prop.Validation.Required)
+                    {
+                        string thisImageProp = $"\t\tpublic IFormFile {prop.Name}FormFile {{ get; set;}}";
+                        imageProp.AppendLine(thisImageProp);
+                        string thisImageMapp = $"\t\t\t\t\t.ForMember(dest => dest.{prop.Name}File, opt => opt.MapFrom(src => src.{prop.Name}FormFile.ToFileDto()))";
+                        imageMapp.AppendLine(thisImageMapp);
+                    }
+                    else
+                    {
+                        string thisImageProp = $"\t\tpublic IFormFile? {prop.Name}FormFile {{ get; set;}}";
+                        imageProp.AppendLine(thisImageProp);
+                        string thisImageMapp = $"\t\t\t\t\t.ForMember(dest => dest.{prop.Name}File, opt => opt.MapFrom(src => src.{prop.Name}FormFile != null ? src.{prop.Name}FormFile.ToFileDto(): null))";
+                    }
+                }
+                if (prop.Type == "VD")
+                {
+                    if (prop.Validation != null && prop.Validation.Required)
+                    {
+                        string thisVideoProp = $"\t\tpublic IFormFile {prop.Name}FormFile {{ get; set;}}";
+                        videoProp.AppendLine(thisVideoProp);
+                        string thisVideoMapp = $"\t\t\t\t\t.ForMember(dest => dest.{prop.Name}File, opt => opt.MapFrom(src => src.{prop.Name}FormFile.ToFileDto()))";
+                        videoMapp.AppendLine(thisVideoMapp);
+                    }
+                    else
+                    {
+                        string thisVideoProp = $"\t\tpublic IFormFile? {prop.Name}FormFile {{ get; set;}}";
+                        videoProp.AppendLine(thisVideoProp);
+                        string thisVideoMapp = $"\t\t\t\t\t.ForMember(dest => dest.{prop.Name}File, opt => opt.MapFrom(src => src.{prop.Name}FormFile != null ? src.{prop.Name}FormFile.ToFileDto(): null))";
+                        videoMapp.AppendLine(thisVideoMapp);
+                    }
+                }
+                if (prop.Type == "FL")
+                {
+                    if (prop.Validation != null && prop.Validation.Required)
+                    {
+                        string thisFileProp = $"\t\tpublic IFormFile {prop.Name}FormFile {{ get; set;}}";
+                        fileProp.AppendLine(thisFileProp);
+                        string thisFileMapp = $"\t\t\t\t\t.ForMember(dest => dest.{prop.Name}File, opt => opt.MapFrom(src => src.{prop.Name}FormFile.ToFileDto()))";
+                        fileMapp.AppendLine(thisFileMapp);
+                    }
+                    else
+                    {
+                        string thisFileProp = $"\t\tpublic IFormFile? {prop.Name}FormFile {{ get; set;}}";
+                        fileProp.AppendLine(thisFileProp);
+                        string thisFileMapp = $"\t\t\t\t\t.ForMember(dest => dest.{prop.Name}File, opt => opt.MapFrom(src => src.{prop.Name}FormFile != null ? src.{prop.Name}FormFile.ToFileDto(): null))";
+                        fileMapp.AppendLine(thisFileMapp);
+                    }
+                }
+                if (prop.Type == "PNGs")
+                {
+                    string thisListImageProp = $"\t\tpublic List<IFormFile> {prop.Name}FormFiles {{ get; set;}} = new List<IFormFile>();";
+                    listImageProp.AppendLine(thisListImageProp);
+                    string thisListImageMapp = $"\t\t\t\t\t.ForMember(dest => dest.{prop.Name}Files, opt => opt.MapFrom(src => src.{prop.Name}FormFiles.ToFileDtoList()))";
+                    listImageMapp.AppendLine(thisListImageMapp);
+                }
+                if (prop.Type == "VDs")
+                {
+                    string thisListVideoProp = $"\t\tpublic List<IFormFile> {prop.Name}FormFiles {{ get; set;}} = new List<IFormFile>();";
+                    listVideoProp.AppendLine(thisListVideoProp);
+                    string thisListVideoMapp = $"\t\t\t\t\t.ForMember(dest => dest.{prop.Name}Files, opt => opt.MapFrom(src => src.{prop.Name}FormFiles.ToFileDtoList()))";
+                    listVideoMapp.AppendLine(thisListVideoMapp);
+                }
+                if (prop.Type == "FLs")
+                {
+                    string thisListFileProp = $"\t\tpublic List<IFormFile> {prop.Name}FormFiles {{ get; set;}} = new List<IFormFile>();";
+                    listFileProp.AppendLine(thisListFileProp);
+                    string thisListFileMapp = $"\t\t\t\t\t.ForMember(dest => dest.{prop.Name}Files, opt => opt.MapFrom(src => src.{prop.Name}FormFiles.ToFileDtoList()))";
+                    listFileMapp.AppendLine(thisListFileMapp);
+                }
 
-            string? ImageMapp = properties.Any(p => p.Type == "GPG") ?
-                properties.First(t => t.Type == "GPG").Validation != null
-                ? $".ForMember(dest => dest.{properties.First(t => t.Type == "GPG").Name}File, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "GPG").Name}FormFile.ToFileDto()))"
-                : $".ForMember(dest => dest.{properties.First(t => t.Type == "GPG").Name}File, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "GPG").Name}FormFile != null ? src.{properties.First(t => t.Type == "GPG").Name}FormFile.ToFileDto(): null))"
-                : null;
-
-            string? videoProp = properties.Any(p => p.Type == "VD") ?
-                properties.First(t => t.Type == "VD").Validation != null ? $"\t\tpublic IFormFile {properties.First(t => t.Type == "VD").Name}FormFile {{ get; set;}}" : $"\t\tpublic IFormFile? {properties.First(t => t.Type == "VD").Name}FormFile {{ get; set;}}"
-                : null;
-
-            string? videoMapp = properties.Any(p => p.Type == "VD") ?
-                properties.First(t => t.Type == "VD").Validation != null
-                ? $".ForMember(dest => dest.{properties.First(t => t.Type == "VD").Name}File, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "VD").Name}FormFile.ToFileDto()))"
-                : $".ForMember(dest => dest.{properties.First(t => t.Type == "VD").Name}File, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "VD").Name}FormFile != null ? src.{properties.First(t => t.Type == "VD").Name}FormFile.ToFileDto(): null))"
-                : null;
-
-            string? fileProp = properties.Any(p => p.Type == "FL") ?
-                properties.First(t => t.Type == "FL").Validation != null ? $"\t\tpublic IFormFile {properties.First(t => t.Type == "FL").Name}FormFile {{ get; set;}}" : $"\t\tpublic IFormFile? {properties.First(t => t.Type == "FL").Name}FormFile {{ get; set;}}"
-                : null;
-
-            string? fileMapp = properties.Any(p => p.Type == "FL") ?
-                properties.First(t => t.Type == "FL").Validation != null
-                ? $".ForMember(dest => dest.{properties.First(t => t.Type == "FL").Name}File, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "FL").Name}FormFile.ToFileDto()))"
-                : $".ForMember(dest => dest.{properties.First(t => t.Type == "FL").Name}File, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "FL").Name}FormFile != null ? src.{properties.First(t => t.Type == "FL").Name}FormFile.ToFileDto(): null))"
-                : null;
-
-            string? ListImageProp = properties.Any(p => p.Type == "PNGs") ?
-                $"\t\tpublic List<IFormFile> {properties.First(t => t.Type == "PNGs").Name}FormFiles {{ get; set;}} = new List<IFormFile>();"
-                : null;
-
-            string? ListImageMapp = properties.Any(p => p.Type == "PNGs") ?
-                $".ForMember(dest => dest.{properties.First(t => t.Type == "PNGs").Name}Files, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "PNGs").Name}FormFiles.ToFileDtoList()))"
-                : null;
-
-            string? ListVideoProp = properties.Any(p => p.Type == "VDs") ?
-                $"\t\tpublic List<IFormFile> {properties.First(t => t.Type == "VDs").Name}FormFiles {{ get; set;}} = new List<IFormFile>();"
-                : null;
-
-            string? ListVideoMapp = properties.Any(p => p.Type == "VDs") ?
-                $".ForMember(dest => dest.{properties.First(t => t.Type == "VDs").Name}Files, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "VDs").Name}FormFiles.ToFileDtoList()))"
-                : null;
-
-            string? ListFileProp = properties.Any(p => p.Type == "FLs") ?
-                $"\t\tpublic List<IFormFile> {properties.First(t => t.Type == "FLs").Name}FormFiles {{ get; set;}} = new List<IFormFile>();"
-                : null;
-
-            string? ListFileMapp = properties.Any(p => p.Type == "FLs") ?
-                $".ForMember(dest => dest.{properties.First(t => t.Type == "FLs").Name}Files, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "FLs").Name}FormFiles.ToFileDtoList()))"
-                : null;
+            }
 
 
             StringBuilder mapperEnum = new StringBuilder();
@@ -112,13 +146,11 @@ namespace ApiGenerator
                 {
                     if (prop.Validation != null && prop.Validation.Required)
                     {
-                        mapperEnum.Append($".ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => ({entityName}{prop.Name})src.{prop.Name}))");
-                        mapperEnum.AppendLine();
+                        mapperEnum.AppendLine($"\t\t\t\t.ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => ({entityName}{prop.Name})src.{prop.Name}))");
                     }
                     else
                     {
-                        mapperEnum.Append($".ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => ({entityName}{prop.Name}?)src.{prop.Name}))");
-                        mapperEnum.AppendLine();
+                        mapperEnum.AppendLine($"\t\t\t\t.ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => ({entityName}{prop.Name}?)src.{prop.Name}))");
                     }
 
                 }
@@ -166,18 +198,17 @@ namespace ApiGenerator
             public Mapping()
             {{
                 CreateMap<Create{entityName}CommandDto, Create{entityName}Command>()
-                    {localizationMapp}
-                    {ImageMapp}
-                    {videoMapp}
-                    {fileMapp}
-                    {ListImageMapp}
-                    {ListVideoMapp}
-                    {ListFileMapp}
-                    {mapperEnum}
+{localizationMapp}
+{imageMapp}
+{videoMapp}
+{fileMapp}
+{listImageMapp}
+{listVideoMapp}
+{listFileMapp}
+{mapperEnum}
                     ;
             }}
-        }}
-";
+        }}";
             var props = string.Join(Environment.NewLine, properties
                 .Where(p => p.Type != "GPG" && p.Type != "PNGs" && p.Type != "VD" && p.Type != "VDs" && p.Type != "FL" && p.Type != "FLs")
                 .Select(p => $"        public {p.Type} {p.Name} {{ get; set; }}"));
@@ -191,17 +222,16 @@ namespace Api.NeededDto.{entityName}
     public class Create{entityName}CommandDto
     {{
 {props}
-{ImageProp}
-{ListImageProp}
+{imageProp}
+{listImageProp}
 {videoProp}
-{ListVideoProp}
+{listVideoProp}
 {fileProp}
-{ListFileProp}
+{listFileProp}
 {localizationProp}
 {filtersPropsList}
 {mapper}
     }}
-
 }}";
             File.WriteAllText(filePath, content);
         }
@@ -212,90 +242,82 @@ namespace Api.NeededDto.{entityName}
             string filePath = Path.Combine(path, fileName);
             string? localizationProp = hasLocalization ? $"\t\tpublic {entityName}LocalizationDto[] {entityName}LocalizationDtos {{ get; set; }} = [];" : null;
             string? localizationMapp = hasLocalization ? $".ForMember(dest => dest.{entityName}LocalizationApps, opt => opt.MapFrom(src => src.{entityName}LocalizationDtos.To{entityName}LocalizationAppList()))" : null;
+            StringBuilder imageProp = new StringBuilder();
+            StringBuilder videoProp = new StringBuilder();
+            StringBuilder fileProp = new StringBuilder();
+            StringBuilder listImageProp = new StringBuilder();
+            StringBuilder listVideoProp = new StringBuilder();
+            StringBuilder listFileProp = new StringBuilder();
+            StringBuilder imageMapp = new StringBuilder();
+            StringBuilder videoMapp = new StringBuilder();
+            StringBuilder fileMapp = new StringBuilder();
+            StringBuilder listImageMapp = new StringBuilder();
+            StringBuilder listVideoMapp = new StringBuilder();
+            StringBuilder listFileMapp = new StringBuilder();
 
-            string? ImageProp = properties.Any(p => p.Type == "GPG") ?
-                 $"\t\tpublic IFormFile? {properties.First(t => t.Type == "GPG").Name}FormFile {{ get; set;}}"
-                : null;
-            string? DeleteImageOrOldUrlProp = properties.Any(p => p.Type == "GPG") ?
-                properties.First(t => t.Type == "GPG").Validation == null ? $"\t\tpublic bool? Delete{properties.First(t => t.Type == "GPG").Name} {{ get; set; }}"
-                : $"\t\tpublic string? {properties.First(t => t.Type == "GPG").Name}Url {{ get; set; }}"
-                : null;
-            string? ImageMapp = properties.Any(p => p.Type == "GPG") ?
-                $".ForMember(dest => dest.{properties.First(t => t.Type == "GPG").Name}File, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "GPG").Name}FormFile != null ? src.{properties.First(t => t.Type == "GPG").Name}FormFile.ToFileDto(): null))"
-                : null;
-
-            string? imageMapp2 = properties.Any(p => p.Type == "GPG") ?
-                properties.First(t => t.Type == "GPG").Validation != null
-                //? $".ForMember(dest => dest.{properties.First(t => t.Type == "GPG").Name}Url, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "GPG").Name}Url))"
-                ? null
-                : $".ForMember(dest => dest.DeleteOld{properties.First(t => t.Type == "GPG").Name}, opt => opt.MapFrom(src => src.Delete{properties.First(t => t.Type == "GPG").Name}))"
-                : null;
-
-            string? videoProp = properties.Any(p => p.Type == "VD") ?
-                 $"\t\tpublic IFormFile? {properties.First(t => t.Type == "VD").Name}FormFile {{ get; set;}}"
-                : null;
-            string? deleteVideoOrOldUrlProp = properties.Any(p => p.Type == "VD") ?
-                properties.First(t => t.Type == "VD").Validation == null ? $"\t\tpublic bool? Delete{properties.First(t => t.Type == "VD").Name} {{ get; set; }}"
-                : $"\t\tpublic string? {properties.First(t => t.Type == "VD").Name}Url {{ get; set; }}"
-                : null;
-            string? videoMapp = properties.Any(p => p.Type == "VD") ?
-                $".ForMember(dest => dest.{properties.First(t => t.Type == "VD").Name}File, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "VD").Name}FormFile != null ? src.{properties.First(t => t.Type == "VD").Name}FormFile.ToFileDto(): null))"
-                : null;
-
-            string? videoMapp2 = properties.Any(p => p.Type == "VD") ?
-                properties.First(t => t.Type == "VD").Validation != null
-                //? $".ForMember(dest => dest.{properties.First(t => t.Type == "VD").Name}Url, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "VD").Name}Url))"
-                ? null
-                : $".ForMember(dest => dest.DeleteOld{properties.First(t => t.Type == "VD").Name}, opt => opt.MapFrom(src => src.Delete{properties.First(t => t.Type == "VD").Name}))"
-                : null;
-
-            string? fileProp = properties.Any(p => p.Type == "FL") ?
-                 $"\t\tpublic IFormFile? {properties.First(t => t.Type == "FL").Name}FormFile {{ get; set;}}"
-                : null;
-            string? deleteFileOrOldUrlProp = properties.Any(p => p.Type == "FL") ?
-                properties.First(t => t.Type == "FL").Validation == null ? $"\t\tpublic bool? Delete{properties.First(t => t.Type == "FL").Name} {{ get; set; }}"
-                : $"\t\tpublic string? {properties.First(t => t.Type == "FL").Name}Url {{ get; set; }}"
-                : null;
-            string? fileMapp = properties.Any(p => p.Type == "FL") ?
-                $".ForMember(dest => dest.{properties.First(t => t.Type == "FL").Name}File, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "FL").Name}FormFile != null ? src.{properties.First(t => t.Type == "FL").Name}FormFile.ToFileDto(): null))"
-                : null;
-
-            string? fileMapp2 = properties.Any(p => p.Type == "FL") ?
-                properties.First(t => t.Type == "FL").Validation != null
-                //? $".ForMember(dest => dest.{properties.First(t => t.Type == "FL").Name}Url, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "FL").Name}Url))"
-                ? null
-                : $".ForMember(dest => dest.DeleteOld{properties.First(t => t.Type == "FL").Name}, opt => opt.MapFrom(src => src.Delete{properties.First(t => t.Type == "FL").Name}))"
-                : null;
-
-            string? ListImageProp = properties.Any(p => p.Type == "PNGs") ?
-                $"\t\tpublic List<IFormFile> {properties.First(t => t.Type == "PNGs").Name}FormFiles {{ get; set;}} = new List<IFormFile>();"
-                : null;
-            string? ListImageMapp = properties.Any(p => p.Type == "PNGs") ?
-                $".ForMember(dest => dest.{properties.First(t => t.Type == "PNGs").Name}Files, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "PNGs").Name}FormFiles.ToFileDtoList()))"
-                : null;
-            string? DeletedOldImagesListProp = properties.Any(p => p.Type == "PNGs") ?
-                $"\t\tpublic List<string>? Deleted{properties.First(t => t.Type == "PNGs").Name}URLs {{ get; set; }}"
-                : null;
-
-            string? ListVideoProp = properties.Any(p => p.Type == "VDs") ?
-                $"\t\tpublic List<IFormFile> {properties.First(t => t.Type == "VDs").Name}FormFiles {{ get; set;}} = new List<IFormFile>();"
-                : null;
-            string? ListVideoMapp = properties.Any(p => p.Type == "VDs") ?
-                $".ForMember(dest => dest.{properties.First(t => t.Type == "VDs").Name}Files, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "VDs").Name}FormFiles.ToFileDtoList()))"
-                : null;
-            string? DeletedOldVideosListProp = properties.Any(p => p.Type == "VDs") ?
-                $"\t\tpublic List<string>? Deleted{properties.First(t => t.Type == "VDs").Name}URLs {{ get; set; }}"
-                : null;
-
-            string? ListFileProp = properties.Any(p => p.Type == "FLs") ?
-                $"\t\tpublic List<IFormFile> {properties.First(t => t.Type == "FLs").Name}FormFiles {{ get; set;}} = new List<IFormFile>();"
-                : null;
-            string? ListFileMapp = properties.Any(p => p.Type == "FLs") ?
-                $".ForMember(dest => dest.{properties.First(t => t.Type == "FLs").Name}Files, opt => opt.MapFrom(src => src.{properties.First(t => t.Type == "FLs").Name}FormFiles.ToFileDtoList()))"
-                : null;
-            string? DeletedOldFilesListProp = properties.Any(p => p.Type == "FLs") ?
-                $"\t\tpublic List<string>? Deleted{properties.First(t => t.Type == "FLs").Name}URLs {{ get; set; }}"
-                : null;
+            foreach(var prop in properties)
+            {
+                if (prop.Type == "GPG")
+                {
+                    imageProp.AppendLine($"\t\tpublic IFormFile? {prop.Name}FormFile {{ get; set;}}");
+                    imageMapp.AppendLine($"\t\t\t\t\t.ForMember(dest => dest.{prop.Name}File, opt => opt.MapFrom(src => src.{prop.Name}FormFile != null ? src.{prop.Name}FormFile.ToFileDto(): null))");
+                    if (prop.Validation != null && prop.Validation.Required)
+                    {
+                        imageProp.AppendLine($"\t\tpublic string? {prop.Name}Url {{ get; set; }}");
+                    }
+                    else
+                    {
+                        imageProp.AppendLine($"\t\tpublic bool? Delete{prop.Name} {{ get; set; }}");
+                        imageMapp.AppendLine($"\t\t\t\t\t.ForMember(dest => dest.DeleteOld{prop.Name}, opt => opt.MapFrom(src => src.Delete{prop.Name}))");
+                    }
+                }
+                if (prop.Type == "VD")
+                {
+                    videoProp.AppendLine($"\t\tpublic IFormFile? {prop.Name}FormFile {{ get; set;}}");
+                    videoMapp.AppendLine($"\t\t\t\t\t.ForMember(dest => dest.{prop.Name}File, opt => opt.MapFrom(src => src.{prop.Name}FormFile != null ? src.{prop.Name}FormFile.ToFileDto(): null))");
+                    if (prop.Validation != null && prop.Validation.Required)
+                    {
+                        videoProp.AppendLine($"\t\tpublic string? {prop.Name}Url {{ get; set; }}");
+                    }
+                    else
+                    {
+                        videoProp.AppendLine($"\t\tpublic bool? Delete{prop.Name} {{ get; set; }}");
+                        videoMapp.AppendLine($"\t\t\t\t\t.ForMember(dest => dest.DeleteOld{prop.Name}, opt => opt.MapFrom(src => src.Delete{prop.Name}))");
+                    }
+                }
+                if (prop.Type == "FL")
+                {
+                    fileProp.AppendLine($"\t\tpublic IFormFile? {prop.Name}FormFile {{ get; set;}}");
+                    fileMapp.AppendLine($"\t\t\t\t\t.ForMember(dest => dest.{prop.Name}File, opt => opt.MapFrom(src => src.{prop.Name}FormFile != null ? src.{prop.Name}FormFile.ToFileDto(): null))");
+                    if (prop.Validation != null && prop.Validation.Required)
+                    {
+                        fileProp.AppendLine($"\t\tpublic string? {prop.Name}Url {{ get; set; }}");
+                    }
+                    else
+                    {
+                        fileProp.AppendLine($"\t\tpublic bool? Delete{prop.Name} {{ get; set; }}");
+                        fileMapp.AppendLine($"\t\t\t\t\t.ForMember(dest => dest.DeleteOld{prop.Name}, opt => opt.MapFrom(src => src.Delete{prop.Name}))");
+                    }
+                }
+                if (prop.Type == "PNGs")
+                {
+                    listImageProp.AppendLine($"\t\tpublic List<IFormFile> {prop.Name}FormFiles {{ get; set;}} = new List<IFormFile>();");
+                    listImageProp.AppendLine($"\t\tpublic List<string>? Deleted{prop.Name}URLs {{ get; set; }}");
+                    listImageMapp.AppendLine($"\t\t\t\t\t.ForMember(dest => dest.{prop.Name}Files, opt => opt.MapFrom(src => src.{prop.Name}FormFiles.ToFileDtoList()))");
+                }
+                if (prop.Type == "VDs")
+                {
+                    listVideoProp.AppendLine($"\t\tpublic List<IFormFile> {prop.Name}FormFiles {{ get; set;}} = new List<IFormFile>();");
+                    listVideoProp.AppendLine($"\t\tpublic List<string>? Deleted{prop.Name}URLs {{ get; set; }}");
+                    listVideoMapp.AppendLine($"\t\t\t\t\t.ForMember(dest => dest.{prop.Name}Files, opt => opt.MapFrom(src => src.{prop.Name}FormFiles.ToFileDtoList()))");
+                }
+                if (prop.Type == "FLs")
+                {
+                    listFileProp.AppendLine($"\t\tpublic List<IFormFile> {prop.Name}FormFiles {{ get; set;}} = new List<IFormFile>();");
+                    listFileProp.AppendLine($"\t\tpublic List<string>? Deleted{prop.Name}URLs {{ get; set; }}");
+                    listFileMapp.AppendLine($"\t\t\t\t\t.ForMember(dest => dest.{prop.Name}Files, opt => opt.MapFrom(src => src.{prop.Name}FormFiles.ToFileDtoList()))");
+                }
+            }
 
             StringBuilder mapperEnum = new StringBuilder();
             foreach (var prop in properties)
@@ -304,13 +326,11 @@ namespace Api.NeededDto.{entityName}
                 {
                     if (prop.Validation != null && prop.Validation.Required)
                     {
-                        mapperEnum.Append($".ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => ({entityName}{prop.Name})src.{prop.Name}))");
-                        mapperEnum.AppendLine();
+                        mapperEnum.AppendLine($"\t\t\t\t\t.ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => ({entityName}{prop.Name})src.{prop.Name}))");
                     }
                     else
                     {
-                        mapperEnum.Append($".ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => ({entityName}{prop.Name}?)src.{prop.Name}))");
-                        mapperEnum.AppendLine();
+                        mapperEnum.AppendLine($"\t\t\t\t\t.ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => ({entityName}{prop.Name}?)src.{prop.Name}))");
                     }
 
                 }
@@ -359,21 +379,18 @@ namespace Api.NeededDto.{entityName}
             public Mapping()
             {{
                 CreateMap<Update{entityName}CommandDto, Update{entityName}Command>()
-                    {localizationMapp}
-                    {ImageMapp}
-                    {imageMapp2}
-                    {videoMapp}
-                    {videoMapp2}
-                    {fileMapp}
-                    {fileMapp2}
-                    {ListImageMapp}
-                    {ListVideoMapp}
-                    {ListFileMapp}
-                    {mapperEnum}
+{localizationMapp}
+{imageMapp}
+{videoMapp}
+{fileMapp}
+{listImageMapp}
+{listVideoMapp}
+{listFileMapp}
+{mapperEnum}
                     ;
             }}
-        }}
-";
+        }}";
+
             var props = string.Join(Environment.NewLine, properties
                 .Where(p => p.Type != "GPG" && p.Type != "PNGs" && p.Type != "VD" && p.Type != "VDs" && p.Type != "FL" && p.Type != "FLs")
                 .Select(p => $"        public {p.Type} {p.Name} {{ get; set; }}"));
@@ -391,18 +408,12 @@ namespace Api.NeededDto.{entityName}
 {childProp}
 {props}
 {localizationProp}
-{ImageProp}
-{DeleteImageOrOldUrlProp}
-{ListImageProp}
-{DeletedOldImagesListProp}
+{imageProp}
+{listImageProp}
 {videoProp}
-{deleteVideoOrOldUrlProp}
-{ListVideoProp}
-{DeletedOldVideosListProp}
+{listVideoProp}
 {fileProp}
-{deleteFileOrOldUrlProp}
-{ListFileProp}
-{DeletedOldFilesListProp}
+{listFileProp}
 {filtersPropsList}
 {mapper}
     }}
@@ -1341,53 +1352,69 @@ namespace Api.NeededDto.{entityName}
             string fileName = $"SingleUpdated{entityName}Dto.cs";
             string filePath = Path.Combine(path, fileName);
             string? localizationProp = hasLocalization ? $"\t\tpublic {entityName}LocalizationDto[] {entityName}LocalizationDtos {{ get; set; }} = [];" : null;
-            string? ImageProp = properties.Any(p => p.Type == "GPG") ?
-                 $"\t\tpublic IFormFile? {properties.First(t => t.Type == "GPG").Name}FormFile {{ get; set;}}"
-                : null;
-            string? DeleteImageOrOldUrlProp = properties.Any(p => p.Type == "GPG") ?
-                properties.First(t => t.Type == "GPG").Validation == null ? $"\t\tpublic bool? Delete{properties.First(t => t.Type == "GPG").Name} {{ get; set; }}"
-                : $"\t\tpublic string? {properties.First(t => t.Type == "GPG").Name}Url {{ get; set; }}"
-                : null;
 
-            string? videoProp = properties.Any(p => p.Type == "VD") ?
-                 $"\t\tpublic IFormFile? {properties.First(t => t.Type == "VD").Name}FormFile {{ get; set;}}"
-                : null;
-            string? deleteVideoOrOldUrlProp = properties.Any(p => p.Type == "VD") ?
-                properties.First(t => t.Type == "VD").Validation == null ? $"\t\tpublic bool? Delete{properties.First(t => t.Type == "VD").Name} {{ get; set; }}"
-                : $"\t\tpublic string? {properties.First(t => t.Type == "VD").Name}Url {{ get; set; }}"
-                : null;
 
-            string? fileProp = properties.Any(p => p.Type == "FL") ?
-                 $"\t\tpublic IFormFile? {properties.First(t => t.Type == "FL").Name}FormFile {{ get; set;}}"
-                : null;
-            string? deleteFileOrOldUrlProp = properties.Any(p => p.Type == "FL") ?
-                properties.First(t => t.Type == "FL").Validation == null ? $"\t\tpublic bool? Delete{properties.First(t => t.Type == "FL").Name} {{ get; set; }}"
-                : $"\t\tpublic string? {properties.First(t => t.Type == "FL").Name}Url {{ get; set; }}"
-                : null;
+            StringBuilder imageProp = new StringBuilder();
+            StringBuilder videoProp = new StringBuilder();
+            StringBuilder fileProp = new StringBuilder();
+            StringBuilder listImageProp = new StringBuilder();
+            StringBuilder listVideoProp = new StringBuilder();
+            StringBuilder listFileProp = new StringBuilder();
 
-            string? ListImageProp = properties.Any(p => p.Type == "PNGs") ?
-                $"\t\tpublic List<IFormFile> {properties.First(t => t.Type == "PNGs").Name}FormFiles {{ get; set;}} = new List<IFormFile>();"
-                : null;
-
-            string? DeletedOldImagesListProp = properties.Any(p => p.Type == "PNGs") ?
-                $"\t\tpublic List<string>? Deleted{properties.First(t => t.Type == "PNGs").Name}URLs {{ get; set; }}"
-                : null;
-
-            string? listVideoProp = properties.Any(p => p.Type == "VDs") ?
-                $"\t\tpublic List<IFormFile> {properties.First(t => t.Type == "VDs").Name}FormFiles {{ get; set;}} = new List<IFormFile>();"
-                : null;
-
-            string? deletedOldVideosListProp = properties.Any(p => p.Type == "VDs") ?
-                $"\t\tpublic List<string>? Deleted{properties.First(t => t.Type == "VDs").Name}URLs {{ get; set; }}"
-                : null;
-
-            string? listFileProp = properties.Any(p => p.Type == "FLs") ?
-                $"\t\tpublic List<IFormFile> {properties.First(t => t.Type == "FLs").Name}FormFiles {{ get; set;}} = new List<IFormFile>();"
-                : null;
-
-            string? deletedOldFilesListProp = properties.Any(p => p.Type == "FLs") ?
-                $"\t\tpublic List<string>? Deleted{properties.First(t => t.Type == "FLs").Name}URLs {{ get; set; }}"
-                : null;
+            foreach (var prop in properties)
+            {
+                if (prop.Type == "GPG")
+                {
+                    imageProp.AppendLine($"\t\tpublic IFormFile? {prop.Name}FormFile {{ get; set;}}");
+                    if (prop.Validation != null && prop.Validation.Required)
+                    {
+                        imageProp.AppendLine($"\t\tpublic string? {prop.Name}Url {{ get; set; }}");
+                    }
+                    else
+                    {
+                        imageProp.AppendLine($"\t\tpublic bool? Delete{prop.Name} {{ get; set; }}");
+                    }
+                }
+                if (prop.Type == "VD")
+                {
+                    videoProp.AppendLine($"\t\tpublic IFormFile? {prop.Name}FormFile {{ get; set;}}");
+                    if (prop.Validation != null && prop.Validation.Required)
+                    {
+                        videoProp.AppendLine($"\t\tpublic string? {prop.Name}Url {{ get; set; }}");
+                    }
+                    else
+                    {
+                        videoProp.AppendLine($"\t\tpublic bool? Delete{prop.Name} {{ get; set; }}");
+                    }
+                }
+                if (prop.Type == "FL")
+                {
+                    fileProp.AppendLine($"\t\tpublic IFormFile? {prop.Name}FormFile {{ get; set;}}");
+                    if (prop.Validation != null && prop.Validation.Required)
+                    {
+                        fileProp.AppendLine($"\t\tpublic string? {prop.Name}Url {{ get; set; }}");
+                    }
+                    else
+                    {
+                        fileProp.AppendLine($"\t\tpublic bool? Delete{prop.Name} {{ get; set; }}");
+                    }
+                }
+                if (prop.Type == "PNGs")
+                {
+                    listImageProp.AppendLine($"\t\tpublic List<IFormFile> {prop.Name}FormFiles {{ get; set;}} = new List<IFormFile>();");
+                    listImageProp.AppendLine($"\t\tpublic List<string>? Deleted{prop.Name}URLs {{ get; set; }}");
+                }
+                if (prop.Type == "VDs")
+                {
+                    listVideoProp.AppendLine($"\t\tpublic List<IFormFile> {prop.Name}FormFiles {{ get; set;}} = new List<IFormFile>();");
+                    listVideoProp.AppendLine($"\t\tpublic List<string>? Deleted{prop.Name}URLs {{ get; set; }}");
+                }
+                if (prop.Type == "FLs")
+                {
+                    listFileProp.AppendLine($"\t\tpublic List<IFormFile> {prop.Name}FormFiles {{ get; set;}} = new List<IFormFile>();");
+                    listFileProp.AppendLine($"\t\tpublic List<string>? Deleted{prop.Name}URLs {{ get; set; }}");
+                }
+            }
 
             StringBuilder mapperEnum = new StringBuilder();
             foreach (var prop in properties)
@@ -1396,13 +1423,11 @@ namespace Api.NeededDto.{entityName}
                 {
                     if (prop.Validation != null && prop.Validation.Required)
                     {
-                        mapperEnum.Append($".ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => ({entityName}{prop.Name})src.{prop.Name}))");
-                        mapperEnum.AppendLine();
+                        mapperEnum.AppendLine($"\t\t\t\t\t.ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => ({entityName}{prop.Name})src.{prop.Name}))");
                     }
                     else
                     {
-                        mapperEnum.Append($".ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => ({entityName}{prop.Name}?)src.{prop.Name}))");
-                        mapperEnum.AppendLine();
+                        mapperEnum.AppendLine($"\t\t\t\t\t.ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => ({entityName}{prop.Name}?)src.{prop.Name}))");
                     }
 
                 }
@@ -1473,18 +1498,12 @@ namespace Api.NeededDto.{entityName}
         public Guid {entityName}Id {{ get; set; }} = GenerateGuid();
 {props}
 {localizationProp}
-{ImageProp}
-{DeleteImageOrOldUrlProp}
+{imageProp}
 {videoProp}
-{deleteVideoOrOldUrlProp}
 {fileProp}
-{deleteFileOrOldUrlProp}
-{ListImageProp}
-{DeletedOldImagesListProp}
+{listImageProp}
 {listVideoProp}
-{deletedOldVideosListProp}
 {listFileProp}
-{deletedOldFilesListProp}
 {relationsPropsList}
 {mapper}
 
@@ -1512,59 +1531,68 @@ namespace Api.NeededDto.{entityName}
 
             string? localizationMapp = hasLocalization ? $"{entityName}LocalizationApps = obj.{entityName}LocalizationDtos.To{entityName}LocalizationAppList()," : null;
 
-            string? ImageMapp1 = properties.Any(p => p.Type == "GPG")
-                ? $"{properties.First(t => t.Type == "GPG").Name}File = obj.{properties.First(t => t.Type == "GPG").Name}FormFile != null ? obj.{properties.First(t => t.Type == "GPG").Name}FormFile.ToFileDto() : null,"
-                : null;
 
-            string? ImageMapp2 = properties.Any(p => p.Type == "GPG") ?
-                properties.First(t => t.Type == "GPG").Validation != null
-                ? $"Old{properties.First(t => t.Type == "GPG").Name}Url = obj.{properties.First(t => t.Type == "GPG").Name}Url,"
-                : $"DeleteOld{properties.First(t => t.Type == "GPG").Name} = obj.Delete{properties.First(t => t.Type == "GPG").Name},"
-                : null;
+            StringBuilder imageMapp = new StringBuilder();
+            StringBuilder videoMapp = new StringBuilder();
+            StringBuilder fileMapp = new StringBuilder();
+            StringBuilder listImageMapp = new StringBuilder();
+            StringBuilder listVideoMapp = new StringBuilder();
+            StringBuilder listFileMapp = new StringBuilder();
 
-            string? videoMapp1 = properties.Any(p => p.Type == "VD")
-                ? $"{properties.First(t => t.Type == "VD").Name}File = obj.{properties.First(t => t.Type == "VD").Name}FormFile != null ? obj.{properties.First(t => t.Type == "VD").Name}FormFile.ToFileDto() : null,"
-                : null;
-
-            string? videoMapp2 = properties.Any(p => p.Type == "VD") ?
-                properties.First(t => t.Type == "VD").Validation != null
-                ? $"Old{properties.First(t => t.Type == "VD").Name}Url = obj.{properties.First(t => t.Type == "VD").Name}Url,"
-                : $"DeleteOld{properties.First(t => t.Type == "VD").Name} = obj.Delete{properties.First(t => t.Type == "VD").Name},"
-                : null;
-
-            string? fileMapp1 = properties.Any(p => p.Type == "FL")
-                ? $"{properties.First(t => t.Type == "FL").Name}File = obj.{properties.First(t => t.Type == "FL").Name}FormFile != null ? obj.{properties.First(t => t.Type == "FL").Name}FormFile.ToFileDto() : null,"
-                : null;
-
-            string? fileMapp2 = properties.Any(p => p.Type == "FL") ?
-                properties.First(t => t.Type == "FL").Validation != null
-                ? $"Old{properties.First(t => t.Type == "FL").Name}Url = obj.{properties.First(t => t.Type == "FL").Name}Url,"
-                : $"DeleteOld{properties.First(t => t.Type == "FL").Name} = obj.Delete{properties.First(t => t.Type == "FL").Name},"
-                : null;
-
-            string? ListImageMapp1 = properties.Any(p => p.Type == "PNGs") ?
-                $"{properties.First(t => t.Type == "PNGs").Name}Files = obj.{properties.First(t => t.Type == "PNGs").Name}FormFiles.ToFileDtoList(),"
-                : null;
-
-            string? ListImageMapp2 = properties.Any(p => p.Type == "PNGs") ?
-                $"Deleted{properties.First(t => t.Type == "PNGs").Name}URLs = obj.Deleted{properties.First(t => t.Type == "PNGs").Name}URLs,"
-                : null;
-
-            string? listVideoMapp1 = properties.Any(p => p.Type == "VDs") ?
-                $"{properties.First(t => t.Type == "VDs").Name}Files = obj.{properties.First(t => t.Type == "VDs").Name}FormFiles.ToFileDtoList(),"
-                : null;
-
-            string? listVideoMapp2 = properties.Any(p => p.Type == "VDs") ?
-                $"Deleted{properties.First(t => t.Type == "VDs").Name}URLs = obj.Deleted{properties.First(t => t.Type == "VDs").Name}URLs,"
-                : null;
-
-            string? listFileMapp1 = properties.Any(p => p.Type == "FLs") ?
-                $"{properties.First(t => t.Type == "FLs").Name}Files = obj.{properties.First(t => t.Type == "FLs").Name}FormFiles.ToFileDtoList(),"
-                : null;
-
-            string? listFileMapp2 = properties.Any(p => p.Type == "FLs") ?
-                $"Deleted{properties.First(t => t.Type == "FLs").Name}URLs = obj.Deleted{properties.First(t => t.Type == "FLs").Name}URLs,"
-                : null;
+            foreach (var prop in properties)
+            {
+                if (prop.Type == "GPG")
+                {
+                    imageMapp.AppendLine($"\t\t\t\t\t{prop.Name}File = obj.{prop.Name}FormFile != null ? obj.{prop.Name}FormFile.ToFileDto() : null,");
+                    if (prop.Validation != null && prop.Validation.Required)
+                    {
+                        imageMapp.AppendLine($"\t\t\t\t\tOld{prop.Name}Url = obj.{prop.Name}Url,");
+                    }
+                    else
+                    {
+                        imageMapp.AppendLine($"\t\t\t\t\tDeleteOld{prop.Name} = obj.Delete{prop.Name},");
+                    }
+                }
+                if (prop.Type == "VD")
+                {
+                    videoMapp.AppendLine($"\t\t\t\t\t{prop.Name}File = obj.{prop.Name}FormFile != null ? obj.{prop.Name}FormFile.ToFileDto() : null,");
+                    if (prop.Validation != null && prop.Validation.Required)
+                    {
+                        videoMapp.AppendLine($"\t\t\t\t\tOld{prop.Name}Url = obj.{prop.Name}Url,");
+                    }
+                    else
+                    {
+                        videoMapp.AppendLine($"\t\t\t\t\tDeleteOld{prop.Name} = obj.Delete{prop.Name},");
+                    }
+                }
+                if (prop.Type == "FL")
+                {
+                    fileMapp.AppendLine($"\t\t\t\t\t{prop.Name}File = obj.{prop.Name}FormFile != null ? obj.{prop.Name}FormFile.ToFileDto() : null,");
+                    if (prop.Validation != null && prop.Validation.Required)
+                    {
+                        fileMapp.AppendLine($"\t\t\t\t\tOld{prop.Name}Url = obj.{prop.Name}Url,");
+                    }
+                    else
+                    {
+                        fileMapp.AppendLine($"\t\t\t\t\tDeleteOld{prop.Name} = obj.Delete{prop.Name},");
+                    }
+                }
+                if (prop.Type == "PNGs")
+                {
+                    listImageMapp.AppendLine($"\t\t\t\t\t{prop.Name}Files = obj.{prop.Name}FormFiles.ToFileDtoList(),");
+                    listImageMapp.AppendLine($"\t\t\t\t\tDeleted{prop.Name}URLs = obj.Deleted{prop.Name}URLs,");
+                }
+                if (prop.Type == "VDs")
+                {
+                    listVideoMapp.AppendLine($"\t\t\t\t\t{prop.Name}Files = obj.{prop.Name}FormFiles.ToFileDtoList(),");
+                    listVideoMapp.AppendLine($"\t\t\t\t\tDeleted{prop.Name}URLs = obj.Deleted{prop.Name}URLs,");
+                }
+                if (prop.Type == "FLs")
+                {
+                    listFileMapp.AppendLine($"\t\t\t\t\t{prop.Name}Files = obj.{prop.Name}FormFiles.ToFileDtoList(),");
+                    listFileMapp.AppendLine($"\t\t\t\t\tDeleted{prop.Name}URLs = obj.Deleted{prop.Name}URLs,");
+                }
+            }
 
             StringBuilder mapperEnum = new StringBuilder();
             foreach (var prop in properties)
@@ -1573,13 +1601,11 @@ namespace Api.NeededDto.{entityName}
                 {
                     if (prop.Validation != null && prop.Validation.Required)
                     {
-                        mapperEnum.Append($"{prop.Name} = ({entityName}{prop.Name})obj.{prop.Name},");
-                        mapperEnum.AppendLine();
+                        mapperEnum.AppendLine($"\t\t\t\t\t{prop.Name} = ({entityName}{prop.Name})obj.{prop.Name},");
                     }
                     else
                     {
-                        mapperEnum.Append($"{prop.Name} = ({entityName}{prop.Name}?)obj.{prop.Name},");
-                        mapperEnum.AppendLine();
+                        mapperEnum.AppendLine($"\t\t\t\t\t{prop.Name} = ({entityName}{prop.Name}?)obj.{prop.Name},");
                     }
 
                 }
@@ -1587,8 +1613,7 @@ namespace Api.NeededDto.{entityName}
             StringBuilder otherProps = new StringBuilder();
             foreach (var item in tempProps)
             {
-                otherProps.Append($"\t\t\t\t\t{item.Name} = obj.{item.Name},");
-                otherProps.AppendLine();
+                otherProps.AppendLine($"\t\t\t\t\t{item.Name} = obj.{item.Name},");
             }
 
             List<string> relationsProps = new List<string>();
@@ -1599,19 +1624,19 @@ namespace Api.NeededDto.{entityName}
                     if (relation.Type == RelationType.OneToOne || relation.Type == RelationType.OneToOneNullable
                         || relation.Type == RelationType.ManyToOne || relation.Type == RelationType.ManyToOneNullable)
 
-                        relationsProps.Add($"{relation.RelatedEntity}Id = obj.{relation.RelatedEntity}Id,");
+                        relationsProps.Add($"\t\t\t\t\t{relation.RelatedEntity}Id = obj.{relation.RelatedEntity}Id,");
 
                     if (relation.Type == RelationType.OneToOneSelfJoin)
-                        relationsProps.Add($"{relation.RelatedEntity}ParentId = obj.{relation.RelatedEntity}ParentId,");
+                        relationsProps.Add($"\t\t\t\t\t{relation.RelatedEntity}ParentId = obj.{relation.RelatedEntity}ParentId,");
 
                     if (relation.Type == RelationType.ManyToMany)
-                        relationsProps.Add($"{relation.RelatedEntity}Ids = obj.{relation.RelatedEntity.GetPluralName()}Ids,");
+                        relationsProps.Add($"\t\t\t\t\t{relation.RelatedEntity}Ids = obj.{relation.RelatedEntity.GetPluralName()}Ids,");
 
                     if (relation.Type == RelationType.UserSingle || relation.Type == RelationType.UserSingleNullable)
-                        relationsProps.Add($"{relation.DisplayedProperty}Id = obj.{relation.DisplayedProperty}Id,");
+                        relationsProps.Add($"\t\t\t\t\t{relation.DisplayedProperty}Id = obj.{relation.DisplayedProperty}Id,");
 
                     if (relation.Type == RelationType.UserMany)
-                        relationsProps.Add($"{relation.DisplayedProperty.GetPluralName()}Ids = obj.{relation.DisplayedProperty.GetPluralName()}Ids,");
+                        relationsProps.Add($"\t\t\t\t\t{relation.DisplayedProperty.GetPluralName()}Ids = obj.{relation.DisplayedProperty.GetPluralName()}Ids,");
                 }
             }
                 string relPropMapper = string.Join(Environment.NewLine, relationsProps);
@@ -1636,22 +1661,16 @@ namespace Api.NeededDto.{entityName}
                 {{
                     {aggregator}Id = src.{aggregator}Id,
                     {entityName}Id = obj.{entityName}Id,
-                    {ImageMapp1}
-                    {ImageMapp2}
-                    {videoMapp1}
-                    {videoMapp2}
-                    {fileMapp1}
-                    {fileMapp2}
-                    {ListImageMapp1}
-                    {ListImageMapp2}
-                    {listVideoMapp1}
-                    {listVideoMapp2}
-                    {listFileMapp1}
-                    {listFileMapp2}
-                    {mapperEnum}
-                    {otherProps}
-                    {relPropMapper}
-                    {localizationMapp}
+{imageMapp}
+{videoMapp}
+{fileMapp}
+{listImageMapp}
+{listVideoMapp}
+{listFileMapp}
+{mapperEnum}
+{otherProps}
+{relPropMapper}
+{localizationMapp}
                 }})));
             }}
         }}
