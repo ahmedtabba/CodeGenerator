@@ -392,7 +392,7 @@
             cmboParent.FormattingEnabled = true;
             cmboParent.Location = new Point(251, 122);
             cmboParent.Name = "cmboParent";
-            cmboParent.Size = new Size(146, 23);
+            cmboParent.Size = new Size(388, 23);
             cmboParent.TabIndex = 65;
             cmboParent.Visible = false;
             // 

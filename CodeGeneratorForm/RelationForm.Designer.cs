@@ -46,7 +46,7 @@
             cmboRelEnt.FormattingEnabled = true;
             cmboRelEnt.Location = new Point(127, 97);
             cmboRelEnt.Name = "cmboRelEnt";
-            cmboRelEnt.Size = new Size(177, 23);
+            cmboRelEnt.Size = new Size(304, 23);
             cmboRelEnt.TabIndex = 49;
             cmboRelEnt.SelectedIndexChanged += cmboRelEnt_SelectedIndexChanged;
             // 
@@ -56,7 +56,7 @@
             cmboRel.Items.AddRange(new object[] { "OneToOneSelfJoin", "OneToOne (entity is child)", "OneToOneNullable (entity is child)", "OneToMany (entity is parent)", "OneToManyNullable (entity is parent)", "ManyToOne (entity is child)", "ManyToOneNullable (entity is child)", "ManyToMany" });
             cmboRel.Location = new Point(106, 33);
             cmboRel.Name = "cmboRel";
-            cmboRel.Size = new Size(220, 23);
+            cmboRel.Size = new Size(325, 23);
             cmboRel.TabIndex = 48;
             cmboRel.SelectedIndexChanged += cmboRel_SelectedIndexChanged;
             // 
@@ -102,13 +102,13 @@
             cmboProp.FormattingEnabled = true;
             cmboProp.Location = new Point(127, 140);
             cmboProp.Name = "cmboProp";
-            cmboProp.Size = new Size(177, 23);
+            cmboProp.Size = new Size(304, 23);
             cmboProp.TabIndex = 54;
             // 
             // chkHideRelInTable
             // 
             chkHideRelInTable.AutoSize = true;
-            chkHideRelInTable.Location = new Point(395, 59);
+            chkHideRelInTable.Location = new Point(586, 56);
             chkHideRelInTable.Name = "chkHideRelInTable";
             chkHideRelInTable.Size = new Size(141, 19);
             chkHideRelInTable.TabIndex = 55;
@@ -120,7 +120,7 @@
             cmboSelfProps.FormattingEnabled = true;
             cmboSelfProps.Location = new Point(127, 62);
             cmboSelfProps.Name = "cmboSelfProps";
-            cmboSelfProps.Size = new Size(177, 23);
+            cmboSelfProps.Size = new Size(304, 23);
             cmboSelfProps.TabIndex = 56;
             // 
             // lblSelfProp
@@ -137,7 +137,7 @@
             chkGenerateRelInTable.AutoSize = true;
             chkGenerateRelInTable.Checked = true;
             chkGenerateRelInTable.CheckState = CheckState.Checked;
-            chkGenerateRelInTable.Location = new Point(395, 35);
+            chkGenerateRelInTable.Location = new Point(586, 32);
             chkGenerateRelInTable.Name = "chkGenerateRelInTable";
             chkGenerateRelInTable.Size = new Size(163, 19);
             chkGenerateRelInTable.TabIndex = 58;
@@ -149,7 +149,7 @@
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(570, 275);
+            ClientSize = new Size(787, 275);
             Controls.Add(chkGenerateRelInTable);
             Controls.Add(lblSelfProp);
             Controls.Add(cmboSelfProps);
