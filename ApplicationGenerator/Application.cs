@@ -74,94 +74,103 @@ namespace Application.Common.Interfaces.IRepositories
                     if (prop.Validation != null && prop.Validation.Required)
                     {
                         propList.Add($"\t\tpublic FileDto {prop.Name}File {{ get; set; }} = new FileDto();");
-                        imageCode.Append($@"
-                {entityName.ToLower()}.{prop.Name} =  await _fileService.UploadFileAsync(request.{prop.Name}File);
 
-");
+                        string thisImageCode = $@"
+                {entityName.ToLower()}.{prop.Name} =  await _fileService.UploadFileAsync(request.{prop.Name}File);";
+
+                        imageCode.Append(thisImageCode);
                     }
                     else
                     {
                         propList.Add($"\t\tpublic FileDto? {prop.Name}File {{ get; set; }}");
-                        imageCode.Append($@"
-                {entityName.ToLower()}.{prop.Name} = request.{prop.Name}File != null ? await _fileService.UploadFileAsync(request.{prop.Name}File) : null;
 
-");
+                        string thisImageCode = $@"
+                {entityName.ToLower()}.{prop.Name} = request.{prop.Name}File != null ? await _fileService.UploadFileAsync(request.{prop.Name}File) : null;";
+
+                        imageCode.Append(thisImageCode);
                     }
                 }
                 else if (prop.Type == "PNGs")
                 {
                     propList.Add($"\t\tpublic List<FileDto> {prop.Name}Files {{ get; set; }} = new List<FileDto>();");
-                    imageCode.Append($@"
+
+                    string thisImagesCode = $@"
                 foreach (var item in request.{prop.Name}Files)
                     {{
                         var path = await _fileService.UploadFileAsync(item);
                         {entityName.ToLower()}.{prop.Name}.Add(path);
-                    }}
+                    }}";
 
-");
+                    imageCode.Append(thisImagesCode);
                 }
                 else if (prop.Type == "VD")
                 {
                     if (prop.Validation != null && prop.Validation.Required)
                     {
                         propList.Add($"\t\tpublic FileDto {prop.Name}File {{ get; set; }} = new FileDto();");
-                        videoCode.Append($@"
-                {entityName.ToLower()}.{prop.Name} =  await _fileService.UploadFileAsync(request.{prop.Name}File);
 
-");
+                        string thisVideoCode = $@"
+                {entityName.ToLower()}.{prop.Name} =  await _fileService.UploadFileAsync(request.{prop.Name}File);";
+
+                        videoCode.Append(thisVideoCode);
                     }
                     else
                     {
                         propList.Add($"\t\tpublic FileDto? {prop.Name}File {{ get; set; }}");
-                        videoCode.Append($@"
-                {entityName.ToLower()}.{prop.Name} = request.{prop.Name}File != null ? await _fileService.UploadFileAsync(request.{prop.Name}File) : null;
 
-");
+                        string thisVideoCode = $@"
+                {entityName.ToLower()}.{prop.Name} = request.{prop.Name}File != null ? await _fileService.UploadFileAsync(request.{prop.Name}File) : null;";
+
+                        videoCode.Append(thisVideoCode);
 
                     }
                 }
                 else if (prop.Type == "VDs")
                 {
                     propList.Add($"\t\tpublic List<FileDto> {prop.Name}Files {{ get; set; }} = new List<FileDto>();");
-                    videoCode.Append($@"
+
+                    string thisVideosCode = $@"
                 foreach (var item in request.{prop.Name}Files)
                     {{
                         var path = await _fileService.UploadFileAsync(item);
                         {entityName.ToLower()}.{prop.Name}.Add(path);
-                    }}
+                    }}";
 
-");
+                    videoCode.Append(thisVideosCode);
                 }
                 else if (prop.Type == "FL")
                 {
                     if (prop.Validation != null && prop.Validation.Required)
                     {
                         propList.Add($"\t\tpublic FileDto {prop.Name}File {{ get; set; }} = new FileDto();");
-                        fileCode.Append($@"
-                {entityName.ToLower()}.{prop.Name} =  await _fileService.UploadFileAsync(request.{prop.Name}File);
 
-");
+                        string thisFileCode = $@"
+                {entityName.ToLower()}.{prop.Name} =  await _fileService.UploadFileAsync(request.{prop.Name}File);";
+
+                        fileCode.Append(thisFileCode);
                     }
                     else
                     {
                         propList.Add($"\t\tpublic FileDto? {prop.Name}File {{ get; set; }}");
-                        fileCode.Append($@"
-                {entityName.ToLower()}.{prop.Name} = request.{prop.Name}File != null ? await _fileService.UploadFileAsync(request.{prop.Name}File) : null;
 
-");
+                        string thisFileCode = $@"
+                {entityName.ToLower()}.{prop.Name} = request.{prop.Name}File != null ? await _fileService.UploadFileAsync(request.{prop.Name}File) : null;";
+
+                        fileCode.Append(thisFileCode);
                     }
                 }
                 else if (prop.Type == "FLs")
                 {
                     propList.Add($"\t\tpublic List<FileDto> {prop.Name}Files {{ get; set; }} = new List<FileDto>();");
-                    fileCode.Append($@"
+
+                    string thisFilesCode = $@"
                 foreach (var item in request.{prop.Name}Files)
                     {{
                         var path = await _fileService.UploadFileAsync(item);
                         {entityName.ToLower()}.{prop.Name}.Add(path);
-                    }}
+                    }}";
 
-");
+                    fileCode.Append(thisFilesCode);
                 }
                 else
                 {
@@ -493,9 +502,9 @@ namespace Application.{entityPlural}.Commands.Create{entityName}
             StringBuilder imageCode = new StringBuilder();
             StringBuilder videoCode = new StringBuilder();
             StringBuilder fileCode = new StringBuilder();
-            string? oldImageUrl = string.Empty;
-            string? oldVideoUrl = string.Empty;
-            string? oldFileUrl = string.Empty;
+            List<string> oldImageUrlSection = new List<string>();
+            List<string> oldVideoUrlSection = new List<string>();
+            List<string> oldFileUrlSection = new List<string>();
             StringBuilder oldImageToDeleteCode = new StringBuilder();
             StringBuilder oldVideoToDeleteCode = new StringBuilder();
             StringBuilder oldImagesToDeleteCode = new StringBuilder();
@@ -511,38 +520,46 @@ namespace Application.{entityPlural}.Commands.Create{entityName}
                     {
                         propList.Add($"\t\tpublic FileDto? {prop.Name}File {{ get; set; }}");
                         propList.Add($"\t\tpublic string? {prop.Name}Url {{ get; set; }}");
-                        oldImageUrl = $"var oldImageUrl = existingObj.{prop.Name};";
-                        imageCode.Append($@"
+
+                        var thisOldImageUrl = $"\t\t\t\tvar old{prop.Name}Url = existingObj.{prop.Name};";
+                        oldImageUrlSection.Add(thisOldImageUrl);
+
+                        var thisImageCode = $@"
                 if (request.{prop.Name}File != null)
                     existingObj.{prop.Name} = await _fileService.UploadFileAsync(request.{prop.Name}File);
                 else
-                    existingObj.{prop.Name} = request.{prop.Name}Url!;
+                    existingObj.{prop.Name} = request.{prop.Name}Url!;";
 
-");
-                        oldImageToDeleteCode.Append($@"
+                        imageCode.Append(thisImageCode);
+
+                        var thisOldImageToDeleteCode = $@"
                 if (request.{prop.Name}File != null)
-                    await _fileService.DeleteFileAsync(oldImageUrl);
+                    await _fileService.DeleteFileAsync(old{prop.Name}Url);";
 
-");
+                        oldImageToDeleteCode.Append(thisOldImageToDeleteCode);
                     }
                     else
                     {
                         propList.Add($"\t\tpublic FileDto? {prop.Name}File {{ get; set; }}");
                         propList.Add($"\t\tpublic bool? DeleteOld{prop.Name} {{ get; set; }}");
-                        oldImageUrl = $"var oldImageUrl = existingObj.{prop.Name};";
-                        imageCode.Append($@"
+
+                        var thisOldImageUrl = $"\t\t\t\tvar old{prop.Name}Url = existingObj.{prop.Name};";
+                        oldImageUrlSection.Add(thisOldImageUrl);
+
+                        var thisImageCode = $@"
                 if (request.{prop.Name}File != null)
                     existingObj.{prop.Name} = await _fileService.UploadFileAsync(request.{prop.Name}File);
                 if (request.DeleteOld{prop.Name} != null && request.DeleteOld{prop.Name}.Value)
-                    existingObj.{prop.Name} = null;
+                    existingObj.{prop.Name} = null;";
 
-");
-                        oldImageToDeleteCode.Append($@"
+                        imageCode.Append(thisImageCode);
+
+                        var thisOldImageToDeleteCode = $@"
                 if (request.{prop.Name}File != null || (request.DeleteOld{prop.Name} != null && request.DeleteOld{prop.Name}.Value))
-                    if(oldImageUrl != null )
-                    await _fileService.DeleteFileAsync(oldImageUrl);
+                    if(old{prop.Name}Url != null )
+                    await _fileService.DeleteFileAsync(old{prop.Name}Url);";
 
-");
+                        oldImageToDeleteCode.Append(thisOldImageToDeleteCode);
                     }
                 }
                 else if (prop.Type == "PNGs")
@@ -595,7 +612,6 @@ namespace Application.{entityPlural}.Commands.Create{entityName}
                         existingObj.{prop.Name} = remainingPhotosURLs;
                     }}
                 }}
-
 ");
                     oldImagesToDeleteCode.Append($@"
                 if(request.Deleted{prop.Name}URLs != null)
@@ -603,7 +619,6 @@ namespace Application.{entityPlural}.Commands.Create{entityName}
                     {{
                         await _fileService.DeleteFileAsync(path);
                     }}
-
 ");
                 }
                 else if (prop.Type == "VD")
@@ -612,38 +627,46 @@ namespace Application.{entityPlural}.Commands.Create{entityName}
                     {
                         propList.Add($"\t\tpublic FileDto? {prop.Name}File {{ get; set; }}");
                         propList.Add($"\t\tpublic string? {prop.Name}Url {{ get; set; }}");
-                        oldVideoUrl = $"var oldVideoUrl = existingObj.{prop.Name};";
-                        videoCode.Append($@"
+
+                        var thisOldVideoUrl = $"\t\t\t\tvar old{prop.Name}Url = existingObj.{prop.Name};";
+                        oldVideoUrlSection.Add(thisOldVideoUrl);
+
+                        var thisVideoCode = $@"
                 if (request.{prop.Name}File != null)
                     existingObj.{prop.Name} = await _fileService.UploadFileAsync(request.{prop.Name}File);
                 else
-                    existingObj.{prop.Name} = request.{prop.Name}Url!;
+                    existingObj.{prop.Name} = request.{prop.Name}Url!;";
 
-");
-                        oldVideoToDeleteCode.Append($@"
+                        videoCode.Append(thisVideoCode);
+
+                        var thisOldVideoToDeleteCode = $@"
                 if (request.{prop.Name}File != null)
-                    await _fileService.DeleteFileAsync(oldVideoUrl);
+                    await _fileService.DeleteFileAsync(old{prop.Name}Url);";
 
-");
+                        oldVideoToDeleteCode.Append(thisOldVideoToDeleteCode);
                     }
                     else
                     {
                         propList.Add($"\t\tpublic FileDto? {prop.Name}File {{ get; set; }}");
                         propList.Add($"\t\tpublic bool? DeleteOld{prop.Name} {{ get; set; }}");
-                        oldVideoUrl = $"var oldVideoUrl = existingObj.{prop.Name};";
-                        videoCode.Append($@"
+
+                        var thisOldVideoUrl = $"\t\t\t\tvar old{prop.Name}Url = existingObj.{prop.Name};";
+                        oldVideoUrlSection.Add(thisOldVideoUrl);
+
+                        var thisVideoCode = $@"
                 if (request.{prop.Name}File != null)
                     existingObj.{prop.Name} = await _fileService.UploadFileAsync(request.{prop.Name}File);
                 if (request.DeleteOld{prop.Name} != null && request.DeleteOld{prop.Name}.Value)
-                    existingObj.{prop.Name} = null;
+                    existingObj.{prop.Name} = null;";
 
-");
-                        oldVideoToDeleteCode.Append($@"
+                        videoCode.Append(thisVideoCode);
+
+                        var thisOldVideoToDeleteCode = $@"
                 if (request.{prop.Name}File != null || (request.DeleteOld{prop.Name} != null && request.DeleteOld{prop.Name}.Value))
-                    if(oldVideoUrl != null )
-                    await _fileService.DeleteFileAsync(oldVideoUrl);
+                    if(old{prop.Name}Url != null )
+                    await _fileService.DeleteFileAsync(old{prop.Name}Url);";
 
-");
+                        oldVideoToDeleteCode.Append(thisOldVideoToDeleteCode);
                     }
                 }
                 else if (prop.Type == "VDs")
@@ -696,7 +719,6 @@ namespace Application.{entityPlural}.Commands.Create{entityName}
                         existingObj.{prop.Name} = remainingVideosURLs;
                     }}
                 }}
-
 ");
                     oldVideosToDeleteCode.Append($@"
                 if(request.Deleted{prop.Name}URLs != null)
@@ -704,7 +726,6 @@ namespace Application.{entityPlural}.Commands.Create{entityName}
                     {{
                         await _fileService.DeleteFileAsync(path);
                     }}
-
 ");
                 }
                 else if (prop.Type == "FL")
@@ -713,38 +734,46 @@ namespace Application.{entityPlural}.Commands.Create{entityName}
                     {
                         propList.Add($"\t\tpublic FileDto? {prop.Name}File {{ get; set; }}");
                         propList.Add($"\t\tpublic string? {prop.Name}Url {{ get; set; }}");
-                        oldFileUrl = $"var oldFileUrl = existingObj.{prop.Name};";
-                        fileCode.Append($@"
+
+                        var thisOldFileUrl = $"\t\t\t\tvar old{prop.Name}Url = existingObj.{prop.Name};";
+                        oldFileUrlSection.Add(thisOldFileUrl);
+
+                        var thisFileCode = $@"
                 if (request.{prop.Name}File != null)
                     existingObj.{prop.Name} = await _fileService.UploadFileAsync(request.{prop.Name}File);
                 else
-                    existingObj.{prop.Name} = request.{prop.Name}Url!;
+                    existingObj.{prop.Name} = request.{prop.Name}Url!;";
 
-");
-                        oldFileToDeleteCode.Append($@"
+                        fileCode.Append(thisFileCode);
+
+                        var thisOldFileToDeleteCode = $@"
                 if (request.{prop.Name}File != null)
-                    await _fileService.DeleteFileAsync(oldFileUrl);
+                    await _fileService.DeleteFileAsync(old{prop.Name}Url);";
 
-");
+                        oldFileToDeleteCode.Append(thisOldFileToDeleteCode);
                     }
                     else
                     {
                         propList.Add($"\t\tpublic FileDto? {prop.Name}File {{ get; set; }}");
                         propList.Add($"\t\tpublic bool? DeleteOld{prop.Name} {{ get; set; }}");
-                        oldFileUrl = $"var oldFileUrl = existingObj.{prop.Name};";
-                        fileCode.Append($@"
+
+                        var thisOldFileUrl = $"\t\t\t\tvar old{prop.Name}Url = existingObj.{prop.Name};";
+                        oldFileUrlSection.Add(thisOldFileUrl);
+
+                        var thisFileCode = $@"
                 if (request.{prop.Name}File != null)
                     existingObj.{prop.Name} = await _fileService.UploadFileAsync(request.{prop.Name}File);
                 if (request.DeleteOld{prop.Name} != null && request.DeleteOld{prop.Name}.Value)
-                    existingObj.{prop.Name} = null;
+                    existingObj.{prop.Name} = null;";
 
-");
-                        oldFileToDeleteCode.Append($@"
+                        fileCode.Append(thisFileCode);
+
+                        var thisOldFileToDeleteCode = $@"
                 if (request.{prop.Name}File != null || (request.DeleteOld{prop.Name} != null && request.DeleteOld{prop.Name}.Value))
-                    if(oldVideoUrl != null )
-                    await _fileService.DeleteFileAsync(oldFileUrl);
+                    if(old{prop.Name}Url != null )
+                    await _fileService.DeleteFileAsync(old{prop.Name}Url);";
 
-");
+                        oldFileToDeleteCode.Append(thisOldFileToDeleteCode);
                     }
                 }
                 else if (prop.Type == "FLs")
@@ -797,7 +826,6 @@ namespace Application.{entityPlural}.Commands.Create{entityName}
                         existingObj.{prop.Name} = remainingFilesURLs;
                     }}
                 }}
-
 ");
                     oldFilesToDeleteCode.Append($@"
                 if(request.Deleted{prop.Name}URLs != null)
@@ -805,7 +833,6 @@ namespace Application.{entityPlural}.Commands.Create{entityName}
                     {{
                         await _fileService.DeleteFileAsync(path);
                     }}
-
 ");
                 }
                 else
@@ -996,9 +1023,9 @@ namespace Application.{entityPlural}.Commands.Create{entityName}
                     await _unitOfWork.SaveChangesAsync(cancellationToken);
                 }}
 ";
-            string? oldImageUrlLine = hasVersioning ? null : oldImageUrl;
-            string? oldVideoUrlLine = hasVersioning ? null : oldVideoUrl;
-            string? oldFileUrlLine = hasVersioning ? null : oldFileUrl;
+            string? oldImageUrlLine = hasVersioning ? null : string.Join(Environment.NewLine, oldImageUrlSection);
+            string? oldVideoUrlLine = hasVersioning ? null : string.Join(Environment.NewLine, oldVideoUrlSection); ;
+            string? oldFileUrlLine = hasVersioning ? null : string.Join(Environment.NewLine, oldFileUrlSection);
             string? oldImageToDeleteCodeLine = hasVersioning ? null : oldImageToDeleteCode.ToString();
             string? oldVideoToDeleteCodeLine = hasVersioning ? null : oldVideoToDeleteCode.ToString();
             string? oldFileToDeleteCodeLine = hasVersioning ? null : oldFileToDeleteCode.ToString();
@@ -1159,9 +1186,13 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
             StringBuilder imageCode = new StringBuilder();
             StringBuilder videoCode = new StringBuilder();
             StringBuilder fileCode = new StringBuilder();
-            string? oldImageUrl = string.Empty;
-            string? oldVideoUrl = string.Empty;
-            string? oldFileUrl = string.Empty;
+
+            List<string> oldImageUrlSection = new List<string>();
+            List<string> oldVideoUrlSection = new List<string>();
+            List<string> oldFileUrlSection = new List<string>();
+            //string? oldImageUrl = string.Empty;
+            //string? oldVideoUrl = string.Empty;
+            //string? oldFileUrl = string.Empty;
             StringBuilder oldImageToDeleteCode = new StringBuilder();
             StringBuilder oldVideoToDeleteCode = new StringBuilder();
             StringBuilder oldImagesToDeleteCode = new StringBuilder();
@@ -1177,45 +1208,53 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                     {
                         propList.Add($"\t\tpublic FileDto? {prop.Name}File {{ get; set; }}");
                         propList.Add($"\t\tpublic string? {prop.Name}Url {{ get; set; }}");
-                        oldImageUrl = $"var oldImageUrl = existingObj.{prop.Name};";
-                        imageCreateCode.Append($@"
-                objAdd.{prop.Name} =  await _fileService.UploadFileAsync(request.{prop.Name}File);");
 
-                        imageCode.Append($@"
+                        var thisOldImageUrl = $"\t\t\t\tvar old{prop.Name}Url = existingObj.{prop.Name};";
+                        oldImageUrlSection.Add(thisOldImageUrl);
+
+                        var thisImageCreateCode = $"objAdd.{prop.Name} = await _fileService.UploadFileAsync(request.{prop.Name}File);";
+                        imageCreateCode.AppendLine(thisImageCreateCode);
+
+                        var thisImageCode = $@"
                 if (request.{prop.Name}File != null)
                     existingObj.{prop.Name} = await _fileService.UploadFileAsync(request.{prop.Name}File);
                 else
-                    existingObj.{prop.Name} = request.{prop.Name}Url!;
+                    existingObj.{prop.Name} = request.{prop.Name}Url!;";
 
-");
-                        oldImageToDeleteCode.Append($@"
+                        imageCode.Append(thisImageCode);
+
+                        var thisOldImageToDeleteCode = $@"
                 if (request.{prop.Name}File != null)
-                    await _fileService.DeleteFileAsync(oldImageUrl);
+                    await _fileService.DeleteFileAsync(old{prop.Name}Url);";
 
-");
+                        oldImageToDeleteCode.Append(thisOldImageToDeleteCode);
                     }
                     else
                     {
                         propList.Add($"\t\tpublic FileDto? {prop.Name}File {{ get; set; }}");
                         propList.Add($"\t\tpublic bool? DeleteOld{prop.Name} {{ get; set; }}");
-                        oldImageUrl = $"var oldImageUrl = existingObj.{prop.Name};";
 
-                        imageCreateCode.Append($@"
-                objAdd.{prop.Name} = request.{prop.Name}File != null ? await _fileService.UploadFileAsync(request.{prop.Name}File) : null;");
 
-                        imageCode.Append($@"
+                        var thisOldImageUrl = $"\t\t\t\tvar old{prop.Name}Url = existingObj.{prop.Name};";
+                        oldImageUrlSection.Add(thisOldImageUrl);
+
+                        var thisImageCreateCode = $"objAdd.{prop.Name} = request.{prop.Name}File != null ? await _fileService.UploadFileAsync(request.{prop.Name}File) : null;";
+                        imageCreateCode.AppendLine(thisImageCreateCode);
+
+                        var thisImageCode = $@"
                 if (request.{prop.Name}File != null)
                     existingObj.{prop.Name} = await _fileService.UploadFileAsync(request.{prop.Name}File);
                 if (request.DeleteOld{prop.Name} != null && request.DeleteOld{prop.Name}.Value)
-                    existingObj.{prop.Name} = null;
+                    existingObj.{prop.Name} = null;";
 
-");
-                        oldImageToDeleteCode.Append($@"
+                        imageCode.Append(thisImageCode);
+
+                        var thisOldImageToDeleteCode = $@"
                 if (request.{prop.Name}File != null || (request.DeleteOld{prop.Name} != null && request.DeleteOld{prop.Name}.Value))
-                    if(oldImageUrl != null )
-                    await _fileService.DeleteFileAsync(oldImageUrl);
+                    if(old{prop.Name}Url != null )
+                    await _fileService.DeleteFileAsync(old{prop.Name}Url);";
 
-");
+                        oldImageToDeleteCode.Append(thisOldImageToDeleteCode);
                     }
                 }
                 else if (prop.Type == "PNGs")
@@ -1223,14 +1262,15 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                     propList.Add($"\t\tpublic List<FileDto>? {prop.Name}Files {{ get; set; }} = new List<FileDto>();");
                     propList.Add($"\t\tpublic List<string>? Deleted{prop.Name}URLs {{ get; set; }}");
 
-                    imageCreateCode.Append($@"
+                    var thisImageCreateCode = $@"
                 foreach (var item in request.{prop.Name}Files)
                     {{
                         var path = await _fileService.UploadFileAsync(item);
                         objAdd.{prop.Name}.Add(path);
-                    }}");
+                    }}";
+                    imageCreateCode.Append(thisImageCreateCode);
 
-                    imageCode.Append($@"
+                    var thisImageCode = $@"
                 if (request.{prop.Name}Files != null && request.{prop.Name}Files.Any())
                 {{
 
@@ -1275,17 +1315,17 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                         }}
                         existingObj.{prop.Name} = remainingPhotosURLs;
                     }}
-                }}
+                }}";
+                    imageCode.Append(thisImageCode);
 
-");
-                    oldImagesToDeleteCode.Append($@"
+                    var thisOldImagesToDeleteCode = $@"
                 if(request.Deleted{prop.Name}URLs != null)
                     foreach (var path in request.Deleted{prop.Name}URLs)
                     {{
                         await _fileService.DeleteFileAsync(path);
-                    }}
+                    }}";
 
-");
+                    oldImagesToDeleteCode.Append(thisOldImagesToDeleteCode);
                 }
                 else if (prop.Type == "VD")
                 {
@@ -1293,46 +1333,53 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                     {
                         propList.Add($"\t\tpublic FileDto? {prop.Name}File {{ get; set; }}");
                         propList.Add($"\t\tpublic string? {prop.Name}Url {{ get; set; }}");
-                        oldVideoUrl = $"var oldVideoUrl = existingObj.{prop.Name};";
 
-                        videoCreateCode.Append($@"
-                objAdd.{prop.Name} =  await _fileService.UploadFileAsync(request.{prop.Name}File);");
+                        var thisOldVideoUrl = $"\t\t\t\tvar old{prop.Name}Url = existingObj.{prop.Name};";
+                        oldVideoUrlSection.Add(thisOldVideoUrl);
 
-                        videoCode.Append($@"
+                        var thisVideoCreateCode = $"objAdd.{prop.Name} = await _fileService.UploadFileAsync(request.{prop.Name}File);";
+                        videoCreateCode.AppendLine(thisVideoCreateCode);
+
+                        var thisVideoCode = $@"
                 if (request.{prop.Name}File != null)
                     existingObj.{prop.Name} = await _fileService.UploadFileAsync(request.{prop.Name}File);
                 else
-                    existingObj.{prop.Name} = request.{prop.Name}Url!;
+                    existingObj.{prop.Name} = request.{prop.Name}Url!;";
 
-");
-                        oldVideoToDeleteCode.Append($@"
+                        videoCode.Append(thisVideoCode);
+
+                        var thisOldVideoToDeleteCode = $@"
                 if (request.{prop.Name}File != null)
-                    await _fileService.DeleteFileAsync(oldVideoUrl);
+                    await _fileService.DeleteFileAsync(old{prop.Name}Url);";
 
-");
+                        oldVideoToDeleteCode.Append(thisOldVideoToDeleteCode);
                     }
                     else
                     {
                         propList.Add($"\t\tpublic FileDto? {prop.Name}File {{ get; set; }}");
                         propList.Add($"\t\tpublic bool? DeleteOld{prop.Name} {{ get; set; }}");
-                        oldVideoUrl = $"var oldVideoUrl = existingObj.{prop.Name};";
 
-                        videoCreateCode.Append($@"
-                objAdd.{prop.Name} = request.{prop.Name}File != null ? await _fileService.UploadFileAsync(request.{prop.Name}File) : null;");
 
-                        videoCode.Append($@"
+                        var thisOldVideoUrl = $"\t\t\t\tvar old{prop.Name}Url = existingObj.{prop.Name};";
+                        oldVideoUrlSection.Add(thisOldVideoUrl);
+
+                        var thisVideoCreateCode = $"objAdd.{prop.Name} = request.{prop.Name}File != null ? await _fileService.UploadFileAsync(request.{prop.Name}File) : null;";
+                        videoCreateCode.AppendLine(thisVideoCreateCode);
+
+                        var thisVideoCode = $@"
                 if (request.{prop.Name}File != null)
                     existingObj.{prop.Name} = await _fileService.UploadFileAsync(request.{prop.Name}File);
                 if (request.DeleteOld{prop.Name} != null && request.DeleteOld{prop.Name}.Value)
-                    existingObj.{prop.Name} = null;
+                    existingObj.{prop.Name} = null;";
 
-");
-                        oldVideoToDeleteCode.Append($@"
+                        videoCode.Append(thisVideoCode);
+
+                        var thisOldVideoToDeleteCode = $@"
                 if (request.{prop.Name}File != null || (request.DeleteOld{prop.Name} != null && request.DeleteOld{prop.Name}.Value))
-                    if(oldVideoUrl != null )
-                    await _fileService.DeleteFileAsync(oldVideoUrl);
+                    if(old{prop.Name}Url != null )
+                    await _fileService.DeleteFileAsync(old{prop.Name}Url);";
 
-");
+                        oldVideoToDeleteCode.Append(thisOldVideoToDeleteCode);
                     }
                 }
                 else if (prop.Type == "VDs")
@@ -1340,40 +1387,41 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                     propList.Add($"\t\tpublic List<FileDto>? {prop.Name}Files {{ get; set; }} = new List<FileDto>();");
                     propList.Add($"\t\tpublic List<string>? Deleted{prop.Name}URLs {{ get; set; }}");
 
-                    videoCreateCode.Append($@"
+                    var thisVideoCreateCode = $@"
                 foreach (var item in request.{prop.Name}Files)
                     {{
                         var path = await _fileService.UploadFileAsync(item);
                         objAdd.{prop.Name}.Add(path);
-                    }}");
+                    }}";
+                    videoCreateCode.Append(thisVideoCreateCode);
 
-                    videoCode.Append($@"
+                    var thisVideoCode = $@"
                 if (request.{prop.Name}Files != null && request.{prop.Name}Files.Any())
                 {{
 
                     //Save old urls
-                    var oldVideosURLs = new List<string>();
+                    var oldImagesURLs = new List<string>();
                     foreach (var item in existingObj.{prop.Name})
                     {{
-                        oldVideosURLs.Add(item);
+                        oldImagesURLs.Add(item);
                     }}
                     existingObj.{prop.Name}.Clear();
-                    //Add new videos
-                    foreach (var video in request.{prop.Name}Files)
+                    //Add new photos
+                    foreach (var image in request.{prop.Name}Files)
                     {{
-                        var videoUrl = await _fileService.UploadFileAsync(video);
+                        var imageUrl = await _fileService.UploadFileAsync(image);
                         // Add the new URL
-                        existingObj.{prop.Name}.Add(videoUrl);
+                        existingObj.{prop.Name}.Add(imageUrl);
                     }}
-                    //Add old videos to entity
+                    //Add old photos to entity
                     if (request.Deleted{prop.Name}URLs != null)
-                        foreach (var item in oldVideosURLs)
+                        foreach (var item in oldImagesURLs)
                         {{
                             if (!request.Deleted{prop.Name}URLs.Contains(item))
                                 existingObj.{prop.Name}.Add(item);
                         }}
                     else
-                        foreach (var item in oldVideosURLs)
+                        foreach (var item in oldImagesURLs)
                         {{
                             existingObj.{prop.Name}.Add(item);
                         }}
@@ -1382,27 +1430,27 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                 {{
                     if (request.Deleted{prop.Name}URLs != null && request.Deleted{prop.Name}URLs.Any())
                     {{
-                        var remainingVideosURLs = new List<string>();
+                        var remainingPhotosURLs = new List<string>();
                         foreach (var item in existingObj.{prop.Name})
                         {{
                             if (!request.Deleted{prop.Name}URLs.Contains(item))
                             {{
-                                remainingVideosURLs.Add(item);
+                                remainingPhotosURLs.Add(item);
                             }}
                         }}
-                        existingObj.{prop.Name} = remainingVideosURLs;
+                        existingObj.{prop.Name} = remainingPhotosURLs;
                     }}
-                }}
+                }}";
+                    videoCode.Append(thisVideoCode);
 
-");
-                    oldVideosToDeleteCode.Append($@"
+                    var thisOldVideosToDeleteCode = $@"
                 if(request.Deleted{prop.Name}URLs != null)
                     foreach (var path in request.Deleted{prop.Name}URLs)
                     {{
                         await _fileService.DeleteFileAsync(path);
-                    }}
+                    }}";
 
-");
+                    oldVideosToDeleteCode.Append(thisOldVideosToDeleteCode);
                 }
                 else if (prop.Type == "FL")
                 {
@@ -1410,46 +1458,53 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                     {
                         propList.Add($"\t\tpublic FileDto? {prop.Name}File {{ get; set; }}");
                         propList.Add($"\t\tpublic string? {prop.Name}Url {{ get; set; }}");
-                        oldFileUrl = $"var oldFileUrl = existingObj.{prop.Name};";
 
-                        fileCreateCode.Append($@"
-                objAdd.{prop.Name} =  await _fileService.UploadFileAsync(request.{prop.Name}File);");
+                        var thisOldFileUrl = $"\t\t\t\tvar old{prop.Name}Url = existingObj.{prop.Name};";
+                        oldFileUrlSection.Add(thisOldFileUrl);
 
-                        fileCode.Append($@"
+                        var thisFileCreateCode = $"objAdd.{prop.Name} = await _fileService.UploadFileAsync(request.{prop.Name}File);";
+                        fileCreateCode.AppendLine(thisFileCreateCode);
+
+                        var thisFileCode = $@"
                 if (request.{prop.Name}File != null)
                     existingObj.{prop.Name} = await _fileService.UploadFileAsync(request.{prop.Name}File);
                 else
-                    existingObj.{prop.Name} = request.{prop.Name}Url!;
+                    existingObj.{prop.Name} = request.{prop.Name}Url!;";
 
-");
-                        oldFileToDeleteCode.Append($@"
+                        fileCode.Append(thisFileCode);
+
+                        var thisOldFileToDeleteCode = $@"
                 if (request.{prop.Name}File != null)
-                    await _fileService.DeleteFileAsync(oldFileUrl);
+                    await _fileService.DeleteFileAsync(old{prop.Name}Url);";
 
-");
+                        oldFileToDeleteCode.Append(thisOldFileToDeleteCode);
                     }
                     else
                     {
                         propList.Add($"\t\tpublic FileDto? {prop.Name}File {{ get; set; }}");
                         propList.Add($"\t\tpublic bool? DeleteOld{prop.Name} {{ get; set; }}");
-                        oldFileUrl = $"var oldFileUrl = existingObj.{prop.Name};";
 
-                        fileCreateCode.Append($@"
-                objAdd.{prop.Name} = request.{prop.Name}File != null ? await _fileService.UploadFileAsync(request.{prop.Name}File) : null;");
 
-                        fileCode.Append($@"
+                        var thisOldFileUrl = $"\t\t\t\tvar old{prop.Name}Url = existingObj.{prop.Name};";
+                        oldFileUrlSection.Add(thisOldFileUrl);
+
+                        var thisFileCreateCode = $"objAdd.{prop.Name} = request.{prop.Name}File != null ? await _fileService.UploadFileAsync(request.{prop.Name}File) : null;";
+                        fileCreateCode.AppendLine(thisFileCreateCode);
+
+                        var thisFileCode = $@"
                 if (request.{prop.Name}File != null)
                     existingObj.{prop.Name} = await _fileService.UploadFileAsync(request.{prop.Name}File);
                 if (request.DeleteOld{prop.Name} != null && request.DeleteOld{prop.Name}.Value)
-                    existingObj.{prop.Name} = null;
+                    existingObj.{prop.Name} = null;";
 
-");
-                        oldFileToDeleteCode.Append($@"
+                        fileCode.Append(thisFileCode);
+
+                        var thisOldFileToDeleteCode = $@"
                 if (request.{prop.Name}File != null || (request.DeleteOld{prop.Name} != null && request.DeleteOld{prop.Name}.Value))
-                    if(oldFileUrl != null )
-                    await _fileService.DeleteFileAsync(oldFileUrl);
+                    if(old{prop.Name}Url != null )
+                    await _fileService.DeleteFileAsync(old{prop.Name}Url);";
 
-");
+                        oldFileToDeleteCode.Append(thisOldFileToDeleteCode);
                     }
                 }
                 else if (prop.Type == "FLs")
@@ -1457,40 +1512,41 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                     propList.Add($"\t\tpublic List<FileDto>? {prop.Name}Files {{ get; set; }} = new List<FileDto>();");
                     propList.Add($"\t\tpublic List<string>? Deleted{prop.Name}URLs {{ get; set; }}");
 
-                    fileCreateCode.Append($@"
+                    var thisFileCreateCode = $@"
                 foreach (var item in request.{prop.Name}Files)
                     {{
                         var path = await _fileService.UploadFileAsync(item);
                         objAdd.{prop.Name}.Add(path);
-                    }}");
+                    }}";
+                    fileCreateCode.Append(thisFileCreateCode);
 
-                    fileCode.Append($@"
+                    var thisFileCode = $@"
                 if (request.{prop.Name}Files != null && request.{prop.Name}Files.Any())
                 {{
 
                     //Save old urls
-                    var oldFilesURLs = new List<string>();
+                    var oldImagesURLs = new List<string>();
                     foreach (var item in existingObj.{prop.Name})
                     {{
-                        oldFilesURLs.Add(item);
+                        oldImagesURLs.Add(item);
                     }}
                     existingObj.{prop.Name}.Clear();
-                    //Add new files
-                    foreach (var file in request.{prop.Name}Files)
+                    //Add new photos
+                    foreach (var image in request.{prop.Name}Files)
                     {{
-                        var fileUrl = await _fileService.UploadFileAsync(file);
+                        var imageUrl = await _fileService.UploadFileAsync(image);
                         // Add the new URL
-                        existingObj.{prop.Name}.Add(fileUrl);
+                        existingObj.{prop.Name}.Add(imageUrl);
                     }}
-                    //Add old files to entity
+                    //Add old photos to entity
                     if (request.Deleted{prop.Name}URLs != null)
-                        foreach (var item in oldFilesURLs)
+                        foreach (var item in oldImagesURLs)
                         {{
                             if (!request.Deleted{prop.Name}URLs.Contains(item))
                                 existingObj.{prop.Name}.Add(item);
                         }}
                     else
-                        foreach (var item in oldFilesURLs)
+                        foreach (var item in oldImagesURLs)
                         {{
                             existingObj.{prop.Name}.Add(item);
                         }}
@@ -1499,27 +1555,27 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                 {{
                     if (request.Deleted{prop.Name}URLs != null && request.Deleted{prop.Name}URLs.Any())
                     {{
-                        var remainingFilesURLs = new List<string>();
+                        var remainingPhotosURLs = new List<string>();
                         foreach (var item in existingObj.{prop.Name})
                         {{
                             if (!request.Deleted{prop.Name}URLs.Contains(item))
                             {{
-                                remainingFilesURLs.Add(item);
+                                remainingPhotosURLs.Add(item);
                             }}
                         }}
-                        existingObj.{prop.Name} = remainingFilesURLs;
+                        existingObj.{prop.Name} = remainingPhotosURLs;
                     }}
-                }}
+                }}";
+                    fileCode.Append(thisFileCode);
 
-");
-                    oldFilesToDeleteCode.Append($@"
+                    var thisOldFilesToDeleteCode = $@"
                 if(request.Deleted{prop.Name}URLs != null)
                     foreach (var path in request.Deleted{prop.Name}URLs)
                     {{
                         await _fileService.DeleteFileAsync(path);
-                    }}
+                    }}";
 
-");
+                    oldFileToDeleteCode.Append(thisOldFilesToDeleteCode);
                 }
                 else
                 {
@@ -1740,9 +1796,9 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                     await _unitOfWork.SaveChangesAsync(cancellationToken);
                 }}
 ";
-            string? oldImageUrlLine = hasVersioning ? null : oldImageUrl;
-            string? oldVideoUrlLine = hasVersioning ? null : oldVideoUrl;
-            string? oldFileUrlLine = hasVersioning ? null : oldFileUrl;
+            string? oldImageUrlLine = hasVersioning ? null : string.Join(Environment.NewLine, oldImageUrlSection);
+            string? oldVideoUrlLine = hasVersioning ? null : string.Join(Environment.NewLine, oldVideoUrlSection);
+            string? oldFileUrlLine = hasVersioning ? null : string.Join(Environment.NewLine, oldFileUrlSection);
             string? oldImageToDeleteCodeLine = hasVersioning ? null : oldImageToDeleteCode.ToString();
             string? oldVideoToDeleteCodeLine = hasVersioning ? null : oldVideoToDeleteCode.ToString();
             string? oldFileToDeleteCodeLine = hasVersioning ? null : oldFileToDeleteCode.ToString();
@@ -2011,16 +2067,16 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
             List<string> videoDeleteLines = new List<string>();
             List<string> fileDeleteLines = new List<string>();
             // update case
-            string? imageDeleteUpdateLine = null;
-            string? videoDeleteUpdateLine = null;
-            string? fileDeleteUpdateLine = null;
+            string? imageDeleteUpdateLine = null;//temp var used in UpdateCode
+            string? videoDeleteUpdateLine = null;//temp var used in UpdateCode
+            string? fileDeleteUpdateLine = null;//temp var used in UpdateCode
 
-            string? imageUpdateCode = null;
-            string? imageListUpdateCode = null;
-            string? videoUpdateCode = null;
-            string? videoListUpdateCode = null;
-            string? fileUpdateCode = null;
-            string? fileListUpdateCode = null;
+            StringBuilder imageUpdateCode = new StringBuilder();
+            StringBuilder imageListUpdateCode = new StringBuilder();
+            StringBuilder videoUpdateCode = new StringBuilder();
+            StringBuilder videoListUpdateCode = new StringBuilder();
+            StringBuilder fileUpdateCode = new StringBuilder();
+            StringBuilder fileListUpdateCode = new StringBuilder();
 
 
             string? deleteOldImageCode = hasVersioning ? null : !properties.Any(p => p.Type == "GPG" || p.Type == "PNGs" || p.Type == "VD" || p.Type == "VDs" || p.Type == "FL" || p.Type == "FLs") ? null : $@"
@@ -2030,12 +2086,12 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                         await _fileService.DeleteFileAsync(item);
                 }}
 ";
-            StringBuilder imageCode = new StringBuilder();
-            StringBuilder videoCode = new StringBuilder();
-            StringBuilder fileCode = new StringBuilder();
-            StringBuilder imageUpdateAddCode = new StringBuilder();
-            StringBuilder videoUpdateAddCode = new StringBuilder();
-            StringBuilder fileUpdateAddCode = new StringBuilder();
+            StringBuilder imageCode = new StringBuilder();//first create
+            StringBuilder videoCode = new StringBuilder();//first create
+            StringBuilder fileCode = new StringBuilder();//first create
+            StringBuilder imageUpdateAddCode = new StringBuilder();//add new to existing ones
+            StringBuilder videoUpdateAddCode = new StringBuilder();//add new to existing ones
+            StringBuilder fileUpdateAddCode = new StringBuilder();//add new to existing ones
 
             foreach (var prop in properties)
             {
@@ -2043,41 +2099,42 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                 {
                     if (prop.Validation != null && prop.Validation.Required)
                     {
-                        imageCode.Append($@"
-                        lstObjs[i].{prop.Name} = await _fileService.UploadFileAsync(request.Bulk{entityPlural}[i].{prop.Name}File);");
+                        var thisImageCode = $"lstObjs[i].{prop.Name} = await _fileService.UploadFileAsync(request.Bulk{entityPlural}[i].{prop.Name}File);";
+                        imageCode.AppendLine(thisImageCode);
+
                         DeleteLines.Add($"garbage.Add(item.{prop.Name});");
 
-                        imageUpdateAddCode.Append($@"
-                        objToAdd.{prop.Name} = await _fileService.UploadFileAsync({lowerEntityName}.{prop.Name}File);");
+                        var thisImageUpdateAddCode = $"objToAdd.{prop.Name} = await _fileService.UploadFileAsync({lowerEntityName}.{prop.Name}File);";
+                        imageUpdateAddCode.AppendLine(thisImageUpdateAddCode);
 
                         imageDeleteLines.Add($"garbage.Add({lowerEntityName}.{prop.Name});");
 
 
                         imageDeleteUpdateLine = hasVersioning ? null : $"garbage.Add({lowerEntityName}ToUpdate.{prop.Name});";
-                        imageUpdateCode = $@"
+                        var thisImageUpdateCode = $@"
                         if ({lowerEntityName}.{prop.Name}File != null)
                         {{
                             {imageDeleteUpdateLine}
                             {lowerEntityName}ToUpdate.{prop.Name} = await _fileService.UploadFileAsync({lowerEntityName}.{prop.Name}File);
                         }}
                         else
-                            {lowerEntityName}ToUpdate.{prop.Name} = {lowerEntityName}.Old{prop.Name}Url!;
-";
+                            {lowerEntityName}ToUpdate.{prop.Name} = {lowerEntityName}.Old{prop.Name}Url!;";
+                        imageUpdateCode.AppendLine(thisImageUpdateCode);
                     }
                     else
                     {
-                        imageCode.Append($@"
-                        lstObjs[i].{prop.Name} = request.Bulk{entityPlural}[i].{prop.Name}File != null ? await _fileService.UploadFileAsync(request.Bulk{entityPlural}[i].{prop.Name}File) : null;");
+                        var thisImageCode = $"lstObjs[i].{prop.Name} = request.Bulk{entityPlural}[i].{prop.Name}File != null ? await _fileService.UploadFileAsync(request.Bulk{entityPlural}[i].{prop.Name}File) : null;";
+                        imageCode.AppendLine(thisImageCode);
+
                         DeleteLines.Add($"garbage.Add(item.{prop.Name});");
 
-                        imageUpdateAddCode.Append($@"
-                        objToAdd.{prop.Name} = {lowerEntityName}.{prop.Name}File != null ? await _fileService.UploadFileAsync({lowerEntityName}.{prop.Name}File) : null;");
+                        var thisImageUpdateAddCode = $"objToAdd.{prop.Name} = {lowerEntityName}.{prop.Name}File != null ? await _fileService.UploadFileAsync({lowerEntityName}.{prop.Name}File) : null;";
+                        imageUpdateAddCode.AppendLine(thisImageUpdateAddCode);
 
                         imageDeleteLines.Add($"garbage.Add({lowerEntityName}.{prop.Name});");
 
                         imageDeleteUpdateLine = hasVersioning ? null : $"garbage.Add({lowerEntityName}ToUpdate.{prop.Name});";
-
-                        imageUpdateCode = $@"
+                        var thisImageUpdateCode = $@"
                         if ({lowerEntityName}.{prop.Name}File != null)
                         {{
                             {imageDeleteUpdateLine}
@@ -2087,50 +2144,50 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                         {{
                             {imageDeleteUpdateLine}
                             {lowerEntityName}ToUpdate.{prop.Name} = null;
-                        }}
-
-";
+                        }}";
+                        imageUpdateCode.AppendLine(thisImageUpdateCode);
                     }
                 }
                 else if (prop.Type == "VD")
                 {
                     if (prop.Validation != null && prop.Validation.Required)
                     {
-                        videoCode.Append($@"
-                        lstObjs[i].{prop.Name} = await _fileService.UploadFileAsync(request.Bulk{entityPlural}[i].{prop.Name}File);");
+                        var thisVideoCode = $"lstObjs[i].{prop.Name} = await _fileService.UploadFileAsync(request.Bulk{entityPlural}[i].{prop.Name}File);";
+                        videoCode.AppendLine(thisVideoCode);
+
                         DeleteLines.Add($"garbage.Add(item.{prop.Name});");
 
-                        videoUpdateAddCode.Append($@"
-                        objToAdd.{prop.Name} = await _fileService.UploadFileAsync({lowerEntityName}.{prop.Name}File);");
+                        var thisVideoUpdateAddCode = $"objToAdd.{prop.Name} = await _fileService.UploadFileAsync({lowerEntityName}.{prop.Name}File);";
+                        videoUpdateAddCode.AppendLine(thisVideoUpdateAddCode);
 
                         videoDeleteLines.Add($"garbage.Add({lowerEntityName}.{prop.Name});");
 
+
                         videoDeleteUpdateLine = hasVersioning ? null : $"garbage.Add({lowerEntityName}ToUpdate.{prop.Name});";
-                        videoUpdateCode = $@"
+                        var thisVideoUpdateCode = $@"
                         if ({lowerEntityName}.{prop.Name}File != null)
                         {{
                             {videoDeleteUpdateLine}
                             {lowerEntityName}ToUpdate.{prop.Name} = await _fileService.UploadFileAsync({lowerEntityName}.{prop.Name}File);
                         }}
                         else
-                            {lowerEntityName}ToUpdate.{prop.Name} = {lowerEntityName}.Old{prop.Name}Url!;
-";
+                            {lowerEntityName}ToUpdate.{prop.Name} = {lowerEntityName}.Old{prop.Name}Url!;";
+                        videoUpdateCode.AppendLine(thisVideoUpdateCode);
                     }
                     else
                     {
-                        videoCode.Append($@"
-                        lstObjs[i].{prop.Name} = request.Bulk{entityPlural}[i].{prop.Name}File != null ? await _fileService.UploadFileAsync(request.Bulk{entityPlural}[i].{prop.Name}File) : null;");
+                        var thisVideoCode = $"lstObjs[i].{prop.Name} = request.Bulk{entityPlural}[i].{prop.Name}File != null ? await _fileService.UploadFileAsync(request.Bulk{entityPlural}[i].{prop.Name}File) : null;";
+                        videoCode.AppendLine(thisVideoCode);
 
                         DeleteLines.Add($"garbage.Add(item.{prop.Name});");
 
-                        videoUpdateAddCode.Append($@"
-                        objToAdd.{prop.Name} = {lowerEntityName}.{prop.Name}File != null ? await _fileService.UploadFileAsync({lowerEntityName}.{prop.Name}File) : null;");
+                        var thisVideoUpdateAddCode = $"objToAdd.{prop.Name} = {lowerEntityName}.{prop.Name}File != null ? await _fileService.UploadFileAsync({lowerEntityName}.{prop.Name}File) : null;";
+                        videoUpdateAddCode.AppendLine(thisVideoUpdateAddCode);
 
                         videoDeleteLines.Add($"garbage.Add({lowerEntityName}.{prop.Name});");
 
-
                         videoDeleteUpdateLine = hasVersioning ? null : $"garbage.Add({lowerEntityName}ToUpdate.{prop.Name});";
-                        videoUpdateCode = $@"
+                        var thisVideoUpdateCode = $@"
                         if ({lowerEntityName}.{prop.Name}File != null)
                         {{
                             {videoDeleteUpdateLine}
@@ -2140,50 +2197,50 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                         {{
                             {videoDeleteUpdateLine}
                             {lowerEntityName}ToUpdate.{prop.Name} = null;
-                        }}
-";
+                        }}";
+                        videoUpdateCode.AppendLine(thisVideoUpdateCode);
                     }
                 }
                 else if (prop.Type == "FL")
                 {
                     if (prop.Validation != null && prop.Validation.Required)
                     {
-                        fileCode.Append($@"
-                        lstObjs[i].{prop.Name} = await _fileService.UploadFileAsync(request.Bulk{entityPlural}[i].{prop.Name}File);");
+                        var thisFileCode = $"lstObjs[i].{prop.Name} = await _fileService.UploadFileAsync(request.Bulk{entityPlural}[i].{prop.Name}File);";
+                        fileCode.AppendLine(thisFileCode);
 
                         DeleteLines.Add($"garbage.Add(item.{prop.Name});");
 
-                        fileUpdateAddCode.Append($@"
-                        objToAdd.{prop.Name} = await _fileService.UploadFileAsync({lowerEntityName}.{prop.Name}File);");
+                        var thisFileUpdateAddCode = $"objToAdd.{prop.Name} = await _fileService.UploadFileAsync({lowerEntityName}.{prop.Name}File);";
+                        fileUpdateAddCode.AppendLine(thisFileUpdateAddCode);
 
                         fileDeleteLines.Add($"garbage.Add({lowerEntityName}.{prop.Name});");
 
+
                         fileDeleteUpdateLine = hasVersioning ? null : $"garbage.Add({lowerEntityName}ToUpdate.{prop.Name});";
-                        fileUpdateCode = $@"
+                        var thisFileUpdateCode = $@"
                         if ({lowerEntityName}.{prop.Name}File != null)
                         {{
                             {fileDeleteUpdateLine}
                             {lowerEntityName}ToUpdate.{prop.Name} = await _fileService.UploadFileAsync({lowerEntityName}.{prop.Name}File);
                         }}
                         else
-                            {lowerEntityName}ToUpdate.{prop.Name} = {lowerEntityName}.Old{prop.Name}Url!;
-";
-
+                            {lowerEntityName}ToUpdate.{prop.Name} = {lowerEntityName}.Old{prop.Name}Url!;";
+                        fileUpdateCode.AppendLine(thisFileUpdateCode);
                     }
                     else
                     {
-                        fileCode.Append($@"
-                        lstObjs[i].{prop.Name} = request.Bulk{entityPlural}[i].{prop.Name}File != null ? await _fileService.UploadFileAsync(request.Bulk{entityPlural}[i].{prop.Name}File) : null;");
+                        var thisFileCode = $"lstObjs[i].{prop.Name} = request.Bulk{entityPlural}[i].{prop.Name}File != null ? await _fileService.UploadFileAsync(request.Bulk{entityPlural}[i].{prop.Name}File) : null;";
+                        fileCode.AppendLine(thisFileCode);
 
                         DeleteLines.Add($"garbage.Add(item.{prop.Name});");
 
-                        fileUpdateAddCode.Append($@"
-                        objToAdd.{prop.Name} = {lowerEntityName}.{prop.Name}File != null ? await _fileService.UploadFileAsync({lowerEntityName}.{prop.Name}File) : null;");
+                        var thisFileUpdateAddCode = $"objToAdd.{prop.Name} = {lowerEntityName}.{prop.Name}File != null ? await _fileService.UploadFileAsync({lowerEntityName}.{prop.Name}File) : null;";
+                        fileUpdateAddCode.AppendLine(thisFileUpdateAddCode);
 
                         fileDeleteLines.Add($"garbage.Add({lowerEntityName}.{prop.Name});");
 
                         fileDeleteUpdateLine = hasVersioning ? null : $"garbage.Add({lowerEntityName}ToUpdate.{prop.Name});";
-                        fileUpdateCode = $@"
+                        var thisFileUpdateCode = $@"
                         if ({lowerEntityName}.{prop.Name}File != null)
                         {{
                             {fileDeleteUpdateLine}
@@ -2193,28 +2250,29 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                         {{
                             {fileDeleteUpdateLine}
                             {lowerEntityName}ToUpdate.{prop.Name} = null;
-                        }}
-";
-
+                        }}";
+                        fileUpdateCode.AppendLine(thisFileUpdateCode);
                     }
                 }
                 else if (prop.Type == "PNGs")
                 {
-                    imageCode.Append($@"
+                    var thisImageCode = $@"
                         foreach (var item in request.Bulk{entityPlural}[i].{prop.Name}Files)
                         {{
                             var path = await _fileService.UploadFileAsync(item);
                             lstObjs[i].{prop.Name}.Add(path);
-                        }}
-");
+                        }}";
+                    imageCode.AppendLine(thisImageCode);
+
                     DeleteLines.Add($"garbage.AddRange(item.{prop.Name});");
 
-                    imageUpdateAddCode.Append($@"
+                    var thisImageUpdateAddCode = $@"
                         foreach (var item in {lowerEntityName}.{prop.Name}Files)
                         {{
                             var path = await _fileService.UploadFileAsync(item);
                             objToAdd.{prop.Name}.Add(path);
-                        }}");
+                        }}";
+                    imageUpdateAddCode.AppendLine(thisImageUpdateAddCode);
 
                     imageDeleteLines.Add($"garbage.AddRange({lowerEntityName}.{prop.Name});");
 
@@ -2222,7 +2280,7 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                         if ({lowerEntityName}.Deleted{prop.Name}URLs != null)
                             garbage.AddRange({lowerEntityName}.Deleted{prop.Name}URLs);
 ";
-                    imageListUpdateCode = $@"
+                    var thisImageListUpdateCode = $@"
                         if ({lowerEntityName}.{prop.Name}Files != null && {lowerEntityName}.{prop.Name}Files.Any())
                         {{
 
@@ -2268,26 +2326,29 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                                 {lowerEntityName}ToUpdate.{prop.Name} = remainingPhotosURLs;
                             }}
                         }}
-                        {imagesDeleteRange}
-";
+                        {imagesDeleteRange}";
+
+                    imageListUpdateCode.AppendLine(thisImageListUpdateCode);
                 }
                 else if (prop.Type == "VDs")
                 {
-                    videoCode.Append($@"
+                    var thisVideoCode = $@"
                         foreach (var item in request.Bulk{entityPlural}[i].{prop.Name}Files)
                         {{
                             var path = await _fileService.UploadFileAsync(item);
                             lstObjs[i].{prop.Name}.Add(path);
-                        }}");
+                        }}";
+                    videoCode.AppendLine(thisVideoCode);
 
                     DeleteLines.Add($"garbage.AddRange(item.{prop.Name});");
 
-                    videoUpdateAddCode.Append($@"
+                    var thisVideoUpdateAddCode = $@"
                         foreach (var item in {lowerEntityName}.{prop.Name}Files)
                         {{
                             var path = await _fileService.UploadFileAsync(item);
                             objToAdd.{prop.Name}.Add(path);
-                        }}");
+                        }}";
+                    videoUpdateAddCode.AppendLine(thisVideoUpdateAddCode);
 
                     videoDeleteLines.Add($"garbage.AddRange({lowerEntityName}.{prop.Name});");
 
@@ -2295,33 +2356,33 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                         if ({lowerEntityName}.Deleted{prop.Name}URLs != null)
                             garbage.AddRange({lowerEntityName}.Deleted{prop.Name}URLs);
 ";
-                    videoListUpdateCode = $@"
+                    var thisVideoListUpdateCode = $@"
                         if ({lowerEntityName}.{prop.Name}Files != null && {lowerEntityName}.{prop.Name}Files.Any())
                         {{
 
                             //Save old urls
-                            var oldVideosURLs = new List<string>();
+                            var oldImagesURLs = new List<string>();
                             foreach (var item in {lowerEntityName}ToUpdate.{prop.Name})
                             {{
-                                oldVideosURLs.Add(item);
+                                oldImagesURLs.Add(item);
                             }}
                             {lowerEntityName}ToUpdate.{prop.Name}.Clear();
-                            //Add new videos
-                            foreach (var video in {lowerEntityName}.{prop.Name}Files)
+                            //Add new photos
+                            foreach (var image in {lowerEntityName}.{prop.Name}Files)
                             {{
-                                var videoUrl = await _fileService.UploadFileAsync(video);
+                                var imageUrl = await _fileService.UploadFileAsync(image);
                                 // Add the new URL
-                                {lowerEntityName}ToUpdate.{prop.Name}.Add(videoUrl);
+                                {lowerEntityName}ToUpdate.{prop.Name}.Add(imageUrl);
                             }}
-                            //Add old videos to entity
+                            //Add old photos to entity
                             if ({lowerEntityName}.Deleted{prop.Name}URLs != null)
-                                foreach (var item in oldVideosURLs)
+                                foreach (var item in oldImagesURLs)
                                 {{
                                     if (!{lowerEntityName}.Deleted{prop.Name}URLs.Contains(item))
                                         {lowerEntityName}ToUpdate.{prop.Name}.Add(item);
                                 }}
                             else
-                                foreach (var item in oldVideosURLs)
+                                foreach (var item in oldImagesURLs)
                                 {{
                                     {lowerEntityName}ToUpdate.{prop.Name}.Add(item);
                                 }}
@@ -2330,38 +2391,41 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                         {{
                             if ({lowerEntityName}.Deleted{prop.Name}URLs != null && {lowerEntityName}.Deleted{prop.Name}URLs.Any())
                             {{
-                                var remainingVideosURLs = new List<string>();
+                                var remainingPhotosURLs = new List<string>();
                                 foreach (var item in {lowerEntityName}ToUpdate.{prop.Name})
                                 {{
                                     if (!{lowerEntityName}.Deleted{prop.Name}URLs.Contains(item))
                                     {{
-                                        remainingVideosURLs.Add(item);
+                                        remainingPhotosURLs.Add(item);
                                     }}
                                 }}
-                                {lowerEntityName}ToUpdate.{prop.Name} = remainingVideosURLs;
+                                {lowerEntityName}ToUpdate.{prop.Name} = remainingPhotosURLs;
                             }}
                         }}
                         {videosDeleteRange}
 ";
 
+                    videoListUpdateCode.AppendLine(thisVideoListUpdateCode);
                 }
                 else if (prop.Type == "FLs")
                 {
-                    fileCode.Append($@"
+                    var thisFileCode = $@"
                         foreach (var item in request.Bulk{entityPlural}[i].{prop.Name}Files)
                         {{
                             var path = await _fileService.UploadFileAsync(item);
                             lstObjs[i].{prop.Name}.Add(path);
-                        }}");
+                        }}";
+                    fileCode.AppendLine(thisFileCode);
 
                     DeleteLines.Add($"garbage.AddRange(item.{prop.Name});");
 
-                    fileUpdateAddCode.Append($@"
+                    var thisFileUpdateAddCode = $@"
                         foreach (var item in {lowerEntityName}.{prop.Name}Files)
                         {{
                             var path = await _fileService.UploadFileAsync(item);
                             objToAdd.{prop.Name}.Add(path);
-                        }}");
+                        }}";
+                    fileUpdateAddCode.AppendLine(thisFileUpdateAddCode);
 
                     fileDeleteLines.Add($"garbage.AddRange({lowerEntityName}.{prop.Name});");
 
@@ -2369,33 +2433,33 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                         if ({lowerEntityName}.Deleted{prop.Name}URLs != null)
                             garbage.AddRange({lowerEntityName}.Deleted{prop.Name}URLs);
 ";
-                    fileListUpdateCode = $@"
+                    var thisFileListUpdateCode = $@"
                         if ({lowerEntityName}.{prop.Name}Files != null && {lowerEntityName}.{prop.Name}Files.Any())
                         {{
 
                             //Save old urls
-                            var oldFilesURLs = new List<string>();
+                            var oldImagesURLs = new List<string>();
                             foreach (var item in {lowerEntityName}ToUpdate.{prop.Name})
                             {{
-                                oldFilesURLs.Add(item);
+                                oldImagesURLs.Add(item);
                             }}
                             {lowerEntityName}ToUpdate.{prop.Name}.Clear();
-                            //Add new files
-                            foreach (var file in {lowerEntityName}.{prop.Name}Files)
+                            //Add new photos
+                            foreach (var image in {lowerEntityName}.{prop.Name}Files)
                             {{
-                                var fileUrl = await _fileService.UploadFileAsync(file);
+                                var imageUrl = await _fileService.UploadFileAsync(image);
                                 // Add the new URL
-                                {lowerEntityName}ToUpdate.{prop.Name}.Add(fileUrl);
+                                {lowerEntityName}ToUpdate.{prop.Name}.Add(imageUrl);
                             }}
-                            //Add old files to entity
+                            //Add old photos to entity
                             if ({lowerEntityName}.Deleted{prop.Name}URLs != null)
-                                foreach (var item in oldFilesURLs)
+                                foreach (var item in oldImagesURLs)
                                 {{
                                     if (!{lowerEntityName}.Deleted{prop.Name}URLs.Contains(item))
                                         {lowerEntityName}ToUpdate.{prop.Name}.Add(item);
                                 }}
                             else
-                                foreach (var item in oldFilesURLs)
+                                foreach (var item in oldImagesURLs)
                                 {{
                                     {lowerEntityName}ToUpdate.{prop.Name}.Add(item);
                                 }}
@@ -2404,19 +2468,20 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
                         {{
                             if ({lowerEntityName}.Deleted{prop.Name}URLs != null && {lowerEntityName}.Deleted{prop.Name}URLs.Any())
                             {{
-                                var remainingFilesURLs = new List<string>();
+                                var remainingPhotosURLs = new List<string>();
                                 foreach (var item in {lowerEntityName}ToUpdate.{prop.Name})
                                 {{
                                     if (!{lowerEntityName}.Deleted{prop.Name}URLs.Contains(item))
                                     {{
-                                        remainingFilesURLs.Add(item);
+                                        remainingPhotosURLs.Add(item);
                                     }}
                                 }}
-                                {lowerEntityName}ToUpdate.{prop.Name} = remainingFilesURLs;
+                                {lowerEntityName}ToUpdate.{prop.Name} = remainingPhotosURLs;
                             }}
                         }}
-                        {filesDeleteRange}
-";
+                        {filesDeleteRange}";
+
+                    fileListUpdateCode.AppendLine(thisFileListUpdateCode);
 
                 }
 
@@ -3190,37 +3255,25 @@ namespace Application.{entityPlural}.Commands.Update{entityName}
             {
                 if (prop.Type == "GPG")
                     AssetSaveCode.Append($@"
-                deletedAssetsPaths.Add({entityName.GetCamelCaseName()}.{prop.Name});
-
-");
+                deletedAssetsPaths.Add({entityName.GetCamelCaseName()}.{prop.Name});");
                 if (prop.Type == "VD")
                     AssetSaveCode.Append($@"
-                deletedAssetsPaths.Add({entityName.GetCamelCaseName()}.{prop.Name});
-
-");
+                deletedAssetsPaths.Add({entityName.GetCamelCaseName()}.{prop.Name});");
                 if (prop.Type == "FL")
                     AssetSaveCode.Append($@"
-                deletedAssetsPaths.Add({entityName.GetCamelCaseName()}.{prop.Name});
-
-");
+                deletedAssetsPaths.Add({entityName.GetCamelCaseName()}.{prop.Name});");
                 if (prop.Type == "PNGs")
                     AssetSaveCode.Append($@"
                 foreach(var path in {entityName.GetCamelCaseName()}.{prop.Name})
-                    deletedAssetsPaths.Add(path);
-
-");
+                    deletedAssetsPaths.Add(path);");
                 if (prop.Type == "VDs")
                     AssetSaveCode.Append($@"
                 foreach(var path in {entityName.GetCamelCaseName()}.{prop.Name})
-                    deletedAssetsPaths.Add(path);
-
-");
+                    deletedAssetsPaths.Add(path);");
                 if (prop.Type == "FLs")
                     AssetSaveCode.Append($@"
                 foreach(var path in {entityName.GetCamelCaseName()}.{prop.Name})
-                    deletedAssetsPaths.Add(path);
-
-");
+                    deletedAssetsPaths.Add(path);");
             }
             bool getMethodCondition = relations.Any() && !(relations.Count == 1 && relations.Any(r => r.Type == RelationType.UserSingle || r.Type == RelationType.UserSingleNullable));
             string GetMethod = getMethodCondition ? $"Get{entityName}" : "GetByIdAsync";
@@ -3411,77 +3464,77 @@ namespace Application.{entityPlural}.Commands.Delete{entityName}
                 {
                     if (prop.Validation != null && prop.Validation.Required)
                     {
-                        mapperEnum.AppendLine($".ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => ({entityName}{prop.Name})src.{prop.Name}))");
+                        mapperEnum.AppendLine($"\t\t\t\t.ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => ({entityName}{prop.Name})src.{prop.Name}))");
                     }
                     else
                     {
-                        mapperEnum.AppendLine($".ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => ({entityName}{prop.Name}?)src.{prop.Name}))");
+                        mapperEnum.AppendLine($"\t\t\t\t.ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => ({entityName}{prop.Name}?)src.{prop.Name}))");
                     }
                 }
                 if (prop.Type == "GPG")
                 {
-                    mapperAssets.AppendLine($".ForMember(dest => dest.{prop.Name}Url, opt => opt.MapFrom(src => src.{prop.Name}))");
+                    mapperAssets.AppendLine($"\t\t\t\t.ForMember(dest => dest.{prop.Name}Url, opt => opt.MapFrom(src => src.{prop.Name}))");
                     if (isParent != null || parentEntityName != null)
                     {
                         propList.Add($"\t\tpublic object {prop.Name} {{ get; set; }} = null!;");
                         propList.Add($"\t\tpublic bool Delete{prop.Name} {{ get; set; }} = false;");
                         propList.Add($"\t\tpublic object {prop.Name}Src {{ get; set; }} = null!;");
-                        mapperAssets.AppendLine($".ForMember(dest => dest.{prop.Name}, opt => opt.Ignore())");
+                        mapperAssets.AppendLine($"\t\t\t\t.ForMember(dest => dest.{prop.Name}, opt => opt.Ignore())");
                     }
                 }
                 else if (prop.Type == "PNGs")
                 {
-                    mapperAssets.AppendLine($".ForMember(dest => dest.{prop.Name}Urls, opt => opt.MapFrom(src => src.{prop.Name}))");
+                    mapperAssets.AppendLine($"\t\t\t\t\t.ForMember(dest => dest.{prop.Name}Urls, opt => opt.MapFrom(src => src.{prop.Name}))");
                     if (isParent != null || parentEntityName != null)
                     {
                         propList.Add($"\t\tpublic List<string> {prop.Name} {{ get; set; }} = new List<string>();");
                         propList.Add($"\t\tpublic List<string> Deleted{prop.Name}Urls {{ get; set; }} = new List<string>();");
                         propList.Add($"\t\tpublic List<string> {prop.Name}Srcs {{ get; set; }} = new List<string>();");
-                        mapperAssets.AppendLine($".ForMember(dest => dest.{prop.Name}, opt => opt.Ignore())");
+                        mapperAssets.AppendLine($"\t\t\t\t.ForMember(dest => dest.{prop.Name}, opt => opt.Ignore())");
                     }
                 }
                 else if (prop.Type == "VD")
                 {
-                    mapperAssets.AppendLine($".ForMember(dest => dest.{prop.Name}Url, opt => opt.MapFrom(src => src.{prop.Name}))");
+                    mapperAssets.AppendLine($"\t\t\t\t.ForMember(dest => dest.{prop.Name}Url, opt => opt.MapFrom(src => src.{prop.Name}))");
                     if (isParent != null || parentEntityName != null)
                     {
                         propList.Add($"\t\tpublic object {prop.Name} {{ get; set; }} = null!;");
                         propList.Add($"\t\tpublic bool Delete{prop.Name} {{ get; set; }} = false;");
                         propList.Add($"\t\tpublic object {prop.Name}Src {{ get; set; }} = null!;");
-                        mapperAssets.AppendLine($".ForMember(dest => dest.{prop.Name}, opt => opt.Ignore())");
+                        mapperAssets.AppendLine($"\t\t\t\t.ForMember(dest => dest.{prop.Name}, opt => opt.Ignore())");
                     }
                 }
                 else if (prop.Type == "VDs")
                 {
-                    mapperAssets.AppendLine($".ForMember(dest => dest.{prop.Name}Urls, opt => opt.MapFrom(src => src.{prop.Name}))");
+                    mapperAssets.AppendLine($"\t\t\t\t.ForMember(dest => dest.{prop.Name}Urls, opt => opt.MapFrom(src => src.{prop.Name}))");
                     if (isParent != null || parentEntityName != null)
                     {
                         propList.Add($"\t\tpublic List<string> {prop.Name} {{ get; set; }} = new List<string>();");
                         propList.Add($"\t\tpublic List<string> Deleted{prop.Name}Urls {{ get; set; }} = new List<string>();");
                         propList.Add($"\t\tpublic List<string> {prop.Name}Srcs {{ get; set; }} = new List<string>();");
-                        mapperAssets.AppendLine($".ForMember(dest => dest.{prop.Name}, opt => opt.Ignore())");
+                        mapperAssets.AppendLine($"\t\t\t\t.ForMember(dest => dest.{prop.Name}, opt => opt.Ignore())");
                     }
                 }
                 else if (prop.Type == "FL")
                 {
-                    mapperAssets.AppendLine($".ForMember(dest => dest.{prop.Name}Url, opt => opt.MapFrom(src => src.{prop.Name}))");
+                    mapperAssets.AppendLine($"\t\t\t\t.ForMember(dest => dest.{prop.Name}Url, opt => opt.MapFrom(src => src.{prop.Name}))");
                     if (isParent != null || parentEntityName != null)
                     {
                         propList.Add($"\t\tpublic object {prop.Name} {{ get; set; }} = null!;");
                         propList.Add($"\t\tpublic bool Delete{prop.Name} {{ get; set; }} = false;");
                         propList.Add($"\t\tpublic object {prop.Name}Src {{ get; set; }} = null!;");
-                        mapperAssets.AppendLine($".ForMember(dest => dest.{prop.Name}, opt => opt.Ignore())");
+                        mapperAssets.AppendLine($"\t\t\t\t.ForMember(dest => dest.{prop.Name}, opt => opt.Ignore())");
                     }
                 }
                 else if (prop.Type == "FLs")
                 {
-                    mapperAssets.AppendLine($".ForMember(dest => dest.{prop.Name}Urls, opt => opt.MapFrom(src => src.{prop.Name}))");
+                    mapperAssets.AppendLine($"\t\t\t\t.ForMember(dest => dest.{prop.Name}Urls, opt => opt.MapFrom(src => src.{prop.Name}))");
                     if (isParent != null || parentEntityName != null)
                     {
                         propList.Add($"\t\tpublic List<string> {prop.Name} {{ get; set; }} = new List<string>();");
                         propList.Add($"\t\tpublic List<string> Deleted{prop.Name}Urls {{ get; set; }} = new List<string>();");
                         propList.Add($"\t\tpublic List<string> {prop.Name}Srcs {{ get; set; }} = new List<string>();");
-                        mapperAssets.AppendLine($".ForMember(dest => dest.{prop.Name}, opt => opt.Ignore())");
+                        mapperAssets.AppendLine($"\t\t\t\t.ForMember(dest => dest.{prop.Name}, opt => opt.Ignore())");
                     }
                 }
             }
@@ -4012,85 +4065,79 @@ namespace Application.{entityPlural}.Queries.Get{entityName}WithLocalization
                 {
                     if (prop.Validation != null && prop.Validation.Required)
                     {
-                        mapperEnum.Append($".ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => ({entityName}{prop.Name})src.{prop.Name}))");
-                        mapperEnum.AppendLine();
+                        mapperEnum.AppendLine($"\t\t\t\t.ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => ({entityName}{prop.Name})src.{prop.Name}))");
                     }
                     else
                     {
-                        mapperEnum.Append($".ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => ({entityName}{prop.Name}?)src.{prop.Name}))");
-                        mapperEnum.AppendLine();
+                        mapperEnum.AppendLine($"\t\t\t\t.ForMember(dest => dest.{prop.Name}, opt => opt.MapFrom(src => ({entityName}{prop.Name}?)src.{prop.Name}))");
                     }
                 }
                 if (prop.Type == "GPG")
                 {
-                    mapperAssets.Append($".ForMember(dest => dest.{prop.Name}Url, opt => opt.MapFrom(src => src.{prop.Name}))");
-                    mapperAssets.AppendLine();
+                    mapperAssets.AppendLine($"\t\t\t\t.ForMember(dest => dest.{prop.Name}Url, opt => opt.MapFrom(src => src.{prop.Name}))");
                     if (parentEntityName != null)
                     {
                         propList.Add($"\t\t\tpublic object {prop.Name} {{ get; set; }} = null!;");
                         propList.Add($"\t\t\tpublic bool Delete{prop.Name} {{ get; set; }} = false;");
                         propList.Add($"\t\t\tpublic object {prop.Name}Src {{ get; set; }} = null!;");
-                        mapperAssets.AppendLine($".ForMember(dest => dest.{prop.Name}, opt => opt.Ignore())");
+                        mapperAssets.AppendLine($"\t\t\t\t.ForMember(dest => dest.{prop.Name}, opt => opt.Ignore())");
                     }
 
                 }
                 else if (prop.Type == "PNGs")
                 {
-                    mapperAssets.Append($".ForMember(dest => dest.{prop.Name}Urls, opt => opt.MapFrom(src => src.{prop.Name}))");
-                    mapperAssets.AppendLine();
+                    mapperAssets.AppendLine($"\t\t\t\t.ForMember(dest => dest.{prop.Name}Urls, opt => opt.MapFrom(src => src.{prop.Name}))");
                     if (parentEntityName != null)
                     {
                         propList.Add($"\t\t\tpublic List<string> {prop.Name} {{ get; set; }} = new List<string>();");
                         propList.Add($"\t\t\tpublic List<string> Deleted{prop.Name}Urls {{ get; set; }} = new List<string>();");
                         propList.Add($"\t\t\tpublic List<string> {prop.Name}Srcs {{ get; set; }} = new List<string>();");
-                        mapperAssets.AppendLine($".ForMember(dest => dest.{prop.Name}, opt => opt.Ignore())");
+                        mapperAssets.AppendLine($"\t\t\t\t.ForMember(dest => dest.{prop.Name}, opt => opt.Ignore())");
                     }
                 }
                 else if (prop.Type == "VD")
                 {
-                    mapperAssets.Append($".ForMember(dest => dest.{prop.Name}Url, opt => opt.MapFrom(src => src.{prop.Name}))");
-                    mapperAssets.AppendLine();
+                    mapperAssets.AppendLine($"\t\t\t\t.ForMember(dest => dest.{prop.Name}Url, opt => opt.MapFrom(src => src.{prop.Name}))");
                     if (parentEntityName != null)
                     {
                         propList.Add($"\t\t\tpublic object {prop.Name} {{ get; set; }} = null!;");
                         propList.Add($"\t\t\tpublic bool Delete{prop.Name} {{ get; set; }} = false;");
                         propList.Add($"\t\t\tpublic object {prop.Name}Src {{ get; set; }} = null!;");
-                        mapperAssets.AppendLine($".ForMember(dest => dest.{prop.Name}, opt => opt.Ignore())");
+                        mapperAssets.AppendLine($"\t\t\t\t.ForMember(dest => dest.{prop.Name}, opt => opt.Ignore())");
                     }
                 }
                 else if (prop.Type == "VDs")
                 {
-                    mapperAssets.Append($".ForMember(dest => dest.{prop.Name}Urls, opt => opt.MapFrom(src => src.{prop.Name}))");
-                    mapperAssets.AppendLine();
+                    mapperAssets.AppendLine($"\t\t\t\t.ForMember(dest => dest.{prop.Name}Urls, opt => opt.MapFrom(src => src.{prop.Name}))");
                     if (parentEntityName != null)
                     {
                         propList.Add($"\t\t\tpublic List<string> {prop.Name} {{ get; set; }} = new List<string>();");
                         propList.Add($"\t\t\tpublic List<string> Deleted{prop.Name}Urls {{ get; set; }} = new List<string>();");
                         propList.Add($"\t\t\tpublic List<string> {prop.Name}Srcs {{ get; set; }} = new List<string>();");
-                        mapperAssets.AppendLine($".ForMember(dest => dest.{prop.Name}, opt => opt.Ignore())");
+                        mapperAssets.AppendLine($"\t\t\t\t.ForMember(dest => dest.{prop.Name}, opt => opt.Ignore())");
                     }
                 }
                 else if (prop.Type == "FL")
                 {
-                    mapperAssets.AppendLine($".ForMember(dest => dest.{prop.Name}Url, opt => opt.MapFrom(src => src.{prop.Name}))");
+                    mapperAssets.AppendLine($"\t\t\t\t.ForMember(dest => dest.{prop.Name}Url, opt => opt.MapFrom(src => src.{prop.Name}))");
                     if (parentEntityName != null)
                     {
                         propList.Add($"\t\t\tpublic object {prop.Name} {{ get; set; }} = null!;");
                         propList.Add($"\t\t\tpublic bool Delete{prop.Name} {{ get; set; }} = false;");
                         propList.Add($"\t\t\tpublic object {prop.Name}Src {{ get; set; }} = null!;");
-                        mapperAssets.AppendLine($".ForMember(dest => dest.{prop.Name}, opt => opt.Ignore())");
+                        mapperAssets.AppendLine($"\t\t\t\t.ForMember(dest => dest.{prop.Name}, opt => opt.Ignore())");
                     }
                 }
                 else if (prop.Type == "FLs")
                 {
-                    mapperAssets.AppendLine($".ForMember(dest => dest.{prop.Name}Urls, opt => opt.MapFrom(src => src.{prop.Name}))");
+                    mapperAssets.AppendLine($"\t\t\t\t.ForMember(dest => dest.{prop.Name}Urls, opt => opt.MapFrom(src => src.{prop.Name}))");
                     if (parentEntityName != null)
                     {
                         propList.Add($"\t\t\tpublic List<string> {prop.Name} {{ get; set; }} = new List<string>();");
                         propList.Add($"\t\t\tpublic List<string> Deleted{prop.Name}Urls {{ get; set; }} = new List<string>();");
                         propList.Add($"\t\t\tpublic List<string> {prop.Name}Srcs {{ get; set; }} = new List<string>();");
                         propList.Add($"\t\t\tpublic bool Is{prop.Name}Fetched {{ get; set; }} = false;");
-                        mapperAssets.AppendLine($".ForMember(dest => dest.{prop.Name}, opt => opt.Ignore())");
+                        mapperAssets.AppendLine($"\t\t\t\t.ForMember(dest => dest.{prop.Name}, opt => opt.Ignore())");
                     }
                 }
             }
@@ -4138,7 +4185,7 @@ namespace Application.{entityPlural}.Queries.Get{entityName}WithLocalization
 
     public class {entityName}BulkDto
     {{
-        public List<GetBulk{entityPlural}Dto> {parentEntityName}{entityPlural} {{ get; set; }} = new List<GetBulk{entityPlural}Dto>();
+        public List<GetBulk{entityPlural}Dto> {entityPlural} {{ get; set; }} = new List<GetBulk{entityPlural}Dto>();
         public Guid {parentEntityName}Id {{ get; set; }}
 
     }}";
@@ -4573,7 +4620,7 @@ namespace Application.{entityPlural}.Queries.GetBulk{entityPlural}
             {forUserRelationCode}
             var res = new {entityName}BulkDto();
             res.{parentEntityName}Id = request.{parentEntityName}Id;
-            res.{parentEntityName}{entityPlural} = result;
+            res.{entityPlural} = result;
             {getEventCode}
             return res;
         }}
