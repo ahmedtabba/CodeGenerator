@@ -12,7 +12,7 @@ namespace Frontend.VueJsHelper
 {
     public class VueJsHelper
     {
-        public static string VueJsSolutionPath = "C:\\Users\\VICTUS\\Desktop\\Vue\\vue-first-app\\src"; // ضع المسار الجذري لمشروع Vue هنا
+        public static string VueJsSolutionPath = "C:\\Users\\HP\\source\\repos\\DCIPPFrontend\\src"; // ضع المسار الجذري لمشروع Vue هنا
 
         public static void GenerateStoreFile(string entityName, SharedClasses.Properties properties, List<string> notGeneratedTableProperties, List<string> hiddenTableProperties, List<Relation> relations, string srcDir, bool? isParent = null)
         {
@@ -455,7 +455,7 @@ export const {storeName} = defineStore('{entityLower}', {{
         async [SAVE_ITEM]() {{
             this[SAVE]();
             const item = {{
-            {entityLower}id: this.id,
+            {entityLower}Id: this.id,
 {constItemBuilder}
             }};
             // validation
@@ -8697,7 +8697,7 @@ const handleTabClick = (key) => {{
                                 <!-- uploaded state -->
                                 <div v-else class=""p-[10px]"">
                                     <!-- Preview of the single file -->
-                                    <div v-if=""single{prop.Name}PreviewUrl && !isArchive(single{prop.Name}File.name)"" class=""bg-[#EEEBE5] flex-wrap py-[12px] px-[14px] rounded-[8px] flex gap-4 justify-between items-center"">
+                                    <div v-if=""single{prop.Name}PreviewUrl && !isArchive(single{prop.Name}.name)"" class=""bg-[#EEEBE5] flex-wrap py-[12px] px-[14px] rounded-[8px] flex gap-4 justify-between items-center"">
                                         <!-- File preview -->
 
                                         <div class=""flex items-center gap-4"">
@@ -8706,7 +8706,7 @@ const handleTabClick = (key) => {{
                                             </div>
                                             <p
                                                 v-tooltip.top=""{{
-                                                    value: single{prop.Name}File.name,
+                                                    value: single{prop.Name}.name,
                                                     pt: {{
                                                         root: {{
                                                             style: {{
@@ -8719,15 +8719,15 @@ const handleTabClick = (key) => {{
                                                 }}""
                                                 class=""flex items-center flex-wrap gap-1 gap-y-0.5 text-[14px] font-semibold text-green1""
                                             >
-                                                {{{{ shortenFileName(single{prop.Name}File.name) }}}}
-                                                <!-- <span class="""">({{{{ (single{prop.Name}File.size / 1024).toFixed(1) }}}} KB)</span> -->
+                                                {{{{ shortenFileName(single{prop.Name}.name) }}}}
+                                                <!-- <span class="""">({{{{ (single{prop.Name}.size / 1024).toFixed(1) }}}} KB)</span> -->
                                             </p>
                                         </div>
                                         <div class=""file-buttons-container"">
-                                            <a :href=""single{prop.Name}PreviewUrl"" :download=""single{prop.Name}File.name"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FBFFDD] transition-colors rounded-[6px]"">
+                                            <a :href=""single{prop.Name}PreviewUrl"" :download=""single{prop.Name}.name"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FBFFDD] transition-colors rounded-[6px]"">
                                                 <img src=""@/assets/icons/fileDownloadIcon.svg"" alt=""file download"" />
                                             </a>
-                                            <button @click=""openPreviewModal(single{prop.Name}File)"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#E0FAFF] transition-colors rounded-[6px]"">
+                                            <button @click=""openPreviewModal(single{prop.Name})"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#E0FAFF] transition-colors rounded-[6px]"">
                                                 <img src=""@/assets/icons/filePreviewIcon.svg"" alt=""file preview"" />
                                             </button>
                                             <button @click=""remove{prop.Name}"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FECFD5] transition-colors rounded-[6px]"">
@@ -8736,7 +8736,7 @@ const handleTabClick = (key) => {{
                                         </div>
                                     </div>
                                     <!-- single archive -->
-                                    <div v-if=""single{prop.Name}PreviewUrl && isArchive(single{prop.Name}File.name)"" class="""">
+                                    <div v-if=""single{prop.Name}PreviewUrl && isArchive(single{prop.Name}.name)"" class="""">
                                         <!-- <label class=""block mb-3"">{{{{ $t('title.archivedFile') }}}}</label> -->
                                         <div class=""bg-[#EEEBE5] flex-wrap py-[12px] px-[14px] rounded-[8px] flex gap-4 justify-between items-center"">
                                             <div class=""flex items-center gap-4"">
@@ -8745,7 +8745,7 @@ const handleTabClick = (key) => {{
                                                 </div>
                                                 <p
                                                     v-tooltip.top=""{{
-                                                        value: single{prop.Name}File.name,
+                                                        value: single{prop.Name}.name,
                                                         pt: {{
                                                             root: {{
                                                                 style: {{
@@ -8758,12 +8758,12 @@ const handleTabClick = (key) => {{
                                                     }}""
                                                     class=""flex items-center flex-wrap gap-1 gap-y-0.5 text-[14px] font-semibold text-green1""
                                                 >
-                                                    {{{{ single{prop.Name}File.name }}}}
-                                                    <!-- ({{{{ (single{prop.Name}File.size / 1024).toFixed(1) }}}} KB) -->
+                                                    {{{{ single{prop.Name}.name }}}}
+                                                    <!-- ({{{{ (single{prop.Name}.size / 1024).toFixed(1) }}}} KB) -->
                                                 </p>
                                             </div>
                                             <div class=""file-buttons-container"">
-                                                <a :href=""single{prop.Name}PreviewUrl"" :download=""single{prop.Name}File.name"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FBFFDD] transition-colors rounded-[6px]"">
+                                                <a :href=""single{prop.Name}PreviewUrl"" :download=""single{prop.Name}.name"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FBFFDD] transition-colors rounded-[6px]"">
                                                     <img src=""@/assets/icons/fileDownloadIcon.svg"" alt=""file download"" />
                                                 </a>
                                                 <button @click=""remove{prop.Name}"" :disabled=""state.finding || state.saving || state.itemPageState === $StoreConstant('VIEW_PAGE_STATE')"" class=""h-[28px] w-[28px] flex items-center justify-center bg-white hover:bg-[#FECFD5] transition-colors rounded-[6px]"">
@@ -8965,7 +8965,7 @@ const handleTabClick = (key) => {{
                                     </div>
                                     <!-- Archived files list -->
                                     <div v-if=""archive{prop.Name}.length"" class=""mt-4"">
-                                        <!-- <label class=""block mb-3"">{{{{ $t('title.archivedFiles') }}}}</label> -->
+                                        <!-- <label class=""block mb-3"">{{{{ $t('title.archived{prop.Name}') }}}}</label> -->
                                         <ul class=""space-y-4"">
                                             <li v-for=""(p, i) in archive{prop.Name}"" :key=""`arch-${{i}}`"" class=""bg-[#EEEBE5] flex-wrap py-[12px] px-[14px] rounded-[8px] flex gap-4 justify-between items-center"">
                                                 <div class=""flex items-center gap-4"">
